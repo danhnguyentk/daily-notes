@@ -15,11 +15,16 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
+export interface Env {
+  SCRAPER_KEY: string;
+}
+
+import { fetchBtcEtf } from './fetchBtcEtf';
+
 export default {
-	async fetch(req) {
+	async fetch(req, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const url = new URL(req.url);
-		url.pathname = '/__scheduled';
-		url.searchParams.append('cron', '* * * * *');
+		await fetchBtcEtf(env);
 		return new Response(`To test the scheduled handler, ensure you have used the "--test-scheduled" then try running "curl ${url.href}".`);
 	},
 
