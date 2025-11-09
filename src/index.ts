@@ -15,31 +15,46 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-export interface Env {
-  SCRAPER_KEY: string;
-}
+import { fetchBtcEtf, EtfRow } from './fetchBtcEtf';
+import { sendMessage } from './telegramService';
+import { Env } from './types';
 
-import { fetchBtcEtf } from './fetchBtcEtf';
+async function analyzeDataAndSendMessage(env: Env) {
+  const rows: EtfRow[] = await fetchBtcEtf(env);
+    
+  // Get the latest row based on date
+  const latestRow = rows.reduce((latest, current) => {
+    return new Date(current.data) > new Date(latest.data) ? current : latest;
+  }, rows[0]);
+  console.log('Latest Row:', latestRow);
+
+  // Send message to Telegram
+  const fbtcValue = latestRow.funds[`FBTC-Fidelity`] as number;
+  let recommendation = `Thị trường chưa rõ ràng. Quan sát thêm.`;
+  if (fbtcValue < 0) {
+    recommendation = `Hạn chế  mua BTC vì dòng tiền từ quỹ đang âm. Chờ đợi.`;
+  } else if (fbtcValue >= 100) {
+    recommendation = `Cân nhắc BTC vì dòng tiền từ quỹ đang dương.` ;
+  } else if (fbtcValue >= 200) {
+    recommendation = `Mạnh dạn mua BTC vì dòng tiền từ quỹ đang rất dương.`;
+  }
+  const message = {
+    ...latestRow,
+    recommendation
+  }
+  await sendMessage(JSON.stringify(message, null, 2), env);
+}
 
 export default {
 	async fetch(req, env: Env, ctx: ExecutionContext): Promise<Response> {
-		const url = new URL(req.url);
-		await fetchBtcEtf(env);
-		return new Response(`To test the scheduled handler, ensure you have used the "--test-scheduled" then try running "curl ${url.href}".`);
+		const message = analyzeDataAndSendMessage(env);
+		return new Response(JSON.stringify(message, null, 2), { status: 200 });
 	},
 
 	// The scheduled handler is invoked at the interval set in our wrangler.jsonc's
 	// [[triggers]] configuration.
-	async scheduled(event, env, ctx): Promise<void> {
-		// A Cron Trigger can make requests to other endpoints on the Internet,
-		// publish to a Queue, query a D1 Database, and much more.
-		//
-		// We'll keep it simple and make an API call to a Cloudflare API:
-		let resp = await fetch('https://api.cloudflare.com/client/v4/ips');
-		let wasSuccessful = resp.ok ? 'success' : 'fail';
-
-		// You could store this result in KV, write to a D1 Database, or publish to a Queue.
-		// In this template, we'll just log the result:
-		console.log(`trigger fired at ${event.cron}: ${wasSuccessful}`);
+	async scheduled(event, env: Env, ctx: ExecutionContext): Promise<void> {
+    console.log(`Starting scheduled at ${event.cron}, ${event.scheduledTime}`);
+    const message = analyzeDataAndSendMessage(env);
 	},
 } satisfies ExportedHandler<Env>;

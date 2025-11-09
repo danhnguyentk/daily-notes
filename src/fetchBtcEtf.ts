@@ -1,7 +1,7 @@
-import { Env } from ".";
+import { Env } from "./types";
 import * as cheerio from "cheerio";
 
-type EtfRow = {
+export type EtfRow = {
   data: string;
   funds: Record<string, number | null>;
   total: number;
