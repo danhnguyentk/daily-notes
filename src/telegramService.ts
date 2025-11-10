@@ -1,12 +1,17 @@
 import { Env } from './types';
 
-type TelegramImageRequest = {
+export type TelegramImageRequest = {
   chat_id: string;
   caption: string;
   photo: ArrayBuffer;
 };
 
-export async function sendMessage(message: string, env: Env) {
+export type TelegramImageGroupRequest = {
+  chat_id: string;
+  images: TelegramImageRequest[];
+}
+
+export async function sendMessageToTelegram(message: string, env: Env) {
   console.log(`Sending message to Telegram: ${message}`);
   const url = `https://api.telegram.org/bot${env.TELEGRAM_KEY}/sendMessage`;
   const res = await fetch(url, {
@@ -59,3 +64,41 @@ export async function sendImageToTelegram(request: TelegramImageRequest, env: En
 
   console.log('Image sent to Telegram successfully');
 }
+
+export const sendImageGroupToTelegram = async (groupRequest: TelegramImageGroupRequest, env: Env): Promise<void> => {
+  const images = groupRequest.images;
+  console.log(`Sending image group to Telegram with ${images.length} images`);
+  const url = `https://api.telegram.org/bot${env.TELEGRAM_KEY}/sendMediaGroup`;
+  const formData = new FormData();
+
+  const media = images.map((item, index) => {
+    const photoBlob = new Blob([item.photo], { type: 'image/png' });
+    const fileName = `chart_${index + 1}.png`;
+    formData.append(`photo${index}`, photoBlob, fileName);
+    return {
+      type: 'photo',
+      media: `attach://photo${index}`,
+      caption: item.caption,
+    };
+  });
+
+  formData.append('chat_id', groupRequest.chat_id);
+  formData.append('media', JSON.stringify(media));
+
+  const response = await fetch(url, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorLogs = {
+      status: response.status,
+      statusText: response.statusText,
+      chatId: groupRequest.chat_id,
+      mediaCount: groupRequest.images.length,
+    };
+    throw new Error(`Telegram API failed when send media group. ${JSON.stringify(errorLogs, null, 2)}`);
+  }
+
+  console.log('Image group sent to Telegram successfully');
+};

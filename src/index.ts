@@ -16,7 +16,7 @@
  */
 
 import { fetchBtcEtf, EtfRow } from './fetchBtcEtf';
-import { sendImageToTelegram, sendMessage } from './telegramService';
+import { TelegramImageRequest, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram } from './telegramService';
 import { TradingviewInterval, TradingviewSymbol, getTradingViewImage } from './tradingviewService';
 import { Env } from './types';
 
@@ -43,7 +43,7 @@ async function analyzeEtfData(env: Env) {
     ...latestRow,
     recommendation
   }
-  await sendMessage(JSON.stringify(message, null, 2), env);
+  await sendMessageToTelegram(JSON.stringify(message, null, 2), env);
 }
 
 export async function snapshotChart(env: Env) {
@@ -57,6 +57,7 @@ export async function snapshotChart(env: Env) {
     { key: '15m', value: TradingviewInterval.Min15 },
   ];
 
+  const images: TelegramImageRequest[] = [];
   for (const tf of intervals) {
     console.log(`Generating snapshot for ${tf.key}...`);
 
@@ -68,19 +69,31 @@ export async function snapshotChart(env: Env) {
       env,
     );
 
-    await sendImageToTelegram(
-      {
-        chat_id: env.TELEGRAM_CHAT_ID,
-        caption: `${tf.key}`,
-        photo: arrayBufferImage,
-      },
-      env,
-    );
-
-    console.log(`✅ Sent ${tf.key} chart to Telegram`);
+    images.push({
+      chat_id: env.TELEGRAM_CHAT_ID,
+      caption: `${tf.key} ${formatVietnamTime()}`,
+      photo: arrayBufferImage,
+    })
   }
 
-  console.log('📤 All snapshots completed');
+  await sendImageGroupToTelegram({
+    chat_id: env.TELEGRAM_CHAT_ID,
+    images: images,
+  }, env);
+  console.log('📸 Snapshot chart sent to Telegram successfully');
+}
+
+function formatVietnamTime(date: Date = new Date()): string {
+  return date.toLocaleString('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 }
 
 export default {

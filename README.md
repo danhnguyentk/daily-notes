@@ -14,3 +14,6 @@ http://localhost:8787/__scheduled
 ### Snapshot Chart
 - https://chart-img.com/account/api
 - https://chart-img.medium.com/tradingview-snapshot-with-rest-api-part1-74f4d8403015
+
+### Telegram
+- https://core.telegram.org/bots/api#available-methods
