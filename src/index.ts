@@ -107,7 +107,17 @@ export default {
 	// The scheduled handler is invoked at the interval set in our wrangler.jsonc's
 	// [[triggers]] configuration.
 	async scheduled(event, env: Env, ctx: ExecutionContext): Promise<void> {
-    console.log(`Starting scheduled at ${event.cron}, ${event.scheduledTime}`);
-    await analyzeEtfData(env);
+    console.log(`⏰ Starting scheduled job at cron: ${event.cron}, time: ${event.scheduledTime}`);
+
+    // Always snapshot the chart every 4h + 5m
+    await snapshotChart(env);
+
+    // Only run analyzeEtfData if cron == "5 0 * * *" (which means 00:05 UTC)
+    if (event.cron === "5 0 * * *") {
+      console.log("📊 Running ETF data analysis for 00:05 schedule");
+      await analyzeEtfData(env);
+    } else {
+      console.log(`Skipping ETF analysis for this cron (${event.cron})`);
+    }
 	},
 } satisfies ExportedHandler<Env>;
