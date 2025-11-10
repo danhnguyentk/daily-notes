@@ -47,7 +47,7 @@ async function analyzeDataAndSendMessage(env: Env) {
 
 export default {
 	async fetch(req, env: Env, ctx: ExecutionContext): Promise<Response> {
-		const message = analyzeDataAndSendMessage(env);
+		const message = await analyzeDataAndSendMessage(env);
 		return new Response(JSON.stringify(message, null, 2), { status: 200 });
 	},
 
@@ -55,6 +55,6 @@ export default {
 	// [[triggers]] configuration.
 	async scheduled(event, env: Env, ctx: ExecutionContext): Promise<void> {
     console.log(`Starting scheduled at ${event.cron}, ${event.scheduledTime}`);
-    const message = analyzeDataAndSendMessage(env);
+    await analyzeDataAndSendMessage(env);
 	},
 } satisfies ExportedHandler<Env>;
