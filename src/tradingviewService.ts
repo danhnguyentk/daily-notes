@@ -60,12 +60,7 @@ export async function getTradingViewImage(request: TradingviewRequest, env: Env)
       'x-api-key': env.CHART_IMAGE_KEY,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      ...request,
-      // price on the right side of the chart overlaps and hides the last candlestick bars,
-      // So we need to move the chart to the left a bit
-      moveLeft: 2,
-    }),
+    body: JSON.stringify(request),
   });
 
   if (!response.ok) {
