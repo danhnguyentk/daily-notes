@@ -123,12 +123,23 @@ export default {
     console.log(`⏰ Starting scheduled job at cron: ${event.cron}, time: ${event.scheduledTime}`);
 
     // Always snapshot the chart every 4h + 5m
-    await snapshotChart(env);
+    try {
+      await snapshotChart(env);
+    } catch (error) {
+      console.error(`Error during snapshotChart: ${(error as any).message}`);
+      await sendMessageToTelegram(`Error during snapshotChart: ${(error as any).message}`, env);
+    }
+    
 
     // Only run analyzeEtfData if cron == "5 0 * * *" (which means 00:05 UTC)
     if (event.cron === "5 0 * * *") {
       console.log("📊 Running ETF data analysis for 00:05 schedule");
-      await analyzeEtfData(env);
+      try {
+        await analyzeEtfData(env);
+      } catch (error) {
+        console.error(`Error during analyzeEtfData: ${(error as any).message}`);
+        await sendMessageToTelegram(`Error during analyzeEtfData: ${(error as any).message}`, env);
+      }
     } else {
       console.log(`Skipping ETF analysis for this cron (${event.cron})`);
     }
