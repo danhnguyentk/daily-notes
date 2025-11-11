@@ -7,6 +7,24 @@ export type TelegramImageRequest = {
   photo: ArrayBuffer;
 };
 
+export enum TelegramChatAction {
+  Typing = 'typing',
+  UploadPhoto = 'upload_photo',
+  RecordVideo = 'record_video',
+  UploadVideo = 'upload_video',
+  RecordVoice = 'record_voice',
+  UploadVoice = 'upload_voice',
+  UploadDocument = 'upload_document',
+  FindLocation = 'find_location',
+  RecordVideoNote = 'record_video_note',
+  UploadVideoNote = 'upload_video_note',
+}
+
+export type TelegramChatActionRequest = {
+  chat_id: string;
+  action: TelegramChatAction;
+}
+
 export type TelegramImageGroupRequest = {
   chat_id: string;
   images: TelegramImageRequest[];
@@ -167,4 +185,17 @@ export const setWebhookTelegram = async (env: Env): Promise<any> => {
   return {
     message: `Telegram webhook set successfully ${env.WORKER_URL}/webhook`,
   }
+}
+
+export async function sendChatActionTelegram(request: TelegramChatActionRequest, env: Env) {
+  console.log(`Sending chat action to Telegram: ${request.action}`);
+  await fetch(`https://api.telegram.org/bot${env.TELEGRAM_KEY}/sendChatAction`, {
+    method: 'POST',
+    body: JSON.stringify({ 
+      chat_id: request.chat_id, 
+      action: request.action
+    }
+    ),
+  });
+  console.log('Chat action sent to Telegram successfully');
 }

@@ -16,7 +16,7 @@
  */
 
 import { fetchBtcEtf, EtfRow } from './fetchBtcEtf';
-import { TelegramCommandIntervals, TelegramCommands, TelegramImageRequest, TelegramWebhookRequest, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram, setWebhookTelegram } from './telegramService';
+import { TelegramChatAction, TelegramCommandIntervals, TelegramCommands, TelegramImageRequest, TelegramWebhookRequest, sendChatActionTelegram, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram, setWebhookTelegram } from './telegramService';
 import { TradingviewInterval, TradingviewSymbol, getTradingViewImage } from './tradingviewService';
 import { Env } from './types';
 
@@ -127,12 +127,16 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
     case TelegramCommands.BTC4h:
     case TelegramCommands.BTC1h:
     case TelegramCommands.BTC15m:
+      await sendMessageToTelegram('📊 Generating chart... Please wait.', env);
       await snapshotChartWithSpecificInterval(TelegramCommandIntervals[action], env);
+      break;
     case TelegramCommands.BTC:
     case TelegramCommands.SnapshotChart:
+      await sendMessageToTelegram('📊 Generating chart... Please wait.', env);
       await snapshotChart(env);
       break;  
     case TelegramCommands.AnalyzeEtfData:
+      await sendMessageToTelegram('📊 Analyzing ETF data... Please wait.', env);
       await analyzeEtfData(env);
       break;
     default:
