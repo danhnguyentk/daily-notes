@@ -17,3 +17,18 @@ http://localhost:8787/__scheduled
 
 ### Telegram
 - https://core.telegram.org/bots/api#available-methods
+- Bot Commands Telegram
+
+```
+btcdaily - BTC 1D
+btc8h - BTC 8h
+btc4h - BTC 4h
+btc1h - BTC 1h
+btc15m - BTC 15m
+snapshot - BTC All
+analyze - BTC ETF
+2candles15m - 2 Candles 15m Bullish
+1candles15m - 1 Candles 15m Bullish
+2candles1h - 2 Candles 1h Bullish
+1candles1h - 1 Candles 1h Bullish
+```

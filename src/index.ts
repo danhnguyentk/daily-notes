@@ -141,6 +141,7 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       await analyzeEtfData(env);
       break;
     case TelegramCommands.TWO_15M_BULLISH:
+      await sendMessageToTelegram('📊 Verify bullish... Please wait.', env);
       await notifyNumberClosedCandlesBullish({
         symbol: BinanceSymbol.BTCUSDT,
         interval: BinanceInterval.FIFTEEN_MINUTES,
@@ -148,6 +149,7 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       }, env);
       break;
     case TelegramCommands.ONE_15M_BULLISH:
+      await sendMessageToTelegram('📊 Verify bullish... Please wait.', env);
       await notifyNumberClosedCandlesBullish({
         symbol: BinanceSymbol.BTCUSDT,
         interval: BinanceInterval.FIFTEEN_MINUTES,
@@ -155,6 +157,7 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       }, env);
       break;
     case TelegramCommands.TWO_1H_BULLISH:
+      await sendMessageToTelegram('📊 Verify bullish... Please wait.', env);
       await notifyNumberClosedCandlesBullish({
         symbol: BinanceSymbol.BTCUSDT,
         interval: BinanceInterval.ONE_HOUR,
@@ -162,6 +165,7 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       }, env);
       break;
     case TelegramCommands.ONE_1H_BULLISH:
+      await sendMessageToTelegram('📊 Verify bullish... Please wait.', env);
       await notifyNumberClosedCandlesBullish({
         symbol: BinanceSymbol.BTCUSDT,
         interval: BinanceInterval.ONE_HOUR,
@@ -182,6 +186,7 @@ export async function notifyNumberClosedCandlesBullish(
   request: BinanceCandlesRequest,
   env: Env
 ): Promise<object> {
+  console.log(`Checking for ${request.limit} consecutive closed ${request.interval} bullish candles for ${request.symbol}...`);
   const isBullish = await checkNumberClosedCandlesBullish(request, env);
 
   if (isBullish) {

@@ -61,8 +61,8 @@ export const TelegramCommands = {
   BTC15m: '/btc15m',
   SnapshotChart: '/snapshot',
   AnalyzeEtfData: '/analyze',
-  TWO_15M_BULLISH: '/2candles15',
-  ONE_15M_BULLISH: '/1candles15',
+  TWO_15M_BULLISH: '/2candles15m',
+  ONE_15M_BULLISH: '/1candles15m',
   TWO_1H_BULLISH: '/2candles1h',
   ONE_1H_BULLISH: '/1candles1h',
 } as const;
