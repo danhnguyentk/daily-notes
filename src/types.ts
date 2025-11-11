@@ -4,5 +4,6 @@ export interface Env {
   TELEGRAM_CHAT_ID: string;
   TRADINGVIEW_LAYOUT_ID: string;
   CHART_IMAGE_KEY: string;
+  WORKER_URL: string;
 }
 

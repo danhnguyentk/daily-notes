@@ -102,3 +102,24 @@ export const sendImageGroupToTelegram = async (groupRequest: TelegramImageGroupR
 
   console.log('Image group sent to Telegram successfully');
 };
+
+export const setWebhookTelegram = async (env: Env): Promise<any> => {
+  console.log('Setting Telegram webhook');
+  const url = `https://api.telegram.org/bot${env.TELEGRAM_KEY}/setWebhook?url=${env.WORKER_URL}/webhook`;
+  const response = await fetch(url, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const errorLogs = {
+      status: response.status,
+      statusText: response.statusText,
+      webhookUrl: `${env.WORKER_URL}/webhook`,
+    };
+    throw new Error(`Telegram API failed when setting webhook. ${JSON.stringify(errorLogs, null, 2)}`);
+  }
+
+  return {
+    message: `Telegram webhook set successfully ${env.WORKER_URL}/webhook`,
+  }
+}

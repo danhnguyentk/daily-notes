@@ -16,7 +16,7 @@
  */
 
 import { fetchBtcEtf, EtfRow } from './fetchBtcEtf';
-import { TelegramImageRequest, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram } from './telegramService';
+import { TelegramImageRequest, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram, setWebhookTelegram } from './telegramService';
 import { TradingviewInterval, TradingviewSymbol, getTradingViewImage } from './tradingviewService';
 import { Env } from './types';
 
@@ -102,11 +102,14 @@ export default {
     const pathname = url.pathname;
   
     switch (pathname) {
+      case '/setWebhookTelegram': {
+        const result = await setWebhookTelegram(env);
+        return new Response(JSON.stringify(result), { status: 200 });
+      }
       case '/analyzeEtfData': {
         const message = await analyzeEtfData(env);
         return new Response(JSON.stringify(message, null, 2), { status: 200 });
       }
-  
       case '/snapshotChart': {
         await snapshotChart(env);
         return new Response('Snapshot chart successfully', { status: 200 });
