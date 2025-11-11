@@ -169,7 +169,10 @@ export default {
       }
       case '/webhook': {
         const body = await req.json() as TelegramWebhookRequest;
-        const text = body.message?.text || '';
+        // "/btc15m@daily_analytic_btc_bot";
+        // Extract command text before the "@" symbol
+        const text = (body.message?.text || '').split("@")[0];
+        
         console.log(`Received webhook message: ${text}`);
         await takeTelegramAction(text, env);
         return new Response('Webhook handled successfully', { status: 200 });
