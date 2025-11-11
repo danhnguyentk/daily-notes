@@ -121,7 +121,7 @@ function formatVietnamTime(date: Date = new Date()): string {
   });
 }
 
-export async function takeTelegramAction(action: string, env: Env): Promise<void> {
+export async function takeTelegramAction(action: string, env: Env): Promise<object> {
   switch (action) {
     case TelegramCommands.BTCDaily:
     case TelegramCommands.BTC4h:
@@ -137,7 +137,11 @@ export async function takeTelegramAction(action: string, env: Env): Promise<void
       break;
     default:
       console.log(`No action taken for command: ${action}`);
-      break;
+      return { message: `No support this command ${action} now` };
+  }
+
+  return {
+    message: `Action ${action} completed successfully`,
   }
 }
 
