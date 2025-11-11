@@ -61,6 +61,10 @@ export const TelegramCommands = {
   BTC15m: '/btc15m',
   SnapshotChart: '/snapshot',
   AnalyzeEtfData: '/analyze',
+  TWO_15M_BULLISH: '/2candles15',
+  ONE_15M_BULLISH: '/1candles15',
+  TWO_1H_BULLISH: '/2candles1h',
+  ONE_1H_BULLISH: '/1candles1h',
 } as const;
 
 export type TelegramCommand = keyof typeof TelegramCommands;
@@ -72,6 +76,7 @@ export const TelegramCommandIntervals: Record<string, { key: string; value: type
   [TelegramCommands.BTC4h]: { key: '4h', value: TradingviewInterval.H4 },
   [TelegramCommands.BTC1h]: { key: '1h', value: TradingviewInterval.H1 },
   [TelegramCommands.BTC15m]: { key: '15m', value: TradingviewInterval.Min15 },
+  [TelegramCommands.]
 };
 
 export async function sendMessageToTelegram(message: string, env: Env) {

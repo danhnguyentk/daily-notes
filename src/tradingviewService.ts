@@ -11,12 +11,16 @@ export const TradingviewSymbol = {
 };
 
 export enum TradingviewInterval {
+  Min5 = '5m',
   Min15 = '15m',
+  Min30 = '30m',
   H1 = '1h',
   H2 = '2h',
   H4 = '4h',
+  H6 = '6h',
   H8 = '8h',
   Daily = '1D',
+  ThreeDay = '3D',
   Weekly = '1W',
   Monthly = '1M',
 };

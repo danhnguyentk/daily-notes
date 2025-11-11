@@ -15,6 +15,7 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
+import { BinanceCandlesRequest, BinanceInterval, BinanceSymbol, BinanceToTradingviewInterval, checkNumberClosedCandlesBullish } from './binanceService';
 import { fetchBtcEtf, EtfRow } from './fetchBtcEtf';
 import { TelegramChatAction, TelegramCommandIntervals, TelegramCommands, TelegramImageRequest, TelegramWebhookRequest, sendChatActionTelegram, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram, setWebhookTelegram } from './telegramService';
 import { TradingviewInterval, TradingviewSymbol, getTradingViewImage } from './tradingviewService';
@@ -139,6 +140,34 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       await sendMessageToTelegram('📊 Analyzing ETF data... Please wait.', env);
       await analyzeEtfData(env);
       break;
+    case TelegramCommands.TWO_15M_BULLISH:
+      await notifyNumberClosedCandlesBullish({
+        symbol: BinanceSymbol.BTCUSDT,
+        interval: BinanceInterval.FIFTEEN_MINUTES,
+        limit: 2,
+      }, env);
+      break;
+    case TelegramCommands.ONE_15M_BULLISH:
+      await notifyNumberClosedCandlesBullish({
+        symbol: BinanceSymbol.BTCUSDT,
+        interval: BinanceInterval.FIFTEEN_MINUTES,
+        limit: 1,
+      }, env);
+      break;
+    case TelegramCommands.TWO_1H_BULLISH:
+      await notifyNumberClosedCandlesBullish({
+        symbol: BinanceSymbol.BTCUSDT,
+        interval: BinanceInterval.ONE_HOUR,
+        limit: 2,
+      }, env);
+      break;
+    case TelegramCommands.ONE_1H_BULLISH:
+      await notifyNumberClosedCandlesBullish({
+        symbol: BinanceSymbol.BTCUSDT,
+        interval: BinanceInterval.ONE_HOUR,
+        limit: 1,
+      }, env);
+      break;
     default:
       console.log(`No action taken for command: ${action}`);
       return { message: `No support this command ${action} now` };
@@ -146,6 +175,31 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
 
   return {
     message: `Action ${action} completed successfully`,
+  }
+}
+
+export async function notifyNumberClosedCandlesBullish(
+  request: BinanceCandlesRequest,
+  env: Env
+): Promise<object> {
+  const isBullish = await checkNumberClosedCandlesBullish(request, env);
+
+  if (isBullish) {
+    const message = `🔥 Alert: ${request.limit} Consecutive closed ${request.interval} candles are bullish for ${request.symbol}! Time: ${formatVietnamTime()}`;
+    console.log(message);
+    await sendMessageToTelegram(message, env);
+
+    // Optionally, send a chart snapshot for this interval
+    await snapshotChartWithSpecificInterval(
+      { key: request.interval, value: BinanceToTradingviewInterval[request.interval] },
+      env,
+    );
+
+    return { message: `${request.limit} Consecutive closed ${request.interval} candles are bullish for ${request.symbol}.` };
+  } else {
+    const message = `No bullish pattern detected for the last consecutive ${request.interval} candles. Time: ${formatVietnamTime()}`;
+    await sendMessageToTelegram(message, env);
+    return { message };
   }
 }
 
@@ -166,6 +220,22 @@ export default {
       case '/snapshotChart': {
         await snapshotChart(env);
         return new Response('Snapshot chart successfully', { status: 200 });
+      }
+      case '/notifyOneClosed15mCandlesBullish': {
+        const result = await notifyNumberClosedCandlesBullish({
+          symbol: BinanceSymbol.BTCUSDT,
+          interval: BinanceInterval.FIFTEEN_MINUTES,
+          limit: 1,
+        }, env);
+        return new Response(JSON.stringify(result, null, 2), { status: 200 });
+      }
+      case '/notifyTwoClosed15mCandlesBullish': {
+        const result = await notifyNumberClosedCandlesBullish({
+          symbol: BinanceSymbol.BTCUSDT,
+          interval: BinanceInterval.FIFTEEN_MINUTES,
+          limit: 2,
+        }, env);
+        return new Response(JSON.stringify(result, null, 2), { status: 200 });
       }
       case '/webhook': {
         const body = await req.json() as TelegramWebhookRequest;
