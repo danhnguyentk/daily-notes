@@ -16,7 +16,7 @@
  */
 
 import { fetchBtcEtf, EtfRow } from './fetchBtcEtf';
-import { TelegramImageRequest, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram, setWebhookTelegram } from './telegramService';
+import { TelegramCommandIntervals, TelegramCommands, TelegramImageRequest, TelegramWebhookRequest, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram, setWebhookTelegram } from './telegramService';
 import { TradingviewInterval, TradingviewSymbol, getTradingViewImage } from './tradingviewService';
 import { Env } from './types';
 
@@ -83,6 +83,31 @@ export async function snapshotChart(env: Env) {
   console.log('📸 Snapshot chart sent to Telegram successfully');
 }
 
+// Send snapshot for a specific interval only
+export async function snapshotChartWithSpecificInterval(
+  interval: {key: string, value: TradingviewInterval},
+  env: Env,
+  ) {
+
+  console.log(`📸 Snapshot TradingView chart for ${interval.key} and send to Telegram`);
+
+  const arrayBufferImage = await getTradingViewImage(
+    {
+      symbol: TradingviewSymbol.BitgetBtcUsdtPerp,
+      interval: interval.value,
+    },
+    env,
+  );
+
+  await sendImageToTelegram({
+    chat_id: env.TELEGRAM_CHAT_ID,
+    caption: `${interval.key} ${formatVietnamTime()}`,
+    photo: arrayBufferImage,
+  }, env);
+
+  console.log(`📸 Snapshot chart for ${interval.key} sent to Telegram successfully`);
+}
+
 function formatVietnamTime(date: Date = new Date()): string {
   return date.toLocaleString('en-GB', {
     timeZone: 'Asia/Ho_Chi_Minh',
@@ -94,6 +119,26 @@ function formatVietnamTime(date: Date = new Date()): string {
     minute: '2-digit',
     second: '2-digit',
   });
+}
+
+export async function takeTelegramAction(action: string, env: Env): Promise<void> {
+  switch (action) {
+    case TelegramCommands.BTCDaily:
+    case TelegramCommands.BTC4h:
+    case TelegramCommands.BTC1h:
+    case TelegramCommands.BTC15m:
+      await snapshotChartWithSpecificInterval(TelegramCommandIntervals[action], env);
+    case TelegramCommands.BTC:
+    case TelegramCommands.SnapshotChart:
+      await snapshotChart(env);
+      break;  
+    case TelegramCommands.AnalyzeEtfData:
+      await analyzeEtfData(env);
+      break;
+    default:
+      console.log(`No action taken for command: ${action}`);
+      break;
+  }
 }
 
 export default {
@@ -114,9 +159,16 @@ export default {
         await snapshotChart(env);
         return new Response('Snapshot chart successfully', { status: 200 });
       }
+      case '/webhook': {
+        const body = await req.json() as TelegramWebhookRequest;
+        const text = body.message?.text || '';
+        console.log(`Received webhook message: ${text}`);
+        await takeTelegramAction(text, env);
+        return new Response('Webhook handled successfully', { status: 200 });
+      }
   
       default:
-        return new Response('OK', { status: 200 });
+        return new Response('OK. No do anything.', { status: 200 });
     }
   },
 

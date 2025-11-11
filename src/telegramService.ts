@@ -1,3 +1,4 @@
+import { TradingviewInterval } from './tradingviewService';
 import { Env } from './types';
 
 export type TelegramImageRequest = {
@@ -10,6 +11,50 @@ export type TelegramImageGroupRequest = {
   chat_id: string;
   images: TelegramImageRequest[];
 }
+
+export type TelegramWebhookRequest = {
+  update_id: number;
+  message?: {
+    message_id: number;
+    from: {
+      id: number;
+      is_bot: boolean;
+      first_name: string;
+      username: string;
+    };
+    chat: {
+      id: number;
+      title: number;
+      username: string;
+      type: string;
+    };
+    date: number;
+    text?: string;
+  };
+}
+
+// Define the Telegram commands
+export const TelegramCommands = {
+  BTC: '/btc',
+  BTCDaily: '/btcdaily',
+  BTC8h: '/btc8h',
+  BTC4h: '/btc4h',
+  BTC1h: '/btc1h',
+  BTC15m: '/btc15m',
+  SnapshotChart: '/snapshot',
+  AnalyzeEtfData: '/analyze',
+} as const;
+
+export type TelegramCommand = keyof typeof TelegramCommands;
+
+// Default mapping of Telegram commands to TradingView intervals
+export const TelegramCommandIntervals: Record<string, { key: string; value: typeof TradingviewInterval[keyof typeof TradingviewInterval] }> = {
+  [TelegramCommands.BTCDaily]: { key: '1D', value: TradingviewInterval.Daily },
+  [TelegramCommands.BTC8h]: { key: '8h', value: TradingviewInterval.H8 },
+  [TelegramCommands.BTC4h]: { key: '4h', value: TradingviewInterval.H4 },
+  [TelegramCommands.BTC1h]: { key: '1h', value: TradingviewInterval.H1 },
+  [TelegramCommands.BTC15m]: { key: '15m', value: TradingviewInterval.Min15 },
+};
 
 export async function sendMessageToTelegram(message: string, env: Env) {
   console.log(`Sending message to Telegram: ${message}`);

@@ -10,15 +10,15 @@ export const TradingviewSymbol = {
   BitgetBtcUsdtPerp: 'BITGET:BTCUSDT.P',
 };
 
-export const TradingviewInterval = {
-  Min15: '15m',
-  H1: '1h',
-  H2: '2h',
-  H4: '4h',
-  H8: '8h',
-  Daily: '1D',
-  Weekly: '1W',
-  Monthly: '1M',
+export enum TradingviewInterval {
+  Min15 = '15m',
+  H1 = '1h',
+  H2 = '2h',
+  H4 = '4h',
+  H8 = '8h',
+  Daily = '1D',
+  Weekly = '1W',
+  Monthly = '1M',
 };
 
 // Because the free plan allows only 50 requests/day per key,
