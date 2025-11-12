@@ -16,6 +16,7 @@
  */
 
 import { BinanceCandlesRequest, BinanceInterval, BinanceSymbol, BinanceToTradingviewInterval, checkNumberClosedCandlesBullish, getCurrentPrice, getCurrentPriceAndNotify } from './binanceService';
+import { KVKeys } from './cloudflareService';
 import { fetchBtcEtf, EtfRow, fetchAndNotifyEtf } from './fetchBtcEtf';
 import { TelegramCommandIntervals, TelegramCommands, TelegramImageRequest, TelegramMessageTitle, TelegramParseMode, TelegramWebhookRequest, formatMarkdownLog, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram, setWebhookTelegram } from './telegramService';
 import { TradingviewInterval, TradingviewSymbol, getTradingViewImage } from './tradingviewService';
@@ -328,13 +329,14 @@ export default {
       const logInfo = {
         method: req.method,
         pathName: (new URL(req.url)).pathname,
-        errorMessage: (error as any)?.message,
+        message: (error as Error)?.message,
+        stack: (error as Error)?.stack,
       }
       await sendMessageToTelegram({
         chat_id: env.TELEGRAM_CHAT_ID,
         text: `${TelegramMessageTitle.ErrorDetected} \n${JSON.stringify(logInfo, null, 2)}`
       }, env);
-      return new Response(`Error: ${logInfo.errorMessage}`, { status: 500 });
+      return new Response(`Error: ${logInfo.message}`, { status: 500 });
     }
   },
 
