@@ -15,7 +15,7 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-import { BinanceCandlesRequest, BinanceInterval, BinanceSymbol, BinanceToTradingviewInterval, checkNumberClosedCandlesBullish, getCurrentPrice, getCurrentPriceAndNotify } from './binanceService';
+import { BinanceCandlesRequest, BinanceInterval, BinanceSymbol, BinanceToTradingviewInterval, checkNumberClosedCandlesBearish, checkNumberClosedCandlesBullish, getCurrentPrice, getCurrentPriceAndNotify } from './binanceService';
 import { KVKeys } from './cloudflareService';
 import { fetchBtcEtf, EtfRow, fetchAndNotifyEtf } from './fetchBtcEtf';
 import { TelegramCommandIntervals, TelegramCommands, TelegramImageRequest, TelegramMessageTitle, TelegramParseMode, TelegramWebhookRequest, formatMarkdownLog, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram, setWebhookTelegram } from './telegramService';
@@ -153,6 +153,7 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
         limit: 1,
       }, env);
       break;
+    // Enable/disable schedule notify 15m bullish
     case TelegramCommands.SCHEDULE_TWO_15M_BULLISH:
       await env.DAILY_NOTES_KV.put(KVKeys.EnableNotifyTwoClosed15mCandlesBullish, 'true');
       await buildSendMessageToTelegram('✅ Enabled scheduled check for 2 closed 15m bullish candles.', env);
@@ -169,7 +170,26 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       await env.DAILY_NOTES_KV.delete(KVKeys.EnableNotifyOneClosed15mCandlesBullish);
       await buildSendMessageToTelegram('✅ Disabled scheduled check for 1 closed 15m bullish candle.', env);
       break;
+    
+    // Enable/disable schedule notify 15m bearish
+    case TelegramCommands.SCHEDULE_TWO_15M_BEARISH:
+      await env.DAILY_NOTES_KV.put(KVKeys.EnableNotifyTwoClosed15mCandlesBearish, 'true');
+      await buildSendMessageToTelegram('✅ Enabled scheduled check for 2 closed 15m bearish candles.', env);
+      break;
+    case TelegramCommands.SCHEDULE_ONE_15M_BEARISH:
+      await env.DAILY_NOTES_KV.put(KVKeys.EnableNotifyOneClosed15mCandlesBearish, 'true');
+      await buildSendMessageToTelegram('✅ Enabled scheduled check for 1 closed 15m bearish candle.', env);
+      break;
+    case TelegramCommands.DISABLE_TWO_15M_BEARISH:
+      await env.DAILY_NOTES_KV.delete(KVKeys.EnableNotifyTwoClosed15mCandlesBearish);
+      await buildSendMessageToTelegram('✅ Disabled scheduled check for 2 closed 15m bearish candles.', env);
+      break;
+    case TelegramCommands.DISABLE_ONE_15M_BEARISH:
+      await env.DAILY_NOTES_KV.delete(KVKeys.EnableNotifyOneClosed15mCandlesBearish);
+      await buildSendMessageToTelegram('✅ Disabled scheduled check for 1 closed 15m bearish candle.', env);
+      break;
 
+    
     case TelegramCommands.TWO_1H_BULLISH:
       await buildSendMessageToTelegram('📊 Verify bullish... Please wait.', env);
       await notifyNumberClosedCandlesBullish({
@@ -186,6 +206,7 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
         limit: 1,
       }, env);
       break;
+    // Enable/disable schedule notify 1h bullish
     case TelegramCommands.SCHEDULE_TWO_1H_BULLISH:
       await env.DAILY_NOTES_KV.put(KVKeys.EnableNotifyTwoClosed1hCandlesBullish, 'true');
       await buildSendMessageToTelegram('✅ Enabled scheduled check for 2 closed 1h bullish candles.', env);
@@ -201,6 +222,19 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
     case TelegramCommands.DISABLE_ONE_1H_BULLISH:
       await env.DAILY_NOTES_KV.delete(KVKeys.EnableNotifyOneClosed1hCandlesBullish);
       await buildSendMessageToTelegram('✅ Disabled scheduled check for 1 closed 1h bullish candle.', env);
+      break;
+    // Enable/disable schedule notify 1h bearish
+    case TelegramCommands.SCHEDULE_TWO_1H_BEARISH:
+      await env.DAILY_NOTES_KV.put(KVKeys.EnableNotifyTwoClosed1hCandlesBearish, 'true');
+      await buildSendMessageToTelegram('✅ Enabled scheduled check for 2 closed 1h bearish candles.', env);
+      break;
+    case TelegramCommands.SCHEDULE_ONE_1H_BEARISH:
+      await env.DAILY_NOTES_KV.put(KVKeys.EnableNotifyOneClosed1hCandlesBearish, 'true');
+      await buildSendMessageToTelegram('✅ Enabled scheduled check for 1 closed 1h bearish candle.', env);
+      break;
+    case TelegramCommands.DISABLE_TWO_1H_BEARISH:
+      await env.DAILY_NOTES_KV.delete(KVKeys.EnableNotifyTwoClosed1hCandlesBearish);
+      await buildSendMessageToTelegram('✅ Disabled scheduled check for 2 closed 1h bearish candles.', env);
       break;
     default:
       console.log(`No action taken for command: ${action}`);
@@ -234,6 +268,33 @@ export async function notifyNumberClosedCandlesBullish(
     return { message: `${request.limit} Consecutive closed ${request.interval} candles are bullish for ${request.symbol}.` };
   } else {
     const message = `No bullish pattern detected for the last consecutive ${request.interval} candles. Time: ${formatVietnamTime()}`;
+    await buildSendMessageToTelegram(message, env);
+    return { message };
+  }
+}
+
+export async function notifyNumberClosedCandlesBearish(
+  request: BinanceCandlesRequest,
+  env: Env
+): Promise<object> {
+  console.log(`Checking for ${request.limit} consecutive closed ${request.interval} bearish candles for ${request.symbol}...`);
+  await buildSendMessageToTelegram(`Checking for ${request.limit} consecutive closed ${request.interval} bearish candles for ${request.symbol}...`, env);
+  const isBearish = await checkNumberClosedCandlesBearish(request, env);
+
+  if (isBearish) {
+    const message = `⚠️ Alert: ${request.limit} Consecutive closed ${request.interval} candles are bearish for ${request.symbol}! Time: ${formatVietnamTime()}`;
+    console.log(message);
+    await buildSendMessageToTelegram(message, env);
+
+    // Optionally, send a chart snapshot for this interval
+    await snapshotChartWithSpecificInterval(
+      { key: request.interval, value: BinanceToTradingviewInterval[request.interval] },
+      env,
+    );
+
+    return { message: `${request.limit} Consecutive closed ${request.interval} candles are bearish for ${request.symbol}.` };
+  } else {
+    const message = `No bearish pattern detected for the last consecutive ${request.interval} candles. Time: ${formatVietnamTime()}`;
     await buildSendMessageToTelegram(message, env);
     return { message };
   }
@@ -390,6 +451,26 @@ export default {
               limit: 2,
             }, env);
           }
+
+          const enabledOneCandleBearish = await env.DAILY_NOTES_KV.get(KVKeys.EnableNotifyOneClosed15mCandlesBearish);
+          if (enabledOneCandleBearish) {
+            console.log("🔔 Checking for 1 closed 15m bearish candle");
+            await notifyNumberClosedCandlesBearish({
+              symbol: BinanceSymbol.BTCUSDT,
+              interval: BinanceInterval.FIFTEEN_MINUTES,
+              limit: 1,
+            }, env);
+          }
+
+          const enabledTwoCandlesBearish = await env.DAILY_NOTES_KV.get(KVKeys.EnableNotifyTwoClosed15mCandlesBearish);
+          if (enabledTwoCandlesBearish) {
+            console.log("🔔 Checking for 2 consecutive closed 15m bearish candles");
+            await notifyNumberClosedCandlesBearish({
+              symbol: BinanceSymbol.BTCUSDT,
+              interval: BinanceInterval.FIFTEEN_MINUTES,
+              limit: 2,
+            }, env);
+          }
         } catch (error) {
           console.error(`Error during notifyNumberClosedCandlesBullish: ${(error as any).message}`);
           await buildSendMessageToTelegram(`Error during notifyNumberClosedCandlesBullish: ${(error as any).message}`, env);
@@ -424,6 +505,36 @@ export default {
           } catch (error) {
             console.error(`Error during notifyNumberClosedCandlesBullish: ${(error as any).message}`);
             await buildSendMessageToTelegram(`Error during notifyNumberClosedCandlesBullish: ${(error as any).message}`, env);
+          }
+        }
+
+        const enabledOne1HCandleBearish = await env.DAILY_NOTES_KV.get(KVKeys.EnableNotifyOneClosed1hCandlesBearish);
+        if (enabledOne1HCandleBearish) {
+          try {
+            console.log("🔔 Checking for 1 closed 1h bearish candle");
+            await notifyNumberClosedCandlesBearish({
+              symbol: BinanceSymbol.BTCUSDT,
+              interval: BinanceInterval.ONE_HOUR,
+              limit: 1,
+            }, env);
+          } catch (error) {
+            console.error(`Error during checkNumberClosedCandlesBearish: ${(error as any).message}`);
+            await buildSendMessageToTelegram(`Error during checkNumberClosedCandlesBearish: ${(error as any).message}`, env);
+          }
+        }
+
+        const enabledTwo1HCandlesBearish = await env.DAILY_NOTES_KV.get(KVKeys.EnableNotifyTwoClosed1hCandlesBearish);
+        if (enabledTwo1HCandlesBearish) {
+          try {
+            console.log("🔔 Checking for 2 consecutive closed 1h bearish candles");
+            await notifyNumberClosedCandlesBearish({
+              symbol: BinanceSymbol.BTCUSDT,
+              interval: BinanceInterval.ONE_HOUR,
+              limit: 2,
+            }, env);
+          } catch (error) {
+            console.error(`Error during checkNumberClosedCandlesBearish: ${(error as any).message}`);
+            await buildSendMessageToTelegram(`Error during checkNumberClosedCandlesBearish: ${(error as any).message}`, env);
           }
         }
         break;

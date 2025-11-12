@@ -131,6 +131,17 @@ export async function checkNumberClosedCandlesBullish(
   return closedCandles.every(candle => candle.close > candle.open);
 }
 
+// Check if the latest closed candles are all bearish
+export async function checkNumberClosedCandlesBearish(
+  request: BinanceCandlesRequest,
+  env: Env
+): Promise<boolean> {
+  const closedCandles = await getNumberClosedLatestBinanceCandles(request, env);
+
+  // Check if all latest closed candles are bullish
+  return closedCandles.every(candle => candle.close < candle.open);
+}
+
 // Fetch current price for a given symbol from Binance
 export async function getCurrentPrice(symbol: BinanceSymbol, env: Env): Promise<number> {
   const url = buildScraperApiUrl(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, env);

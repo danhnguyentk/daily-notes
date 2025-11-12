@@ -38,14 +38,24 @@ schedule2candles15m - Schedule 2 Candles 15m Bullish
 schedule1candles15m - Schedule 1 Candles 15m Bullish
 disable2candles15m - Disable 2 Candles 15m Bullish
 disable1candles15m - Disable 1 Candles 15m Bullish
+schedule2candles15mbearish - Schedule 2 Candles 15m Bearish
+schedule1candles15mbearish - Schedule 1 Candles 15m Bearish
+disable2candles15mbearish - Disable 2 Candles 15m Bearish
+disable1candles15mbearish - Disable 1 Candles 15m Bearish
 2candles1h - 2 Candles 1h Bullish
 1candles1h - 1 Candles 1h Bullish
 schedule2candles1h - Schedule 2 Candles 1h Bullish
 schedule1candles1h - Schedule 1 Candles 1h Bullish
 disable2candles1h - Disable 2 Candles 1h Bullish
 disable1candles1h - Disable 1 Candles 1h Bullish
+schedule2candles1hbearish - Schedule 2 Candles 1h Bearish
+schedule1candles1hbearish - Schedule 1 Candles 1h Bearish
+disable2candles1hbearish - Disable 2 Candles 1h Bearish
+disable1candles1hbearish - Disable 1 Candles 1h Bearish
 ```
 
 ### ACTION TODO 
 - Support notify khi 2 nen 15' truc tiep bullish
 - Open question xac dinh xu huon
+- Refactor, split index.ts
+- Refactor common generic type
