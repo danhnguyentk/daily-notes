@@ -236,6 +236,15 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       await env.DAILY_NOTES_KV.delete(KVKeys.EnableNotifyTwoClosed1hCandlesBearish);
       await buildSendMessageToTelegram('✅ Disabled scheduled check for 2 closed 1h bearish candles.', env);
       break;
+
+    case TelegramCommands.ENABLED_EVENTS:
+      const result = await env.DAILY_NOTES_KV.list();
+      const enabledEvents: string[] = result.keys.map(kv => kv.name);
+      const message = enabledEvents.length > 0
+        ? `✅ Enabled scheduled events:\n${enabledEvents.join('\n')}`
+        : 'ℹ️ No scheduled events are currently enabled.';
+      await buildSendMessageToTelegram(message, env);
+      break;
     default:
       console.log(`No action taken for command: ${action}`);
       return { message: `No support this command ${action} now` };

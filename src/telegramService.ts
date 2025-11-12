@@ -81,7 +81,7 @@ export const TelegramCommands = {
   AnalyzeEtfData: '/etf',
   TWO_15M_BULLISH: '/2candles15m',
   ONE_15M_BULLISH: '/1candles15m',
-  
+
   SCHEDULE_TWO_15M_BULLISH: '/schedule2candles15m',
   SCHEDULE_ONE_15M_BULLISH: '/schedule1candles15m',
   DISABLE_TWO_15M_BULLISH: '/disable2candles15m',
@@ -104,6 +104,8 @@ export const TelegramCommands = {
   SCHEDULE_ONE_1H_BEARISH: '/schedule1candles1hbearish',
   DISABLE_TWO_1H_BEARISH: '/disable2candles1hbearish',
   DISABLE_ONE_1H_BEARISH: '/disable1candles1hbearish',
+
+  ENABLED_EVENTS: '/enabled_events',
 } as const;
 
 export enum TelegramParseMode {
