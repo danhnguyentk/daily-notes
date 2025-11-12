@@ -5,5 +5,6 @@ export interface Env {
   TRADINGVIEW_LAYOUT_ID: string;
   CHART_IMAGE_KEY: string;
   WORKER_URL: string;
+  DAILY_NOTES_KV: KVNamespace;
 }
 

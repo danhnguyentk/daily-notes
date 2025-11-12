@@ -10,6 +10,11 @@ enabled = true
 [triggers]
 crons = ["5 */4 * * *"]
 
+# KV Bindings
+[[kv_namespaces]]
+binding = "DAILY_NOTES_KV"
+id = "91fee2d4a73f4462bb7de4ad6d1f1d46"
+
 # -------------------------------------------------------
 # Environment Variables
 # Uncomment and add variables if needed.

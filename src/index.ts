@@ -143,6 +143,7 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
         limit: 2,
       }, env);
       break;
+    
     case TelegramCommands.ONE_15M_BULLISH:
       await buildSendMessageToTelegram('📊 Verify bullish... Please wait.', env);
       await notifyNumberClosedCandlesBullish({
@@ -151,6 +152,23 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
         limit: 1,
       }, env);
       break;
+    case TelegramCommands.SCHEDULE_TWO_15M_BULLISH:
+      await env.DAILY_NOTES_KV.put(KVKeys.EnableNotifyTwoClosed15mCandlesBullish, 'true');
+      await buildSendMessageToTelegram('✅ Enabled scheduled check for 2 closed 15m bullish candles.', env);
+      break;
+    case TelegramCommands.SCHEDULE_ONE_15M_BULLISH:
+      await env.DAILY_NOTES_KV.put(KVKeys.EnableNotifyOneClosed15mCandlesBullish, 'true');
+      await buildSendMessageToTelegram('✅ Enabled scheduled check for 1 closed 15m bullish candle.', env);
+      break;
+    case TelegramCommands.DISABLE_TWO_15M_BULLISH:
+      await env.DAILY_NOTES_KV.delete(KVKeys.EnableNotifyTwoClosed15mCandlesBullish);
+      await buildSendMessageToTelegram('✅ Disabled scheduled check for 2 closed 15m bullish candles.', env);
+      break;
+    case TelegramCommands.DISABLE_ONE_15M_BULLISH:
+      await env.DAILY_NOTES_KV.delete(KVKeys.EnableNotifyOneClosed15mCandlesBullish);
+      await buildSendMessageToTelegram('✅ Disabled scheduled check for 1 closed 15m bullish candle.', env);
+      break;
+
     case TelegramCommands.TWO_1H_BULLISH:
       await buildSendMessageToTelegram('📊 Verify bullish... Please wait.', env);
       await notifyNumberClosedCandlesBullish({
@@ -166,6 +184,22 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
         interval: BinanceInterval.ONE_HOUR,
         limit: 1,
       }, env);
+      break;
+    case TelegramCommands.SCHEDULE_TWO_1H_BULLISH:
+      await env.DAILY_NOTES_KV.put(KVKeys.EnableNotifyTwoClosed1hCandlesBullish, 'true');
+      await buildSendMessageToTelegram('✅ Enabled scheduled check for 2 closed 1h bullish candles.', env);
+      break;
+    case TelegramCommands.SCHEDULE_ONE_1H_BULLISH:
+      await env.DAILY_NOTES_KV.put(KVKeys.EnableNotifyOneClosed1hCandlesBullish, 'true');
+      await buildSendMessageToTelegram('✅ Enabled scheduled check for 1 closed 1h bullish candle.', env);
+      break;
+    case TelegramCommands.DISABLE_TWO_1H_BULLISH:
+      await env.DAILY_NOTES_KV.delete(KVKeys.EnableNotifyTwoClosed1hCandlesBullish);
+      await buildSendMessageToTelegram('✅ Disabled scheduled check for 2 closed 1h bullish candles.', env);
+      break;
+    case TelegramCommands.DISABLE_ONE_1H_BULLISH:
+      await env.DAILY_NOTES_KV.delete(KVKeys.EnableNotifyOneClosed1hCandlesBullish);
+      await buildSendMessageToTelegram('✅ Disabled scheduled check for 1 closed 1h bullish candle.', env);
       break;
     default:
       console.log(`No action taken for command: ${action}`);
@@ -240,6 +274,22 @@ async function handleFetch(req: Request, env: Env): Promise<Response> {
       }, env);
       return new Response(JSON.stringify(result, null, 2), { status: 200 });
     }
+    case '/enableNotifyTwoClosed15mCandlesBullish': {
+      await env.DAILY_NOTES_KV.put(KVKeys.EnableNotifyTwoClosed15mCandlesBullish, 'true');
+      return new Response('Enabled notify two closed 15m candles bullish', { status: 200 });
+    }
+    case '/enableNotifyOneClosed15mCandlesBullish': {
+      await env.DAILY_NOTES_KV.put(KVKeys.EnableNotifyOneClosed15mCandlesBullish, 'true');
+      return new Response('Enabled notify one closed 15m candles bullish', { status: 200 });
+    }
+    case '/disableNotifyTwoClosed15mCandlesBullish': {
+      await env.DAILY_NOTES_KV.delete(KVKeys.EnableNotifyTwoClosed15mCandlesBullish);
+      return new Response('Disabled notify two closed 15m candles bullish', { status: 200 });
+    }
+    case '/disableNotifyOneClosed15mCandlesBullish': {
+      await env.DAILY_NOTES_KV.delete(KVKeys.EnableNotifyOneClosed15mCandlesBullish);
+      return new Response('Disabled notify one closed 15m candles bullish', { status: 200 });
+    }
     case '/webhook': {
       const body = await req.json() as TelegramWebhookRequest;
       // "/btc15m@daily_analytic_btc_bot";
@@ -292,27 +342,92 @@ export default {
 	// [[triggers]] configuration.
 	async scheduled(event, env: Env, ctx: ExecutionContext): Promise<void> {
     console.log(`⏰ Starting scheduled job at cron: ${event.cron}, time: ${event.scheduledTime}`);
+    const cron = event.cron;
+    switch (cron) {
+      // Every day at 00:05
+      case "5 0 * * *": {
+        // ETF data analysis already done below
+        try {
+          console.log("📊 Running ETF data analysis for 00:05 schedule");
+          await fetchAndNotifyEtf(env);
+        } catch (error) {
+          console.error(`Error during analyzeEtfData: ${(error as any).message}`);
+          await buildSendMessageToTelegram(`Error during analyzeEtfData: ${(error as any).message}`, env);
+        }
 
-    // Always snapshot the chart every 4h + 5m
-    try {
-      await snapshotChart(env);
-    } catch (error) {
-      console.error(`Error during snapshotChart: ${(error as any).message}`);
-      await buildSendMessageToTelegram(`Error during snapshotChart: ${(error as any).message}`, env);
-    }
-    
-
-    // Only run analyzeEtfData if cron == "5 0 * * *" (which means 00:05 UTC)
-    if (event.cron === "5 0 * * *") {
-      console.log("📊 Running ETF data analysis for 00:05 schedule");
-      try {
-        await fetchAndNotifyEtf(env);
-      } catch (error) {
-        console.error(`Error during analyzeEtfData: ${(error as any).message}`);
-        await buildSendMessageToTelegram(`Error during analyzeEtfData: ${(error as any).message}`, env);
+        // Snapshot chart already done above
+        try {
+          console.log("📸 Taking chart snapshot for 00:05 schedule");
+          await snapshotChart(env);
+        } catch (error) {
+          console.error(`Error during snapshotChart: ${(error as any).message}`);
+          await buildSendMessageToTelegram(`Error during snapshotChart: ${(error as any).message}`, env);
+        }
+        break;
       }
-    } else {
-      console.log(`Skipping ETF analysis for this cron (${event.cron})`);
+      case "*/15 * * * *": {
+        // Every 15 minutes, check for 2 consecutive closed 15m bullish candles
+        try {
+          const enabledOneCandle = await env.DAILY_NOTES_KV.get(KVKeys.EnableNotifyOneClosed15mCandlesBullish);
+          if (enabledOneCandle) {
+            console.log("🔔 Checking for 1 closed 15m bullish candle");
+            await notifyNumberClosedCandlesBullish({
+              symbol: BinanceSymbol.BTCUSDT,
+              interval: BinanceInterval.FIFTEEN_MINUTES,
+              limit: 1,
+            }, env);
+          }
+
+          const enabledTwoCandles = await env.DAILY_NOTES_KV.get(KVKeys.EnableNotifyTwoClosed15mCandlesBullish);
+          if (enabledTwoCandles) {
+            console.log("🔔 Checking for 2 consecutive closed 15m bullish candles");
+            await notifyNumberClosedCandlesBullish({
+              symbol: BinanceSymbol.BTCUSDT,
+              interval: BinanceInterval.FIFTEEN_MINUTES,
+              limit: 2,
+            }, env);
+          }
+        } catch (error) {
+          console.error(`Error during notifyNumberClosedCandlesBullish: ${(error as any).message}`);
+          await buildSendMessageToTelegram(`Error during notifyNumberClosedCandlesBullish: ${(error as any).message}`, env);
+        }
+        break;
+      }
+      case "0 */1 * * *": {
+        const enabledOne1HCandle = await env.DAILY_NOTES_KV.get(KVKeys.EnableNotifyOneClosed1hCandlesBullish);
+        if (enabledOne1HCandle) {
+          try {
+            console.log("🔔 Checking for 1 closed 1h bullish candle");
+            await notifyNumberClosedCandlesBullish({
+              symbol: BinanceSymbol.BTCUSDT,
+              interval: BinanceInterval.ONE_HOUR,
+              limit: 1,
+            }, env);
+          } catch (error) {
+            console.error(`Error during notifyNumberClosedCandlesBullish: ${(error as any).message}`);
+            await buildSendMessageToTelegram(`Error during notifyNumberClosedCandlesBullish: ${(error as any).message}`, env);
+          }
+        }
+
+        const enabledTwo1HCandles = await env.DAILY_NOTES_KV.get(KVKeys.EnableNotifyTwoClosed1hCandlesBullish);
+        if (enabledTwo1HCandles) {
+          try {
+            console.log("🔔 Checking for 2 consecutive closed 1h bullish candles");
+            await notifyNumberClosedCandlesBullish({
+              symbol: BinanceSymbol.BTCUSDT,
+              interval: BinanceInterval.ONE_HOUR,
+              limit: 2,
+            }, env);
+          } catch (error) {
+            console.error(`Error during notifyNumberClosedCandlesBullish: ${(error as any).message}`);
+            await buildSendMessageToTelegram(`Error during notifyNumberClosedCandlesBullish: ${(error as any).message}`, env);
+          }
+        }
+        break;
+      }
+      default: {
+        console.log(`Skipping ETF analysis for this cron (${event.cron})`);
+      }
     }
 	},
 } satisfies ExportedHandler<Env>;
