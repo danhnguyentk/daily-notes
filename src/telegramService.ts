@@ -1,3 +1,4 @@
+import { text } from 'cheerio/dist/commonjs/static';
 import { TradingviewInterval } from './tradingviewService';
 import { Env } from './types';
 
@@ -6,6 +7,12 @@ export type TelegramImageRequest = {
   caption: string;
   photo: ArrayBuffer;
 };
+
+export type TelegramMessageRequest = {
+  chat_id: string;
+  text: string;
+  parse_mode?: TelegramParseMode = TelegramParseMode.MarkdownV2;
+}
 
 export enum TelegramChatAction {
   Typing = 'typing',
@@ -60,12 +67,17 @@ export const TelegramCommands = {
   BTC1h: '/btc1h',
   BTC15m: '/btc15m',
   SnapshotChart: '/snapshot',
-  AnalyzeEtfData: '/analyze',
+  AnalyzeEtfData: '/etf',
   TWO_15M_BULLISH: '/2candles15m',
   ONE_15M_BULLISH: '/1candles15m',
   TWO_1H_BULLISH: '/2candles1h',
   ONE_1H_BULLISH: '/1candles1h',
 } as const;
+
+export enum TelegramParseMode {
+  MarkdownV2 = 'MarkdownV2',
+  HTML = 'HTML',
+}
 
 export type TelegramCommand = keyof typeof TelegramCommands;
 
@@ -78,25 +90,22 @@ export const TelegramCommandIntervals: Record<string, { key: string; value: type
   [TelegramCommands.BTC15m]: { key: '15m', value: TradingviewInterval.Min15 },
 };
 
-export async function sendMessageToTelegram(message: string, env: Env) {
-  console.log(`Sending message to Telegram: ${message}`);
+export async function sendMessageToTelegram(request: TelegramMessageRequest, env: Env) {
+  console.log(`Sending message to Telegram: ${request.text}`);
   const url = `https://api.telegram.org/bot${env.TELEGRAM_KEY}/sendMessage`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      chat_id: env.TELEGRAM_CHAT_ID,
-      text: message,
-    }),
+    body: JSON.stringify(request),
   });
 
   if (!res.ok) {
     const errorLogs = {
       url: url,
-      chatId: env.TELEGRAM_CHAT_ID,
-      message: message,
+      chatId: request.chat_id,
+      message: text,
       status: res.status,
       errorText: await res.text(),
     }

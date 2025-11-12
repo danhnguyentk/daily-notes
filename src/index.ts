@@ -16,36 +16,10 @@
  */
 
 import { BinanceCandlesRequest, BinanceInterval, BinanceSymbol, BinanceToTradingviewInterval, checkNumberClosedCandlesBullish } from './binanceService';
-import { fetchBtcEtf, EtfRow } from './fetchBtcEtf';
-import { TelegramCommandIntervals, TelegramCommands, TelegramImageRequest, TelegramParseMode, TelegramWebhookRequest, sendImageGroupToTelegram, sendImageToTelegram, setWebhookTelegram } from './telegramService';
+import { fetchBtcEtf, EtfRow, fetchAndNotifyEtf } from './fetchBtcEtf';
+import { TelegramCommandIntervals, TelegramCommands, TelegramImageRequest, TelegramParseMode, TelegramWebhookRequest, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram, setWebhookTelegram } from './telegramService';
 import { TradingviewInterval, TradingviewSymbol, getTradingViewImage } from './tradingviewService';
 import { Env } from './types';
-
-async function analyzeEtfData(env: Env) {
-  const rows: EtfRow[] = await fetchBtcEtf(env);
-    
-  // Get the latest row based on date
-  const latestRow = rows.reduce((latest, current) => {
-    return new Date(current.data) > new Date(latest.data) ? current : latest;
-  }, rows[0]);
-  console.log('Latest Row:', latestRow);
-
-  // Send message to Telegram
-  const fbtcValue = latestRow.funds[`FBTC-Fidelity`] as number;
-  let recommendation = `Thị trường chưa rõ ràng. Quan sát thêm.`;
-  if (fbtcValue < 0) {
-    recommendation = `Hạn chế  mua BTC vì dòng tiền từ quỹ đang âm. Chờ đợi.`;
-  } else if (fbtcValue >= 100) {
-    recommendation = `Cân nhắc BTC vì dòng tiền từ quỹ đang dương.` ;
-  } else if (fbtcValue >= 200) {
-    recommendation = `Mạnh dạn mua BTC vì dòng tiền từ quỹ đang rất dương.`;
-  }
-  const message = {
-    ...latestRow,
-    recommendation
-  }
-  await sendMarkdownMessageToTelegram(JSON.stringify(message, null, 2), env);
-}
 
 export async function snapshotChart(env: Env) {
   console.log('📸 Snapshot TradingView chart and send to Telegram');
@@ -146,7 +120,7 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       break;  
     case TelegramCommands.AnalyzeEtfData:
       await sendMarkdownMessageToTelegram('📊 Analyzing ETF data... Please wait.', env);
-      await analyzeEtfData(env);
+      await fetchAndNotifyEtf(env);
       break;
     case TelegramCommands.TWO_15M_BULLISH:
       await sendMarkdownMessageToTelegram('📊 Verify bullish... Please wait.', env);
@@ -226,8 +200,8 @@ export default {
         const result = await setWebhookTelegram(env);
         return new Response(JSON.stringify(result), { status: 200 });
       }
-      case '/analyzeEtfData': {
-        const message = await analyzeEtfData(env);
+      case '/etf': {
+        const message = await fetchAndNotifyEtf(env);
         return new Response(JSON.stringify(message, null, 2), { status: 200 });
       }
       case '/snapshotChart': {
@@ -290,7 +264,7 @@ export default {
     if (event.cron === "5 0 * * *") {
       console.log("📊 Running ETF data analysis for 00:05 schedule");
       try {
-        await analyzeEtfData(env);
+        await fetchAndNotifyEtf(env);
       } catch (error) {
         console.error(`Error during analyzeEtfData: ${(error as any).message}`);
         await sendMarkdownMessageToTelegram(`Error during analyzeEtfData: ${(error as any).message}`, env);

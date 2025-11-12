@@ -1,10 +1,19 @@
+import { TelegramParseMode, sendMessageToTelegram } from "./telegramService";
 import { Env } from "./types";
 import * as cheerio from "cheerio";
 
 export type EtfRow = {
-  data: string;
+  data: string; // date
   funds: Record<string, number | null>;
   total: number;
+  recommendation?: string;
+}
+
+export type EtfData = {
+  data: string; // date
+  funds: Record<string, number | null>;
+  total: number;
+  recommendation: string;
 }
 
 const FundNames: Record<string, string> = {
@@ -53,8 +62,6 @@ function extractTable(htmlEncoded: string): EtfRow[] {
     if (i > 0 && text) headers.push(text);
     // if (text && text.toLowerCase() !== "total") headers.push(text);
   });
-  const headerNames: string[] = headers.map(h => { return `${h}-${FundNames[h]}`});
-  console.log('Headers Name', headerNames);
 
   const rows: EtfRow[] = [];
   table.find("tbody tr").each((_, tr) => {
@@ -68,7 +75,7 @@ function extractTable(htmlEncoded: string): EtfRow[] {
       // <div align="right"><span class="tabletext"><span class="redFont">(430.8)</span></span></div>
       //console.log($(cells[i]).html() );
 
-      funds[headerNames[i - 1] || `col${i}`] = parseCellValue($(cells[i]), $);
+      funds[headers[i - 1] || `col${i}`] = parseCellValue($(cells[i]), $);
     }
 
     const total = parseCellValue($(cells[cells.length - 1]), $) || 0;
@@ -125,4 +132,70 @@ export async function fetchBtcEtf(env: Env): Promise<EtfRow[]> {
   console.log(`Found ${rows.length} rows in HTML table.`);
 
   return extractTable(html);
+}
+
+// Format individual fund value with color icons
+function formatFundValue(value: number | null): string {
+  if (value === null) return '<i>N/A</i>'; // no data
+  if (value > 0) return `🟢 <b>${value.toFixed(1)}</b>`; // positive inflow
+  if (value < 0) return `🔴 <b>${value.toFixed(1)}</b>`; // negative outflow
+  return `⚪ <b>${value.toFixed(1)}</b>`; // neutral (0)
+}
+
+// Generate Telegram message for a given ETF row
+function generateEtfTelegramMessage(etf: EtfRow): string {
+  const fundLines = Object.entries(etf.funds)
+    .map(([name, value]) => {
+      return `• ${name} (${FundNames[name]}): ${formatFundValue(value)}<br>`;
+    })
+    .join("");
+
+  return (
+    `📅 <b>Ngày:</b> ${etf.data}<br><br>` +
+    `🏦 <b>Dòng tiền ETF BTC (triệu USD)</b><br>` +
+    `${fundLines}<br>` +
+    `💰 <b>Tổng dòng tiền:</b> ${formatFundValue(etf.total)} triệu USD<br><br>` +
+    `💡 <b>Nhận định:</b> ${etf.recommendation}`
+  );
+}
+
+// Fetch ETF data and send formatted Telegram message
+export async function fetchAndNotifyEtf(env: Env) {
+  const rows: EtfRow[] = await fetchBtcEtf(env);
+    
+  // Get the latest row based on date
+  const latestRow = rows.reduce((latest, current) => {
+    return new Date(current.data) > new Date(latest.data) ? current : latest;
+  }, rows[0]);
+  console.log('Latest Row:', latestRow);
+
+  // Compute recommendation based on FBTC-Fidelity
+  const fbtcValue = latestRow.funds[`FBTC`] as number | null;
+  let recommendation = 'Thị trường chưa rõ ràng. Quan sát thêm.';
+  if (fbtcValue !== null) {
+    if (fbtcValue < 0) {
+      recommendation = 'Canh thoát lệnh trading ngắn hạn vì dòng tiền từ quỹ đang ÂM nhẹ.';
+    }
+    else if (fbtcValue < -100) {
+      recommendation = 'Không mua BTC vì dòng tiền từ quỹ đang ÂM.';
+    }
+    else if (fbtcValue < -200) {
+      recommendation = 'QUAN TRỌNG.CÂN NHẮC BÁN BTC vì dòng tiền từ quỹ đang RẤT ÂM.';
+    } else if (fbtcValue >= 100) {
+      recommendation = 'Cân nhắc BUY BTC vì dòng tiền từ quỹ đang DƯƠNG.';
+    } else if (fbtcValue >= 200) {
+      recommendation = 'Mạnh dạn BUY BTC vì dòng tiền từ quỹ đang RẤT DƯƠNG.';
+    }
+  }
+
+  // Attach recommendation to the latest row
+  latestRow.recommendation = recommendation;
+
+  // Generate nicely formatted HTML message
+  const message = generateEtfTelegramMessage(latestRow);
+  await sendMessageToTelegram({
+    chat_id: env.TELEGRAM_CHAT_ID,
+    text: message,
+    parse_mode: TelegramParseMode.HTML,
+  }, env);
 }
