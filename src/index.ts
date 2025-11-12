@@ -108,7 +108,19 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
     case TelegramCommands.BTC:
       await getCurrentPriceAndNotify(BinanceSymbol.BTCUSDT, env);
       break;
-    case TelegramCommands.BTCDaily:
+    case TelegramCommands.BTC1w3d1d:
+      await buildSendMessageToTelegram(('📊 Generating chart BTC1w3d1d... Please wait.'), env);
+      await snapshotChartWithSpecificInterval(TelegramCommandIntervals[TelegramCommands.BTC1w], env);
+      await snapshotChartWithSpecificInterval(TelegramCommandIntervals[TelegramCommands.BTC3d], env);
+      await snapshotChartWithSpecificInterval(TelegramCommandIntervals[TelegramCommands.BTC1d], env);
+      break;
+    case TelegramCommands.BTC4h1h15m:
+      await buildSendMessageToTelegram(('📊 Generating chart BTC4h1h15m... Please wait.'), env);
+      await snapshotChartWithSpecificInterval(TelegramCommandIntervals[TelegramCommands.BTC4h], env);
+      await snapshotChartWithSpecificInterval(TelegramCommandIntervals[TelegramCommands.BTC1h], env);
+      await snapshotChartWithSpecificInterval(TelegramCommandIntervals[TelegramCommands.BTC15m], env);
+      break;
+    case TelegramCommands.BTC1d:
     case TelegramCommands.BTC4h:
     case TelegramCommands.BTC1h:
     case TelegramCommands.BTC15m:

@@ -21,7 +21,11 @@ http://localhost:8787/__scheduled
 
 ```
 btc - BTC Price
-btcdaily - BTC 1D
+btc1w3d1d - BTC 1W 3D 1D
+btc8h4h15m - BTC 4h 8h 15m
+btc1w - BTC 1W
+btc3d - BTC 3D
+btc1d - BTC 1D
 btc8h - BTC 8h
 btc4h - BTC 4h
 btc1h - BTC 1h

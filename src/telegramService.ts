@@ -68,7 +68,11 @@ export type TelegramWebhookRequest = {
 // Define the Telegram commands
 export const TelegramCommands = {
   BTC: '/btc',
-  BTCDaily: '/btcdaily',
+  BTC1w3d1d: '/btc1w3d1d',
+  BTC4h1h15m: '/btc4h1h15m',
+  BTC1w: '/btc1w',
+  BTC3d: '/btc3d',
+  BTC1d: '/btc1d',
   BTC8h: '/btc8h',
   BTC4h: '/btc4h',
   BTC1h: '/btc1h',
