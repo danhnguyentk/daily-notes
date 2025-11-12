@@ -147,7 +147,7 @@ export async function getCurrentPrice(symbol: BinanceSymbol, env: Env): Promise<
 
 export async function getCurrentPriceAndNotify(symbol: BinanceSymbol, env: Env): Promise<number> {
   const price = await getCurrentPrice(symbol, env);
-  const message = `${CryptoSymbolIcons[symbol]}: ${price.toLocaleString('en-US', { minimumFractionDigits: 0 })} USD`;
+  const message = `${CryptoSymbolIcons[symbol]}: ${price.toLocaleString('en-US', { maximumFractionDigits: 0 })} USD`;
   await sendMessageToTelegram({
     chat_id: env.TELEGRAM_CHAT_ID,
     text: message,
