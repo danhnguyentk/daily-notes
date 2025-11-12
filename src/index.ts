@@ -217,6 +217,7 @@ export async function notifyNumberClosedCandlesBullish(
   env: Env
 ): Promise<object> {
   console.log(`Checking for ${request.limit} consecutive closed ${request.interval} bullish candles for ${request.symbol}...`);
+  await buildSendMessageToTelegram(`Checking for ${request.limit} consecutive closed ${request.interval} bullish candles for ${request.symbol}...`, env);
   const isBullish = await checkNumberClosedCandlesBullish(request, env);
 
   if (isBullish) {
