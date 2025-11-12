@@ -17,7 +17,7 @@
 
 import { BinanceCandlesRequest, BinanceInterval, BinanceSymbol, BinanceToTradingviewInterval, checkNumberClosedCandlesBullish } from './binanceService';
 import { fetchBtcEtf, EtfRow } from './fetchBtcEtf';
-import { TelegramChatAction, TelegramCommandIntervals, TelegramCommands, TelegramImageRequest, TelegramWebhookRequest, sendChatActionTelegram, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram, setWebhookTelegram } from './telegramService';
+import { TelegramCommandIntervals, TelegramCommands, TelegramImageRequest, TelegramParseMode, TelegramWebhookRequest, sendImageGroupToTelegram, sendImageToTelegram, setWebhookTelegram } from './telegramService';
 import { TradingviewInterval, TradingviewSymbol, getTradingViewImage } from './tradingviewService';
 import { Env } from './types';
 
@@ -44,7 +44,7 @@ async function analyzeEtfData(env: Env) {
     ...latestRow,
     recommendation
   }
-  await sendMessageToTelegram(JSON.stringify(message, null, 2), env);
+  await sendMarkdownMessageToTelegram(JSON.stringify(message, null, 2), env);
 }
 
 export async function snapshotChart(env: Env) {
@@ -122,26 +122,34 @@ function formatVietnamTime(date: Date = new Date()): string {
   });
 }
 
+const sendMarkdownMessageToTelegram = async (message: string, env: Env) => {
+  await sendMessageToTelegram({
+    chat_id: env.TELEGRAM_CHAT_ID,
+    text: message,
+    parse_mode: TelegramParseMode.MarkdownV2,
+  }, env);
+}
+
 export async function takeTelegramAction(action: string, env: Env): Promise<object> {
   switch (action) {
     case TelegramCommands.BTCDaily:
     case TelegramCommands.BTC4h:
     case TelegramCommands.BTC1h:
     case TelegramCommands.BTC15m:
-      await sendMessageToTelegram('📊 Generating chart... Please wait.', env);
+      await sendMarkdownMessageToTelegram(('📊 Generating chart... Please wait.'), env);
       await snapshotChartWithSpecificInterval(TelegramCommandIntervals[action], env);
       break;
     case TelegramCommands.BTC:
     case TelegramCommands.SnapshotChart:
-      await sendMessageToTelegram('📊 Generating chart... Please wait.', env);
+      await sendMarkdownMessageToTelegram('📊 Generating chart... Please wait.', env);
       await snapshotChart(env);
       break;  
     case TelegramCommands.AnalyzeEtfData:
-      await sendMessageToTelegram('📊 Analyzing ETF data... Please wait.', env);
+      await sendMarkdownMessageToTelegram('📊 Analyzing ETF data... Please wait.', env);
       await analyzeEtfData(env);
       break;
     case TelegramCommands.TWO_15M_BULLISH:
-      await sendMessageToTelegram('📊 Verify bullish... Please wait.', env);
+      await sendMarkdownMessageToTelegram('📊 Verify bullish... Please wait.', env);
       await notifyNumberClosedCandlesBullish({
         symbol: BinanceSymbol.BTCUSDT,
         interval: BinanceInterval.FIFTEEN_MINUTES,
@@ -149,7 +157,7 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       }, env);
       break;
     case TelegramCommands.ONE_15M_BULLISH:
-      await sendMessageToTelegram('📊 Verify bullish... Please wait.', env);
+      await sendMarkdownMessageToTelegram('📊 Verify bullish... Please wait.', env);
       await notifyNumberClosedCandlesBullish({
         symbol: BinanceSymbol.BTCUSDT,
         interval: BinanceInterval.FIFTEEN_MINUTES,
@@ -157,7 +165,7 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       }, env);
       break;
     case TelegramCommands.TWO_1H_BULLISH:
-      await sendMessageToTelegram('📊 Verify bullish... Please wait.', env);
+      await sendMarkdownMessageToTelegram('📊 Verify bullish... Please wait.', env);
       await notifyNumberClosedCandlesBullish({
         symbol: BinanceSymbol.BTCUSDT,
         interval: BinanceInterval.ONE_HOUR,
@@ -165,7 +173,7 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       }, env);
       break;
     case TelegramCommands.ONE_1H_BULLISH:
-      await sendMessageToTelegram('📊 Verify bullish... Please wait.', env);
+      await sendMarkdownMessageToTelegram('📊 Verify bullish... Please wait.', env);
       await notifyNumberClosedCandlesBullish({
         symbol: BinanceSymbol.BTCUSDT,
         interval: BinanceInterval.ONE_HOUR,
@@ -192,7 +200,7 @@ export async function notifyNumberClosedCandlesBullish(
   if (isBullish) {
     const message = `🔥 Alert: ${request.limit} Consecutive closed ${request.interval} candles are bullish for ${request.symbol}! Time: ${formatVietnamTime()}`;
     console.log(message);
-    await sendMessageToTelegram(message, env);
+    await sendMarkdownMessageToTelegram(message, env);
 
     // Optionally, send a chart snapshot for this interval
     await snapshotChartWithSpecificInterval(
@@ -203,7 +211,7 @@ export async function notifyNumberClosedCandlesBullish(
     return { message: `${request.limit} Consecutive closed ${request.interval} candles are bullish for ${request.symbol}.` };
   } else {
     const message = `No bullish pattern detected for the last consecutive ${request.interval} candles. Time: ${formatVietnamTime()}`;
-    await sendMessageToTelegram(message, env);
+    await sendMarkdownMessageToTelegram(message, env);
     return { message };
   }
 }
@@ -254,7 +262,7 @@ export default {
           return new Response('Webhook handled successfully', { status: 200 });
         } catch (error) {
           console.error(`Error handling webhook: ${(error as any).message}`);
-          await sendMessageToTelegram(`Error handling webhook: ${(error as any).message}`, env);
+          await sendMarkdownMessageToTelegram(`Error handling webhook: ${(error as any).message}`, env);
           return new Response(`Error handling webhook: ${(error as any).message}`, { status: 200 });
         }
       }
@@ -274,7 +282,7 @@ export default {
       await snapshotChart(env);
     } catch (error) {
       console.error(`Error during snapshotChart: ${(error as any).message}`);
-      await sendMessageToTelegram(`Error during snapshotChart: ${(error as any).message}`, env);
+      await sendMarkdownMessageToTelegram(`Error during snapshotChart: ${(error as any).message}`, env);
     }
     
 
@@ -285,7 +293,7 @@ export default {
         await analyzeEtfData(env);
       } catch (error) {
         console.error(`Error during analyzeEtfData: ${(error as any).message}`);
-        await sendMessageToTelegram(`Error during analyzeEtfData: ${(error as any).message}`, env);
+        await sendMarkdownMessageToTelegram(`Error during analyzeEtfData: ${(error as any).message}`, env);
       }
     } else {
       console.log(`Skipping ETF analysis for this cron (${event.cron})`);
