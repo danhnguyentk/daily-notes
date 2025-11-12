@@ -197,7 +197,7 @@ export async function fetchAndNotifyEtf(env: Env) {
   latestRow.recommendation = recommendation;
 
   // Generate nicely formatted HTML message
-  const message = generateEtfTelegramMessage(latestRow);
+  const message = generateEtfTelegramMessage(latestRow, true);
   await sendMessageToTelegram({
     chat_id: env.TELEGRAM_CHAT_ID,
     text: message,
