@@ -9,13 +9,6 @@ export type EtfRow = {
   recommendation?: string;
 }
 
-export type EtfData = {
-  data: string; // date
-  funds: Record<string, number | null>;
-  total: number;
-  recommendation: string;
-}
-
 const FundNames: Record<string, string> = {
   IBIT: 'BlackRock',
   FBTC: 'Fidelity',

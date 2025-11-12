@@ -20,16 +20,16 @@ http://localhost:8787/__scheduled
 - Bot Commands Telegram
 
 ```
+btc15m - BTC 15m
 btc - BTC Price
 btc1w3d1d - BTC 1W 3D 1D
-btc8h4h15m - BTC 4h 8h 15m
+btc4h1h15m - BTC 4h 1h 15
 btc1w - BTC 1W
 btc3d - BTC 3D
 btc1d - BTC 1D
 btc8h - BTC 8h
 btc4h - BTC 4h
 btc1h - BTC 1h
-btc15m - BTC 15m
 snapshot - BTC All
 etf - BTC ETF
 2candles15m - 2 Candles 15m Bullish
