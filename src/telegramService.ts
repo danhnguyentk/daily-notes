@@ -94,7 +94,7 @@ export type TelegramCommand = keyof typeof TelegramCommands;
 
 // Default mapping of Telegram commands to TradingView intervals
 export const TelegramCommandIntervals: Record<string, { key: string; value: typeof TradingviewInterval[keyof typeof TradingviewInterval] }> = {
-  [TelegramCommands.BTCDaily]: { key: '1D', value: TradingviewInterval.Daily },
+  [TelegramCommands.BTC1d]: { key: '1D', value: TradingviewInterval.Daily },
   [TelegramCommands.BTC8h]: { key: '8h', value: TradingviewInterval.H8 },
   [TelegramCommands.BTC4h]: { key: '4h', value: TradingviewInterval.H4 },
   [TelegramCommands.BTC1h]: { key: '1h', value: TradingviewInterval.H1 },
