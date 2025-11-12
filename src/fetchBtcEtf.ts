@@ -143,18 +143,23 @@ function formatFundValue(value: number | null): string {
 }
 
 // Generate Telegram message for a given ETF row
-function generateEtfTelegramMessage(etf: EtfRow): string {
+function generateEtfTelegramMessage(etf: EtfRow, latestFundDate?: boolean): string {
   const fundLines = Object.entries(etf.funds)
     .map(([name, value]) => {
-      return `• ${name} (${FundNames[name]}): ${formatFundValue(value)}<br>`;
+      return `• ${name} (${FundNames[name]}): ${formatFundValue(value)}`;
     })
-    .join("");
+    .join("\n");
+
+  let dateLine = `📅 <b>Ngày:</b> ${etf.data}`;
+  if (latestFundDate) {
+    dateLine += `\n<b>(Ngày gần nhất thống kê từ quỹ)</b>`;
+  }
 
   return (
-    `📅 <b>Ngày:</b> ${etf.data}<br><br>` +
-    `🏦 <b>Dòng tiền ETF BTC (triệu USD)</b><br>` +
-    `${fundLines}<br>` +
-    `💰 <b>Tổng dòng tiền:</b> ${formatFundValue(etf.total)} triệu USD<br><br>` +
+    dateLine + "\n\n" +
+    `🏦 <b>Dòng tiền ETF BTC (triệu USD)</b>\n` +
+    `${fundLines}\n\n` +
+    `💰 <b>Tổng dòng tiền:</b> ${formatFundValue(etf.total)} triệu USD\n\n` +
     `💡 <b>Nhận định:</b> ${etf.recommendation}`
   );
 }
@@ -176,14 +181,14 @@ export async function fetchAndNotifyEtf(env: Env) {
     if (fbtcValue < 0) {
       recommendation = 'Canh thoát lệnh trading ngắn hạn vì dòng tiền từ quỹ đang ÂM nhẹ.';
     }
-    else if (fbtcValue < -100) {
+    else if (fbtcValue < -50) {
       recommendation = 'Không mua BTC vì dòng tiền từ quỹ đang ÂM.';
     }
-    else if (fbtcValue < -200) {
+    else if (fbtcValue < -150) {
       recommendation = 'QUAN TRỌNG.CÂN NHẮC BÁN BTC vì dòng tiền từ quỹ đang RẤT ÂM.';
-    } else if (fbtcValue >= 100) {
+    } else if (fbtcValue >= 50) {
       recommendation = 'Cân nhắc BUY BTC vì dòng tiền từ quỹ đang DƯƠNG.';
-    } else if (fbtcValue >= 200) {
+    } else if (fbtcValue >= 150) {
       recommendation = 'Mạnh dạn BUY BTC vì dòng tiền từ quỹ đang RẤT DƯƠNG.';
     }
   }

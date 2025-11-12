@@ -1,4 +1,3 @@
-import { text } from 'cheerio/dist/commonjs/static';
 import { TradingviewInterval } from './tradingviewService';
 import { Env } from './types';
 
@@ -11,7 +10,7 @@ export type TelegramImageRequest = {
 export type TelegramMessageRequest = {
   chat_id: string;
   text: string;
-  parse_mode?: TelegramParseMode = TelegramParseMode.MarkdownV2;
+  parse_mode?: TelegramParseMode;
 }
 
 export enum TelegramChatAction {
@@ -91,7 +90,7 @@ export const TelegramCommandIntervals: Record<string, { key: string; value: type
 };
 
 export async function sendMessageToTelegram(request: TelegramMessageRequest, env: Env) {
-  console.log(`Sending message to Telegram: ${request.text}`);
+  console.log(`Sending messagpace to Telegram: ${request.text}`);
   const url = `https://api.telegram.org/bot${env.TELEGRAM_KEY}/sendMessage`;
   const res = await fetch(url, {
     method: 'POST',
@@ -105,7 +104,7 @@ export async function sendMessageToTelegram(request: TelegramMessageRequest, env
     const errorLogs = {
       url: url,
       chatId: request.chat_id,
-      message: text,
+      message: request.text,
       status: res.status,
       errorText: await res.text(),
     }
