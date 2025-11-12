@@ -1,5 +1,5 @@
 import { buildScraperApiUrl } from "./scraperApiService";
-import { TelegramParseMode, sendMessageToTelegram } from "./telegramService";
+import { sendMessageToTelegram } from "./telegramService";
 import { TradingviewInterval } from "./tradingviewService";
 import { Env } from "./types";
 
