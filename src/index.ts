@@ -230,19 +230,26 @@ async function handleFetch(req: Request, env: Env): Promise<Response> {
       return new Response(JSON.stringify(result, null, 2), { status: 200 });
     }
     case '/webhook': {
-      // TODO: Remove try cache here
+      const body = await req.json() as TelegramWebhookRequest;
+      // "/btc15m@daily_analytic_btc_bot";
+      // Extract command text before the "@" symbol
+      const text = (body.message?.text || '').split("@")[0];
       try {
-        const body = await req.json() as TelegramWebhookRequest;
-        // "/btc15m@daily_analytic_btc_bot";
-        // Extract command text before the "@" symbol
-        const text = (body.message?.text || '').split("@")[0];
-        
         console.log(`Received webhook message: ${text}`);
         await takeTelegramAction(text, env);
         return new Response('Webhook handled successfully', { status: 200 });
       } catch (error) {
         console.error(`Error handling webhook: ${(error as any).message}`);
-        await sendMarkdownMessageToTelegram(`Error handling webhook: ${(error as any).message}`, env);
+        const logInfo = {
+          method: req.method,
+          pathName: (new URL(req.url)).pathname,
+          errorMessage: (error as any)?.message,
+          text
+        }
+        await sendMessageToTelegram({
+          chat_id: env.TELEGRAM_CHAT_ID,
+          text: `${TelegramMessageTitle.ErrorDetected} \n${JSON.stringify(logInfo, null, 2)}`
+        }, env);
         return new Response(`Error handling webhook: ${(error as any).message}`, { status: 200 });
       }
     }

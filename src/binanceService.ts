@@ -26,6 +26,14 @@ export const enum BinanceSymbol {
   XRPUSDT = 'XRPUSDT'
 };
 
+export const CryptoSymbolIcons: Record<BinanceSymbol, string> = {
+  [BinanceSymbol.BTCUSDT]: '🟡 ₿',
+  [BinanceSymbol.ETHUSDT]: 'Ξ',
+  [BinanceSymbol.BNBUSDT]: '🅱️',
+  [BinanceSymbol.ADAUSDT]: '₳',
+  [BinanceSymbol.XRPUSDT]: '✕',
+}
+
 export const enum BinanceInterval {
   FIVE_MINUTES = '5m',
   FIFTEEN_MINUTES = '15m',
@@ -139,7 +147,7 @@ export async function getCurrentPrice(symbol: BinanceSymbol, env: Env): Promise<
 
 export async function getCurrentPriceAndNotify(symbol: BinanceSymbol, env: Env): Promise<number> {
   const price = await getCurrentPrice(symbol, env);
-  const message = `💰 ${symbol}: ${price.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD`;
+  const message = `${CryptoSymbolIcons[symbol]}: ${price.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD`;
   await sendMessageToTelegram({
     chat_id: env.TELEGRAM_CHAT_ID,
     text: message,
