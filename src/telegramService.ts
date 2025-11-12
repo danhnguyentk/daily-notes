@@ -7,6 +7,14 @@ export type TelegramImageRequest = {
   photo: ArrayBuffer;
 };
 
+export enum TelegramMessageTitle {
+  ErrorDetected = '🚨 Error detected',
+  Warning = '⚠️ Warning',
+  Info = 'ℹ️ Info',
+  Debug = '🐞 Debug',
+  Success = '✅ Success',
+}
+
 export type TelegramMessageRequest = {
   chat_id: string;
   text: string;
@@ -102,7 +110,7 @@ export async function sendMessageToTelegram(request: TelegramMessageRequest, env
 
   if (!res.ok) {
     const errorLogs = {
-      url: url,
+      urlPathName: '/sendMessage',
       chatId: request.chat_id,
       message: request.text,
       status: res.status,
@@ -210,4 +218,25 @@ export async function sendChatActionTelegram(request: TelegramChatActionRequest,
     ),
   });
   console.log('Chat action sent to Telegram successfully');
+}
+
+/**
+ * Safely escape Telegram MarkdownV2 special characters.
+ * Docs: https://core.telegram.org/bots/api#markdownv2-style
+ */
+function escapeMarkdownV2(text: string): string {
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1');
+}
+
+/**
+ * Format an object as a safe MarkdownV2 message for Telegram
+ * @param title - The title of the message
+ * @param data - The object or info to include
+ */
+export function formatMarkdownLog(title: TelegramMessageTitle, data: unknown): string {
+  // Convert the object into a pretty JSON string 
+  const json = JSON.stringify(data, null, 2);
+  const escapedJson = escapeMarkdownV2(json);
+  const escapedTitle = escapeMarkdownV2(title);
+  return `*${escapedTitle}:*\n\`\`\`${escapedJson}\`\`\``;
 }

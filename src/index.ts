@@ -15,9 +15,9 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-import { BinanceCandlesRequest, BinanceInterval, BinanceSymbol, BinanceToTradingviewInterval, checkNumberClosedCandlesBullish } from './binanceService';
+import { BinanceCandlesRequest, BinanceInterval, BinanceSymbol, BinanceToTradingviewInterval, checkNumberClosedCandlesBullish, getCurrentPrice, getCurrentPriceAndNotify } from './binanceService';
 import { fetchBtcEtf, EtfRow, fetchAndNotifyEtf } from './fetchBtcEtf';
-import { TelegramCommandIntervals, TelegramCommands, TelegramImageRequest, TelegramParseMode, TelegramWebhookRequest, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram, setWebhookTelegram } from './telegramService';
+import { TelegramCommandIntervals, TelegramCommands, TelegramImageRequest, TelegramMessageTitle, TelegramParseMode, TelegramWebhookRequest, formatMarkdownLog, sendImageGroupToTelegram, sendImageToTelegram, sendMessageToTelegram, setWebhookTelegram } from './telegramService';
 import { TradingviewInterval, TradingviewSymbol, getTradingViewImage } from './tradingviewService';
 import { Env } from './types';
 
@@ -106,6 +106,9 @@ const sendMarkdownMessageToTelegram = async (message: string, env: Env) => {
 
 export async function takeTelegramAction(action: string, env: Env): Promise<object> {
   switch (action) {
+    case TelegramCommands.BTC:
+      await getCurrentPriceAndNotify(BinanceSymbol.BTCUSDT, env);
+      break;
     case TelegramCommands.BTCDaily:
     case TelegramCommands.BTC4h:
     case TelegramCommands.BTC1h:
@@ -113,7 +116,6 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       await sendMarkdownMessageToTelegram(('📊 Generating chart... Please wait.'), env);
       await snapshotChartWithSpecificInterval(TelegramCommandIntervals[action], env);
       break;
-    case TelegramCommands.BTC:
     case TelegramCommands.SnapshotChart:
       await sendMarkdownMessageToTelegram('📊 Generating chart... Please wait.', env);
       await snapshotChart(env);
@@ -190,59 +192,81 @@ export async function notifyNumberClosedCandlesBullish(
   }
 }
 
+async function handleFetch(req: Request, env: Env): Promise<Response> {
+  const url = new URL(req.url);
+  const pathname = url.pathname;
+
+  switch (pathname) {
+    case '/setWebhookTelegram': {
+      const result = await setWebhookTelegram(env);
+      return new Response(JSON.stringify(result), { status: 200 });
+    }
+    case TelegramCommands.BTC: {
+      const price = await getCurrentPriceAndNotify(BinanceSymbol.BTCUSDT, env);
+      return new Response(JSON.stringify({ price }, null, 2), { status: 200 });
+    }
+    case '/etf': {
+      const message = await fetchAndNotifyEtf(env);
+      return new Response(JSON.stringify(message, null, 2), { status: 200 });
+    }
+    case '/snapshotChart': {
+      await snapshotChart(env);
+      return new Response('Snapshot chart successfully', { status: 200 });
+    }
+    case '/notifyOneClosed15mCandlesBullish': {
+      const result = await notifyNumberClosedCandlesBullish({
+        symbol: BinanceSymbol.BTCUSDT,
+        interval: BinanceInterval.FIFTEEN_MINUTES,
+        limit: 1,
+      }, env);
+      return new Response(JSON.stringify(result, null, 2), { status: 200 });
+    }
+    case '/notifyTwoClosed15mCandlesBullish': {
+      const result = await notifyNumberClosedCandlesBullish({
+        symbol: BinanceSymbol.BTCUSDT,
+        interval: BinanceInterval.FIFTEEN_MINUTES,
+        limit: 2,
+      }, env);
+      return new Response(JSON.stringify(result, null, 2), { status: 200 });
+    }
+    case '/webhook': {
+      // TODO: Remove try cache here
+      try {
+        const body = await req.json() as TelegramWebhookRequest;
+        // "/btc15m@daily_analytic_btc_bot";
+        // Extract command text before the "@" symbol
+        const text = (body.message?.text || '').split("@")[0];
+        
+        console.log(`Received webhook message: ${text}`);
+        await takeTelegramAction(text, env);
+        return new Response('Webhook handled successfully', { status: 200 });
+      } catch (error) {
+        console.error(`Error handling webhook: ${(error as any).message}`);
+        await sendMarkdownMessageToTelegram(`Error handling webhook: ${(error as any).message}`, env);
+        return new Response(`Error handling webhook: ${(error as any).message}`, { status: 200 });
+      }
+    }
+
+    default:
+      return new Response('OK. No do anything.', { status: 200 });
+  }
+}
+
 export default {
 	async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(req.url);
-    const pathname = url.pathname;
-  
-    switch (pathname) {
-      case '/setWebhookTelegram': {
-        const result = await setWebhookTelegram(env);
-        return new Response(JSON.stringify(result), { status: 200 });
+    try {
+      return await handleFetch(req, env);
+    } catch (error) {
+      const logInfo = {
+        method: req.method,
+        pathName: (new URL(req.url)).pathname,
+        errorMessage: (error as any)?.message,
       }
-      case '/etf': {
-        const message = await fetchAndNotifyEtf(env);
-        return new Response(JSON.stringify(message, null, 2), { status: 200 });
-      }
-      case '/snapshotChart': {
-        await snapshotChart(env);
-        return new Response('Snapshot chart successfully', { status: 200 });
-      }
-      case '/notifyOneClosed15mCandlesBullish': {
-        const result = await notifyNumberClosedCandlesBullish({
-          symbol: BinanceSymbol.BTCUSDT,
-          interval: BinanceInterval.FIFTEEN_MINUTES,
-          limit: 1,
-        }, env);
-        return new Response(JSON.stringify(result, null, 2), { status: 200 });
-      }
-      case '/notifyTwoClosed15mCandlesBullish': {
-        const result = await notifyNumberClosedCandlesBullish({
-          symbol: BinanceSymbol.BTCUSDT,
-          interval: BinanceInterval.FIFTEEN_MINUTES,
-          limit: 2,
-        }, env);
-        return new Response(JSON.stringify(result, null, 2), { status: 200 });
-      }
-      case '/webhook': {
-        try {
-          const body = await req.json() as TelegramWebhookRequest;
-          // "/btc15m@daily_analytic_btc_bot";
-          // Extract command text before the "@" symbol
-          const text = (body.message?.text || '').split("@")[0];
-          
-          console.log(`Received webhook message: ${text}`);
-          await takeTelegramAction(text, env);
-          return new Response('Webhook handled successfully', { status: 200 });
-        } catch (error) {
-          console.error(`Error handling webhook: ${(error as any).message}`);
-          await sendMarkdownMessageToTelegram(`Error handling webhook: ${(error as any).message}`, env);
-          return new Response(`Error handling webhook: ${(error as any).message}`, { status: 200 });
-        }
-      }
-  
-      default:
-        return new Response('OK. No do anything.', { status: 200 });
+      await sendMessageToTelegram({
+        chat_id: env.TELEGRAM_CHAT_ID,
+        text: `${TelegramMessageTitle.ErrorDetected} \n${JSON.stringify(logInfo, null, 2)}`
+      }, env);
+      return new Response(`Error: ${logInfo.errorMessage}`, { status: 500 });
     }
   },
 

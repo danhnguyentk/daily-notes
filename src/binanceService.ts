@@ -1,3 +1,5 @@
+import { buildScraperApiUrl } from "./scraperApiService";
+import { TelegramParseMode, sendMessageToTelegram } from "./telegramService";
 import { TradingviewInterval } from "./tradingviewService";
 import { Env } from "./types";
 
@@ -119,4 +121,28 @@ export async function checkNumberClosedCandlesBullish(
 
   // Check if all latest closed candles are bullish
   return closedCandles.every(candle => candle.close > candle.open);
+}
+
+// Fetch current price for a given symbol from Binance
+export async function getCurrentPrice(symbol: BinanceSymbol, env: Env): Promise<number> {
+  const url = buildScraperApiUrl(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, env);
+
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0', // required for Binance to allow request, avoid Forbidden Error
+    },
+  });
+
+  const data = await response.json() as { symbol: string; price: string; };
+  return parseFloat(data.price);
+}
+
+export async function getCurrentPriceAndNotify(symbol: BinanceSymbol, env: Env): Promise<number> {
+  const price = await getCurrentPrice(symbol, env);
+  const message = `💰 ${symbol}: ${price.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD`;
+  await sendMessageToTelegram({
+    chat_id: env.TELEGRAM_CHAT_ID,
+    text: message,
+  }, env);
+  return price;
 }
