@@ -80,9 +80,13 @@ function parseKline(data: any[]): BinanceKline {
 
 async function getBinanceCandles(request: BinanceCandlesRequest, env: Env): Promise<BinanceKline[]> {
   const { symbol, interval, limit = 500 } = request;
-  const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+  const url = `https://api.scraperapi.com?api_key=72dcac2fb1a01d4a325294bcbfe041b3&url=https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
   
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0', // required for Binance to allow request, avoid Forbidden Error
+    },
+  });
   if (!response.ok) {
     throw new Error(`Failed to fetch Binance candles: ${response.statusText}`);
   }

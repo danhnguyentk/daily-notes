@@ -243,14 +243,20 @@ export default {
         return new Response(JSON.stringify(result, null, 2), { status: 200 });
       }
       case '/webhook': {
-        const body = await req.json() as TelegramWebhookRequest;
-        // "/btc15m@daily_analytic_btc_bot";
-        // Extract command text before the "@" symbol
-        const text = (body.message?.text || '').split("@")[0];
-        
-        console.log(`Received webhook message: ${text}`);
-        await takeTelegramAction(text, env);
-        return new Response('Webhook handled successfully', { status: 200 });
+        try {
+          const body = await req.json() as TelegramWebhookRequest;
+          // "/btc15m@daily_analytic_btc_bot";
+          // Extract command text before the "@" symbol
+          const text = (body.message?.text || '').split("@")[0];
+          
+          console.log(`Received webhook message: ${text}`);
+          await takeTelegramAction(text, env);
+          return new Response('Webhook handled successfully', { status: 200 });
+        } catch (error) {
+          console.error(`Error handling webhook: ${(error as any).message}`);
+          await sendMessageToTelegram(`Error handling webhook: ${(error as any).message}`, env);
+          return new Response(`Error handling webhook: ${(error as any).message}`, { status: 200 });
+        }
       }
   
       default:
