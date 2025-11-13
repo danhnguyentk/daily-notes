@@ -349,7 +349,10 @@ export async function addNoteToOrder(
   await saveConversationState(state, env);
 
   // Show updated keyboard
-  const message = `✅ Quantity: ${state.data.quantity || 'N/A'}\n\n📝 Notes đã chọn: ${state.data.notes || '(chưa có)'}\n\nVui lòng chọn thêm Notes hoặc nhấn Done:`;
+  const formattedNotes = state.data.notes && state.data.notes.trim() 
+    ? formatNotes(state.data.notes) 
+    : '(chưa có)';
+  const message = `✅ Quantity: ${state.data.quantity || 'N/A'}\n\n📝 Notes đã chọn:\n${formattedNotes}\n\nVui lòng chọn thêm Notes hoặc nhấn Done:`;
   const noteExamples = createNotesKeyboard(state.data.notes);
   
   await sendMessageToTelegram({ 
