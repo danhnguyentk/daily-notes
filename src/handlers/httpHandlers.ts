@@ -11,6 +11,15 @@ import { getCurrentPriceAndNotify } from '../binanceService';
 import { snapshotChart } from './chartHandlers';
 import { notifyNumberClosedCandlesBullish } from './candleHandlers';
 import { takeTelegramAction } from './telegramHandlers';
+import {
+  startOrderConversation,
+  cancelOrderConversation,
+  showOrderPreview,
+  processOrderInput,
+  getConversationState,
+} from '../services/orderConversationService';
+import { processOrderData } from './orderHandlers';
+import { OrderConversationStep } from '../types/orderTypes';
 
 // Route constants
 const ROUTES = {
@@ -76,11 +85,54 @@ async function handleDisableNotification(
 
 async function handleWebhook(req: Request, env: Env): Promise<Response> {
   const body: TelegramWebhookRequest = await req.json();
-  // Extract command text before the "@" symbol (e.g., "/btc15m@daily_analytic_btc_bot")
-  const text = (body.message?.text || '').split("@")[0];
+  
+  // Check if message exists
+  if (!body.message) {
+    return textResponse('No message in webhook');
+  }
+
+  const userId = body.message.from.id;
+  const chatId = body.message.chat.id.toString();
+  const text = (body.message.text || '').split("@")[0].trim();
   
   try {
-    console.log(`Received webhook message: ${text}`);
+    console.log(`Received webhook message from user ${userId}: ${text}`);
+
+    // Check if user is in an active conversation
+    const conversationState = await getConversationState(userId, env);
+    
+    // Handle order-related commands
+    if (text === TelegramCommands.NEW_ORDER) {
+      await startOrderConversation(userId, chatId, env);
+      return textResponse('Order conversation started');
+    }
+
+    if (text === TelegramCommands.CANCEL_ORDER) {
+      await cancelOrderConversation(userId, chatId, env);
+      return textResponse('Order conversation cancelled');
+    }
+
+    if (text === TelegramCommands.ORDER_PREVIEW) {
+      await showOrderPreview(userId, chatId, env);
+      return textResponse('Order preview shown');
+    }
+
+    // If user is in conversation, process input
+    if (conversationState && conversationState.step !== OrderConversationStep.COMPLETED) {
+      const result = await processOrderInput(userId, chatId, text, env);
+      
+      // If order is completed, process it
+      if (result.completed && result.orderData) {
+        await processOrderData(result.orderData, userId, chatId, env);
+        // Clear conversation state after processing
+        const { clearConversationState } = await import('../services/orderConversationService');
+        await clearConversationState(userId, env);
+      }
+      
+      return textResponse('Conversation input processed');
+    }
+
+    // Otherwise, handle as normal command
     await takeTelegramAction(text, env);
     return textResponse('Webhook handled successfully');
   } catch (error) {
@@ -91,7 +143,8 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       method: req.method,
       pathName: new URL(req.url).pathname,
       errorMessage,
-      text
+      text,
+      userId,
     };
     
     await sendMessageToTelegram({

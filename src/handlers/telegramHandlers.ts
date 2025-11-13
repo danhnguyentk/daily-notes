@@ -12,6 +12,11 @@ import { getCurrentPriceAndNotify } from '../binanceService';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
 import { snapshotChart, snapshotChartWithSpecificInterval } from './chartHandlers';
 import { notifyNumberClosedCandlesBullish } from './candleHandlers';
+import {
+  startOrderConversation,
+  cancelOrderConversation,
+  showOrderPreview,
+} from '../services/orderConversationService';
 
 // Configuration for schedule enable/disable commands
 interface ScheduleConfig {
@@ -226,6 +231,18 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
     case TelegramCommands.ENABLED_EVENTS:
       await handleEnabledEvents(env);
       break;
+
+    case TelegramCommands.NEW_ORDER:
+      // This will be handled in httpHandlers with user context
+      return { message: 'Order conversation started' };
+
+    case TelegramCommands.CANCEL_ORDER:
+      // This will be handled in httpHandlers with user context
+      return { message: 'Order conversation cancelled' };
+
+    case TelegramCommands.ORDER_PREVIEW:
+      // This will be handled in httpHandlers with user context
+      return { message: 'Order preview shown' };
 
     default:
       console.log(`No action taken for command: ${action}`);

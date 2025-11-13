@@ -20,28 +20,74 @@ import { Env } from './types';
 import { handleFetch } from './handlers/httpHandlers';
 import { handleScheduled } from './handlers/scheduledHandlers';
 
+type ErrorContext = Record<string, unknown>;
+
+function normalizeError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+  const message =
+    typeof error === 'string'
+      ? error
+      : `Unknown error: ${JSON.stringify(error, null, 2)}`;
+  return new Error(message);
+}
+
+async function notifyWorkerError(
+  env: Env,
+  context: ErrorContext,
+  error: unknown,
+): Promise<ErrorContext & { message: string; stack?: string }> {
+  const normalizedError = normalizeError(error);
+  const logInfo = {
+    ...context,
+    message: normalizedError.message,
+    stack: normalizedError.stack,
+  };
+
+  await sendMessageToTelegram(
+    {
+      chat_id: env.TELEGRAM_CHAT_ID,
+      text: `${TelegramMessageTitle.ErrorDetected} \n${JSON.stringify(logInfo, null, 2)}`,
+    },
+    env,
+  );
+
+  return logInfo;
+}
+
 export default {
-  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(req: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
     try {
       return await handleFetch(req, env);
     } catch (error) {
-      const logInfo = {
-        method: req.method,
-        pathName: (new URL(req.url)).pathname,
-        message: (error as Error)?.message,
-        stack: (error as Error)?.stack,
-      };
-      await sendMessageToTelegram({
-        chat_id: env.TELEGRAM_CHAT_ID,
-        text: `${TelegramMessageTitle.ErrorDetected} \n${JSON.stringify(logInfo, null, 2)}`
-      }, env);
+      const logInfo = await notifyWorkerError(
+        env,
+        {
+          method: req.method,
+          pathName: new URL(req.url).pathname,
+        },
+        error,
+      );
       return new Response(`Error: ${logInfo.message}`, { status: 500 });
     }
   },
 
   // The scheduled handler is invoked at the interval set in our wrangler.jsonc's
   // [[triggers]] configuration.
-  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    await handleScheduled(controller, env);
+  async scheduled(controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
+    try {
+      await handleScheduled(controller, env);
+    } catch (error) {
+      await notifyWorkerError(
+        env,
+        {
+          cron: controller.cron,
+          scheduledTime: controller.scheduledTime,
+        },
+        error,
+      );
+      throw error;
+    }
   },
 } satisfies ExportedHandler<Env>;
