@@ -5,7 +5,7 @@
 import { BinanceSymbol, BinanceInterval } from '../binanceService';
 import { KVKeys } from '../cloudflareService';
 import { fetchAndNotifyEtf } from '../fetchBtcEtf';
-import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram } from '../telegramService';
+import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery } from '../telegramService';
 import { Env } from '../types';
 import { getCurrentPriceAndNotify } from '../binanceService';
 import { snapshotChart } from './chartHandlers';
@@ -86,16 +86,59 @@ async function handleDisableNotification(
 async function handleWebhook(req: Request, env: Env): Promise<Response> {
   const body: TelegramWebhookRequest = await req.json();
   
-  // Check if message exists
-  if (!body.message) {
-    return textResponse('No message in webhook');
-  }
-
-  const userId = body.message.from.id;
-  const chatId = body.message.chat.id.toString();
-  const text = (body.message.text || '').split("@")[0].trim();
-  
   try {
+    // Handle callback_query (button clicks)
+    if (body.callback_query) {
+      const callbackQuery = body.callback_query;
+      const userId = callbackQuery.from.id;
+      const chatId = callbackQuery.message?.chat.id.toString() || '';
+      const callbackData = callbackQuery.data;
+      
+      console.log(`Received callback query from user ${userId}: ${callbackData}`);
+      
+      // Answer the callback query first (REQUIRED by Telegram API)
+      // Nếu không gọi hàm này:
+      // - Nút sẽ bị "stuck" ở trạng thái loading (hiển thị spinner mãi)
+      // - Người dùng sẽ không biết bot đã xử lý hay chưa
+      // - Telegram có thể giới hạn bot nếu không trả lời callback query
+      // - Phải trả lời trong vòng 10 giây, nếu không sẽ timeout
+      await answerCallbackQuery(callbackQuery.id, env);
+      
+      // Handle note selection from inline keyboard
+      if (callbackData.startsWith('note_')) {
+        const noteValue = callbackData.substring(5); // Remove 'note_' prefix
+        
+        // Check if user is in conversation and waiting for notes
+        const conversationState = await getConversationState(userId, env);
+        if (conversationState && conversationState.step === OrderConversationStep.WAITING_NOTES) {
+          // Process the note input
+          const input = noteValue === 'skip' ? '/skip' : noteValue;
+          const result = await processOrderInput(userId, chatId, input, env);
+          
+          // If order is completed, process it
+          if (result.completed && result.orderData) {
+            await processOrderData(result.orderData, userId, chatId, env);
+            // Clear conversation state after processing
+            const { clearConversationState } = await import('../services/orderConversationService');
+            await clearConversationState(userId, env);
+          }
+        }
+        
+        return textResponse('Callback query handled');
+      }
+      
+      return textResponse('Callback query received but not handled');
+    }
+  
+    // Check if message exists
+    if (!body.message) {
+      return textResponse('No message in webhook');
+    }
+
+    const userId = body.message.from.id;
+    const chatId = body.message.chat.id.toString();
+    const text = (body.message.text || '').split("@")[0].trim();
+    
     console.log(`Received webhook message from user ${userId}: ${text}`);
 
     // Check if user is in an active conversation
@@ -143,8 +186,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       method: req.method,
       pathName: new URL(req.url).pathname,
       errorMessage,
-      text,
-      userId,
     };
     
     await sendMessageToTelegram({

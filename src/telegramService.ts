@@ -15,10 +15,20 @@ export enum TelegramMessageTitle {
   Success = '✅ Success',
 }
 
+export type TelegramInlineKeyboardButton = {
+  text: string;
+  callback_data: string;
+};
+
+export type TelegramInlineKeyboardMarkup = {
+  inline_keyboard: TelegramInlineKeyboardButton[][];
+};
+
 export type TelegramMessageRequest = {
   chat_id: string;
   text: string;
   parse_mode?: TelegramParseMode;
+  reply_markup?: TelegramInlineKeyboardMarkup;
 }
 
 export enum TelegramChatAction {
@@ -62,6 +72,27 @@ export type TelegramWebhookRequest = {
     };
     date: number;
     text?: string;
+  };
+  callback_query?: {
+    id: string;
+    from: {
+      id: number;
+      is_bot: boolean;
+      first_name: string;
+      username: string;
+    };
+    message?: {
+      message_id: number;
+      chat: {
+        id: number;
+        title: number;
+        username: string;
+        type: string;
+      };
+      date: number;
+      text?: string;
+    };
+    data: string;
   };
 }
 
@@ -216,7 +247,7 @@ export const sendImageGroupToTelegram = async (groupRequest: TelegramImageGroupR
   console.log('Image group sent to Telegram successfully');
 };
 
-export const setWebhookTelegram = async (env: Env): Promise<any> => {
+export const setWebhookTelegram = async (env: Env): Promise<{ message: string }> => {
   console.log('Setting Telegram webhook');
   const url = `https://api.telegram.org/bot${env.TELEGRAM_KEY}/setWebhook?url=${env.WORKER_URL}/webhook`;
   const response = await fetch(url, {
@@ -270,4 +301,28 @@ export function formatMarkdownLog(title: TelegramMessageTitle, data: unknown): s
   const escapedJson = escapeMarkdownV2(json);
   const escapedTitle = escapeMarkdownV2(title);
   return `*${escapedTitle}:*\n\`\`\`${escapedJson}\`\`\``;
+}
+
+/**
+ * Answer a callback query (required by Telegram API)
+ */
+export async function answerCallbackQuery(callbackQueryId: string, env: Env, text?: string): Promise<void> {
+  const url = `https://api.telegram.org/bot${env.TELEGRAM_KEY}/answerCallbackQuery`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      callback_query_id: callbackQueryId,
+      text: text,
+      show_alert: false,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('Error answering callback query:', errorText);
+    throw new Error(`Failed to answer callback query: ${errorText}`);
+  }
 }

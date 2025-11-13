@@ -3,7 +3,7 @@
  */
 
 import { Env } from '../types';
-import { sendMessageToTelegram } from '../telegramService';
+import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../telegramService';
 import { OrderConversationState, OrderConversationStep, OrderData } from '../types/orderTypes';
 
 const CONVERSATION_STATE_KEY_PREFIX = 'order_conversation_';
@@ -74,9 +74,13 @@ export async function startOrderConversation(
   };
 
   await saveConversationState(newState, env);
+  const message = `📝 Bắt đầu nhập lệnh mới!\n\nVui lòng nhập Symbol: \n 
+/BTCUSDT - BTCUSDT\n
+/ETHUSDT - ETHUSDT\n
+/XAUUSD - XAUUSD\n`;
   await sendMessageToTelegram({
     chat_id: chatId,
-    text: '📝 Bắt đầu nhập lệnh mới!\n\nVui lòng nhập Symbol (ví dụ: BTCUSDT):',
+    text: message,
   }, env);
 }
 
@@ -168,7 +172,7 @@ export async function processOrderInput(
         updatedState.data.takeProfit = takeProfit;
       }
       updatedState.step = OrderConversationStep.WAITING_QUANTITY;
-      message = `✅ Take Profit: ${updatedState.data.takeProfit || 'N/A'}\n\nVui lòng nhập Quantity (hoặc /skip để bỏ qua):`;
+      message = `✅ Take Profit: ${updatedState.data.takeProfit || 'N/A'}\n\nVui lòng nhập Quantity (hoặc /skip để bỏ qua): \n /0.01 /0.02 /0.1 /0.2`;
       break;
 
     case OrderConversationStep.WAITING_QUANTITY:
@@ -187,7 +191,30 @@ export async function processOrderInput(
       }
       updatedState.step = OrderConversationStep.WAITING_NOTES;
       message = `✅ Quantity: ${updatedState.data.quantity || 'N/A'}\n\nVui lòng nhập Notes (hoặc /skip để bỏ qua):`;
-      break;
+      
+      // Create inline keyboard with note examples
+      const noteExamples: TelegramInlineKeyboardMarkup = {
+        inline_keyboard: [
+          [
+            { text: '2 Nen 15M Tang lien tuc', callback_data: 'note_2 Nen 15M Tang lien tuc' },
+            { text: 'HARSI 8h Xanh', callback_data: 'note_HARSI 8h Xanh' },
+          ],
+          [
+            { text: '2 Nen 15M Tang lien tuc, HARSI 8h Xanh', callback_data: 'note_2 Nen 15M Tang lien tuc, HARSI 8h Xanh' },
+          ],
+          [
+            { text: 'Skip', callback_data: 'note_skip' },
+          ],
+        ],
+      };
+      
+      await saveConversationState(updatedState, env);
+      await sendMessageToTelegram({ 
+        chat_id: chatId, 
+        text: message,
+        reply_markup: noteExamples,
+      }, env);
+      return { completed: false };
 
     case OrderConversationStep.WAITING_NOTES:
       if (input.trim().toUpperCase() === '/SKIP' || input.trim() === '') {
