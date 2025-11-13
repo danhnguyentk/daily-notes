@@ -94,7 +94,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       const chatId = callbackQuery.message?.chat.id.toString() || '';
       const callbackData = callbackQuery.data;
       
-      console.log(`Received callback query from user ${userId}: ${callbackData}`);
+      console.log(`Received callback query from user ${userId}. Chat ID: ${chatId}. Callback Data: ${callbackData}`);
       
       // Answer the callback query first (REQUIRED by Telegram API)
       // If this button is not called:
@@ -139,7 +139,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
     const chatId = body.message.chat.id.toString();
     const text = (body.message.text || '').split("@")[0].trim();
     
-    console.log(`Received webhook message from user ${userId}: ${text}`);
+    console.log(`Received webhook message from user ${userId}. Chat ID: ${chatId}. Text: ${text}`);
 
     // Check if user is in an active conversation
     const conversationState = await getConversationState(userId, env);
