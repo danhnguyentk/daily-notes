@@ -56,7 +56,6 @@ enabled_events - Enabled Events
 ```
 
 ### ACTION TODO 
-- Support notify khi 2 nen 15' truc tiep bullish
-- Open question xac dinh xu huon
+- Open question xac dinh xu huong
 - Refactor, split index.ts
 - Refactor common generic type
