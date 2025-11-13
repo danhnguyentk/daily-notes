@@ -10,10 +10,14 @@ import { buildSendMessageToTelegram } from '../utils/telegramUtils';
 import { snapshotChart } from './chartHandlers';
 import { notifyNumberClosedCandlesBullish, notifyNumberClosedCandlesBearish, CandleDirection } from './candleHandlers';
 
-// Cron expression constants
-const CRON_DAILY_00_05 = "5 0 * * *";
-const CRON_EVERY_15_MINUTES = "*/15 * * * *";
-const CRON_EVERY_HOUR = "0 */1 * * *";
+/**
+ * Cron schedule expressions enum for easy management
+ */
+export enum CronSchedule {
+  DAILY_00_05 = "5 0 * * *",
+  EVERY_15_MINUTES = "*/15 * * * *",
+  EVERY_HOUR = "0 */1 * * *",
+}
 
 // Candle check configuration type
 type CandleCheckConfig = {
@@ -168,15 +172,15 @@ export async function handleScheduled(controller: ScheduledController, env: Env)
   const cron = controller.cron;
   
   switch (cron) {
-    case CRON_DAILY_00_05:
+    case CronSchedule.DAILY_00_05:
       await handleDailyTasks(env);
       break;
     
-    case CRON_EVERY_15_MINUTES:
+    case CronSchedule.EVERY_15_MINUTES:
       await processCandleChecks(CANDLE_CHECKS_15M, env);
       break;
     
-    case CRON_EVERY_HOUR:
+    case CronSchedule.EVERY_HOUR:
       await processCandleChecks(CANDLE_CHECKS_1H, env);
       break;
     
