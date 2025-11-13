@@ -10,7 +10,6 @@ import { formatVietnamTime } from '../utils/timeUtils';
 
 export async function snapshotChart(env: Env): Promise<void> {
   console.log('📸 Snapshot TradingView chart and send to Telegram');
-
   // Define the list of timeframes you want to capture
   const intervals = [
     { key: '1D', value: TradingviewInterval.Daily },
