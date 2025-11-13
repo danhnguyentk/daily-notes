@@ -13,6 +13,30 @@ function getConversationKey(userId: number): string {
 }
 
 /**
+ * Create inline keyboard for notes selection with current selected notes
+ */
+function createNotesKeyboard(currentNotes?: string): TelegramInlineKeyboardMarkup {
+  const notes = currentNotes ? currentNotes.split(', ').filter(n => n.trim()) : [];
+  
+  return {
+    inline_keyboard: [
+      [
+        { text: '2 Nen 15M Tang lien tuc', callback_data: 'note_add_2 Nen 15M Tang lien tuc' },
+        { text: 'HARSI 8h Xanh', callback_data: 'note_add_HARSI 8h Xanh' },
+      ],
+      [
+        { text: '2 Nen 15M Tang lien tuc, HARSI 8h Xanh', callback_data: 'note_add_2 Nen 15M Tang lien tuc, HARSI 8h Xanh' },
+      ],
+      [
+        ...(notes.length > 0 ? [{ text: '🗑️ Clear', callback_data: 'note_clear' }] : []),
+        { text: '✅ Done', callback_data: 'note_done' },
+        { text: '⏭️ Skip', callback_data: 'note_skip' },
+      ],
+    ],
+  };
+}
+
+/**
  * Get current conversation state for a user
  */
 export async function getConversationState(
@@ -190,23 +214,14 @@ export async function processOrderInput(
         updatedState.data.quantity = quantity;
       }
       updatedState.step = OrderConversationStep.WAITING_NOTES;
-      message = `✅ Quantity: ${updatedState.data.quantity || 'N/A'}\n\nVui lòng nhập Notes (hoặc /skip để bỏ qua):`;
+      // Initialize notes as empty string if not set
+      if (!updatedState.data.notes) {
+        updatedState.data.notes = '';
+      }
+      message = `✅ Quantity: ${updatedState.data.quantity || 'N/A'}\n\nVui lòng chọn Notes (có thể chọn nhiều):`;
       
       // Create inline keyboard with note examples
-      const noteExamples: TelegramInlineKeyboardMarkup = {
-        inline_keyboard: [
-          [
-            { text: '2 Nen 15M Tang lien tuc', callback_data: 'note_2 Nen 15M Tang lien tuc' },
-            { text: 'HARSI 8h Xanh', callback_data: 'note_HARSI 8h Xanh' },
-          ],
-          [
-            { text: '2 Nen 15M Tang lien tuc, HARSI 8h Xanh', callback_data: 'note_2 Nen 15M Tang lien tuc, HARSI 8h Xanh' },
-          ],
-          [
-            { text: 'Skip', callback_data: 'note_skip' },
-          ],
-        ],
-      };
+      const noteExamples = createNotesKeyboard(updatedState.data.notes);
       
       await saveConversationState(updatedState, env);
       await sendMessageToTelegram({ 
@@ -217,6 +232,8 @@ export async function processOrderInput(
       return { completed: false };
 
     case OrderConversationStep.WAITING_NOTES:
+      // This case is now handled by callback queries (note_add, note_done, note_skip, note_clear)
+      // Regular text input still works for manual entry
       if (input.trim().toUpperCase() === '/SKIP' || input.trim() === '') {
         updatedState.data.notes = undefined;
       } else {
@@ -266,6 +283,112 @@ export async function cancelOrderConversation(
     chat_id: chatId,
     text: '✅ Đã hủy nhập lệnh.',
   }, env);
+}
+
+/**
+ * Add a note to the current notes list
+ */
+export async function addNoteToOrder(
+  userId: number,
+  chatId: string,
+  noteText: string,
+  env: Env
+): Promise<void> {
+  const state = await getConversationState(userId, env);
+  if (!state || state.step !== OrderConversationStep.WAITING_NOTES) {
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: '❌ Không tìm thấy phiên nhập lệnh hoặc không ở bước nhập Notes.',
+    }, env);
+    return;
+  }
+
+  const currentNotes = state.data.notes || '';
+  const notesArray = currentNotes ? currentNotes.split(', ').filter(n => n.trim()) : [];
+  
+  // Add new note if not already exists
+  if (!notesArray.includes(noteText.trim())) {
+    notesArray.push(noteText.trim());
+  }
+  
+  state.data.notes = notesArray.join(', ');
+  await saveConversationState(state, env);
+
+  // Show updated keyboard
+  const message = `✅ Quantity: ${state.data.quantity || 'N/A'}\n\n📝 Notes đã chọn: ${state.data.notes || '(chưa có)'}\n\nVui lòng chọn thêm Notes hoặc nhấn Done:`;
+  const noteExamples = createNotesKeyboard(state.data.notes);
+  
+  await sendMessageToTelegram({ 
+    chat_id: chatId, 
+    text: message,
+    reply_markup: noteExamples,
+  }, env);
+}
+
+/**
+ * Clear all notes
+ */
+export async function clearNotes(
+  userId: number,
+  chatId: string,
+  env: Env
+): Promise<void> {
+  const state = await getConversationState(userId, env);
+  if (!state || state.step !== OrderConversationStep.WAITING_NOTES) {
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: '❌ Không tìm thấy phiên nhập lệnh hoặc không ở bước nhập Notes.',
+    }, env);
+    return;
+  }
+
+  state.data.notes = '';
+  await saveConversationState(state, env);
+
+  // Show updated keyboard
+  const message = `✅ Quantity: ${state.data.quantity || 'N/A'}\n\nVui lòng chọn Notes (có thể chọn nhiều):`;
+  const noteExamples = createNotesKeyboard('');
+  
+  await sendMessageToTelegram({ 
+    chat_id: chatId, 
+    text: message,
+    reply_markup: noteExamples,
+  }, env);
+}
+
+/**
+ * Finish notes selection and complete the order
+ */
+export async function finishNotesSelection(
+  userId: number,
+  chatId: string,
+  env: Env
+): Promise<{ completed: boolean; orderData?: OrderData }> {
+  const state = await getConversationState(userId, env);
+  if (!state || state.step !== OrderConversationStep.WAITING_NOTES) {
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: '❌ Không tìm thấy phiên nhập lệnh hoặc không ở bước nhập Notes.',
+    }, env);
+    return { completed: false };
+  }
+
+  // Set notes to undefined if empty, otherwise keep the selected notes
+  if (!state.data.notes || state.data.notes.trim() === '') {
+    state.data.notes = undefined;
+  } else {
+    state.data.notes = state.data.notes.trim();
+  }
+  
+  state.step = OrderConversationStep.COMPLETED;
+  await saveConversationState(state, env);
+  
+  await sendMessageToTelegram({
+    chat_id: chatId,
+    text: '✅ Đã hoàn thành nhập lệnh!',
+  }, env);
+
+  return { completed: true, orderData: state.data };
 }
 
 /**

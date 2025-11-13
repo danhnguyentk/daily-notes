@@ -17,6 +17,9 @@ import {
   showOrderPreview,
   processOrderInput,
   getConversationState,
+  addNoteToOrder,
+  clearNotes,
+  finishNotesSelection,
 } from '../services/orderConversationService';
 import { processOrderData } from './orderHandlers';
 import { OrderConversationStep } from '../types/orderTypes';
@@ -106,20 +109,48 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       
       // Handle note selection from inline keyboard
       if (callbackData.startsWith('note_')) {
-        const noteValue = callbackData.substring(5); // Remove 'note_' prefix
-        
         // Check if user is in conversation and waiting for notes
         const conversationState = await getConversationState(userId, env);
-        if (conversationState && conversationState.step === OrderConversationStep.WAITING_NOTES) {
-          // Process the note input
-          const input = noteValue === 'skip' ? '/skip' : noteValue;
-          const result = await processOrderInput(userId, chatId, input, env);
+        if (!conversationState || conversationState.step !== OrderConversationStep.WAITING_NOTES) {
+          return textResponse('Callback query handled - not in notes step');
+        }
+
+        // Handle different note actions
+        if (callbackData.startsWith('note_add_')) {
+          // Add a note to the list
+          const noteValue = callbackData.substring(9); // Remove 'note_add_' prefix
+          await addNoteToOrder(userId, chatId, noteValue, env);
+        } else if (callbackData === 'note_clear') {
+          // Clear all notes
+          await clearNotes(userId, chatId, env);
+        } else if (callbackData === 'note_done') {
+          // Finish notes selection
+          const result = await finishNotesSelection(userId, chatId, env);
           
           // If order is completed, process it
           if (result.completed && result.orderData) {
             await processOrderData(result.orderData, userId, chatId, env);
             // Clear conversation state after processing
             const { clearConversationState } = await import('../services/orderConversationService');
+            await clearConversationState(userId, env);
+          }
+        } else if (callbackData === 'note_skip') {
+          // Skip notes (set to undefined)
+          const state = await getConversationState(userId, env);
+          if (state) {
+            state.data.notes = undefined;
+            state.step = OrderConversationStep.COMPLETED;
+            const { saveConversationState, clearConversationState } = await import('../services/orderConversationService');
+            await saveConversationState(state, env);
+            
+            await sendMessageToTelegram({
+              chat_id: chatId,
+              text: '✅ Đã hoàn thành nhập lệnh!',
+            }, env);
+            
+            // Process the order
+            await processOrderData(state.data, userId, chatId, env);
+            // Clear conversation state after processing
             await clearConversationState(userId, env);
           }
         }
