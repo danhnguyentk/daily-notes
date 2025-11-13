@@ -20,12 +20,12 @@ function createQuantityKeyboard(): TelegramReplyKeyboardMarkup {
   return {
     keyboard: [
       [
-        { text: '/0.01' },
-        { text: '/0.02' },
+        { text: '0.01' },
+        { text: '0.02' },
       ],
       [
-        { text: '/0.1' },
-        { text: '/0.2' },
+        { text: '0.1' },
+        { text: '0.2' },
       ],
       [
         { text: '/skip' },
@@ -219,7 +219,7 @@ export async function processOrderInput(
         updatedState.data.takeProfit = takeProfit;
       }
       updatedState.step = OrderConversationStep.WAITING_QUANTITY;
-      message = `✅ Take Profit: ${updatedState.data.takeProfit || 'N/A'}\n\nVui lòng chọn Quantity (hoặc /skip để bỏ qua):\n/0.01 /0.02 /0.1 /0.2`;
+      message = `✅ Take Profit: ${updatedState.data.takeProfit || 'N/A'}\n\nVui lòng chọn Quantity (hoặc /skip để bỏ qua):`;
       
       // Create reply keyboard with quantity options
       // This will show buttons at the bottom that send text like /0.01
@@ -241,7 +241,7 @@ export async function processOrderInput(
         if (isNaN(quantity) || quantity <= 0) {
           await sendMessageToTelegram({
             chat_id: chatId,
-            text: '❌ Quantity không hợp lệ. Vui lòng nhập số dương hoặc /skip.',
+            text: `❌ Quantity ${input.trim()} không hợp lệ. Vui lòng nhập số dương hoặc /skip.`,
           }, env);
           return { completed: false };
         }
