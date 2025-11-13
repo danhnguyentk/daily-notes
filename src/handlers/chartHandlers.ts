@@ -2,7 +2,6 @@
  * Chart snapshot handlers
  */
 
-import { BinanceToTradingviewInterval, BinanceInterval } from '../binanceService';
 import { sendImageGroupToTelegram, sendImageToTelegram, TelegramImageRequest } from '../telegramService';
 import { TradingviewInterval, TradingviewSymbol, getTradingViewImage } from '../tradingviewService';
 import { Env } from '../types';
