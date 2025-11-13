@@ -3,13 +3,37 @@
  */
 
 import { Env } from '../types';
-import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../telegramService';
+import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeyboardMarkup } from '../telegramService';
 import { OrderConversationState, OrderConversationStep, OrderData } from '../types/orderTypes';
 
 const CONVERSATION_STATE_KEY_PREFIX = 'order_conversation_';
 
 function getConversationKey(userId: number): string {
   return `${CONVERSATION_STATE_KEY_PREFIX}${userId}`;
+}
+
+/**
+ * Create reply keyboard for quantity selection
+ * This will show buttons at the bottom of the chat that send text like /0.01
+ */
+function createQuantityKeyboard(): TelegramReplyKeyboardMarkup {
+  return {
+    keyboard: [
+      [
+        { text: '/0.01' },
+        { text: '/0.02' },
+      ],
+      [
+        { text: '/0.1' },
+        { text: '/0.2' },
+      ],
+      [
+        { text: '/skip' },
+      ],
+    ],
+    resize_keyboard: true,
+    one_time_keyboard: true,
+  };
 }
 
 /**
@@ -22,10 +46,9 @@ function createNotesKeyboard(currentNotes?: string): TelegramInlineKeyboardMarku
     inline_keyboard: [
       [
         { text: '2 Nen 15M Tang lien tuc', callback_data: 'note_add_2 Nen 15M Tang lien tuc' },
-        { text: 'HARSI 8h Xanh', callback_data: 'note_add_HARSI 8h Xanh' },
       ],
       [
-        { text: '2 Nen 15M Tang lien tuc, HARSI 8h Xanh', callback_data: 'note_add_2 Nen 15M Tang lien tuc, HARSI 8h Xanh' },
+        { text: 'HARSI 8h Xanh', callback_data: 'note_add_HARSI 8h Xanh' },
       ],
       [
         ...(notes.length > 0 ? [{ text: '🗑️ Clear', callback_data: 'note_clear' }] : []),
@@ -131,7 +154,7 @@ export async function processOrderInput(
 
   switch (state.step) {
     case OrderConversationStep.WAITING_SYMBOL:
-      updatedState.data.symbol = input.trim().toUpperCase();
+      updatedState.data.symbol = input.trim().toUpperCase().replace('/', '');
       updatedState.step = OrderConversationStep.WAITING_DIRECTION;
       message = `✅ Symbol: ${updatedState.data.symbol}\n\nVui lòng chọn hướng:\n/LONG - Long\n/SHORT - Short`;
       break;
@@ -196,8 +219,19 @@ export async function processOrderInput(
         updatedState.data.takeProfit = takeProfit;
       }
       updatedState.step = OrderConversationStep.WAITING_QUANTITY;
-      message = `✅ Take Profit: ${updatedState.data.takeProfit || 'N/A'}\n\nVui lòng nhập Quantity (hoặc /skip để bỏ qua): \n /0.01 /0.02 /0.1 /0.2`;
-      break;
+      message = `✅ Take Profit: ${updatedState.data.takeProfit || 'N/A'}\n\nVui lòng chọn Quantity (hoặc /skip để bỏ qua):\n/0.01 /0.02 /0.1 /0.2`;
+      
+      // Create reply keyboard with quantity options
+      // This will show buttons at the bottom that send text like /0.01
+      const quantityKeyboard = createQuantityKeyboard();
+      
+      await saveConversationState(updatedState, env);
+      await sendMessageToTelegram({ 
+        chat_id: chatId, 
+        text: message,
+        reply_markup: quantityKeyboard,
+      }, env);
+      return { completed: false };
 
     case OrderConversationStep.WAITING_QUANTITY:
       if (input.trim().toUpperCase() === '/SKIP' || input.trim() === '') {
@@ -392,6 +426,26 @@ export async function finishNotesSelection(
 }
 
 /**
+ * Format notes for beautiful display
+ * Exported so it can be used in other modules
+ */
+export function formatNotes(notes?: string): string {
+  if (!notes || notes.trim() === '') {
+    return 'N/A';
+  }
+  
+  // Split notes by comma and format each note
+  const notesArray = notes.split(',').map(n => n.trim()).filter(n => n);
+  
+  if (notesArray.length === 0) {
+    return 'N/A';
+  }
+  
+  // Format each note with bullet point
+  return notesArray.map(note => `  • ${note}`).join('\n');
+}
+
+/**
  * Show current order data preview
  */
 export async function showOrderPreview(
@@ -409,6 +463,8 @@ export async function showOrderPreview(
   }
 
   const { data } = state;
+  const formattedNotes = formatNotes(data.notes);
+  
   const preview = `
 📋 Thông tin lệnh hiện tại:
 
@@ -418,7 +474,8 @@ Entry: ${data.entry || 'Chưa nhập'}
 Stop Loss: ${data.stopLoss || 'Chưa nhập'}
 Take Profit: ${data.takeProfit || 'N/A'}
 Quantity: ${data.quantity || 'N/A'}
-Notes: ${data.notes || 'N/A'}
+Notes:
+${formattedNotes}
 
 Bước hiện tại: ${state.step}
   `.trim();

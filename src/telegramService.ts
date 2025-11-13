@@ -24,11 +24,21 @@ export type TelegramInlineKeyboardMarkup = {
   inline_keyboard: TelegramInlineKeyboardButton[][];
 };
 
+export type TelegramReplyKeyboardButton = {
+  text: string;
+};
+
+export type TelegramReplyKeyboardMarkup = {
+  keyboard: TelegramReplyKeyboardButton[][];
+  resize_keyboard?: boolean;
+  one_time_keyboard?: boolean;
+};
+
 export type TelegramMessageRequest = {
   chat_id: string;
   text: string;
   parse_mode?: TelegramParseMode;
-  reply_markup?: TelegramInlineKeyboardMarkup;
+  reply_markup?: TelegramInlineKeyboardMarkup | TelegramReplyKeyboardMarkup;
 }
 
 export enum TelegramChatAction {

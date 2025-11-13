@@ -6,6 +6,7 @@ import { Env } from '../types';
 import { OrderData } from '../types/orderTypes';
 import { sendMessageToTelegram } from '../telegramService';
 import { formatVietnamTime } from '../utils/timeUtils';
+import { formatNotes } from '../services/orderConversationService';
 
 /**
  * Process completed order data
@@ -44,6 +45,8 @@ export async function processOrderData(
   // Uncomment and modify the example above to connect to your API
 
   // Format order summary
+  const formattedNotes = formatNotes(orderData.notes);
+  
   const summary = `
 ✅ Lệnh đã được xử lý thành công!
 
@@ -54,7 +57,8 @@ Entry: ${orderData.entry}
 Stop Loss: ${orderData.stopLoss}
 Take Profit: ${orderData.takeProfit || 'N/A'}
 Quantity: ${orderData.quantity || 'N/A'}
-Notes: ${orderData.notes || 'N/A'}
+Notes:
+${formattedNotes}
 
 ⏰ Thời gian: ${formatVietnamTime()}
   `.trim();
