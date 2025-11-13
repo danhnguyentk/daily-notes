@@ -97,11 +97,11 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       console.log(`Received callback query from user ${userId}: ${callbackData}`);
       
       // Answer the callback query first (REQUIRED by Telegram API)
-      // Nếu không gọi hàm này:
-      // - Nút sẽ bị "stuck" ở trạng thái loading (hiển thị spinner mãi)
-      // - Người dùng sẽ không biết bot đã xử lý hay chưa
-      // - Telegram có thể giới hạn bot nếu không trả lời callback query
-      // - Phải trả lời trong vòng 10 giây, nếu không sẽ timeout
+      // If this button is not called:
+      // - Button will be "stuck" in loading state (spinner will show indefinitely)
+      // - User will not know if the bot has processed the request or not 
+      // - Telegram may rate-limit the bot if callback queries are not answered
+      // - Must answer within 10 seconds, otherwise it will timeout
       await answerCallbackQuery(callbackQuery.id, env);
       
       // Handle note selection from inline keyboard
