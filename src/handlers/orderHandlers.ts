@@ -4,7 +4,8 @@
 
 import { Env } from '../types';
 import { OrderData } from '../types/orderTypes';
-import { sendMessageToTelegram, TelegramMessageTitle } from '../telegramService';
+import { sendMessageToTelegram } from '../telegramService';
+import { formatVietnamTime } from '../utils/timeUtils';
 
 /**
  * Process completed order data
@@ -55,7 +56,7 @@ Take Profit: ${orderData.takeProfit || 'N/A'}
 Quantity: ${orderData.quantity || 'N/A'}
 Notes: ${orderData.notes || 'N/A'}
 
-⏰ Thời gian: ${new Date().toLocaleString('vi-VN')}
+⏰ Thời gian: ${formatVietnamTime()}
   `.trim();
 
   await sendMessageToTelegram({
@@ -64,9 +65,6 @@ Notes: ${orderData.notes || 'N/A'}
   }, env);
 
   // You can also send to a logging channel or save to database
-  await sendMessageToTelegram({
-    chat_id: env.TELEGRAM_CHAT_ID,
-    text: `${TelegramMessageTitle.Info}\n\nOrder created:\n\`\`\`${JSON.stringify(orderData, null, 2)}\`\`\``,
-  }, env);
+  // TODO: Implement this
 }
 

@@ -98,7 +98,7 @@ export async function processOrderInput(
     return { completed: false };
   }
 
-  let updatedState = { ...state };
+  const updatedState = { ...state };
   let message = '';
 
   switch (state.step) {
