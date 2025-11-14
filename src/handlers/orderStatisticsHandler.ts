@@ -5,7 +5,7 @@
 import { Env } from '../types/env';
 import { OrderData } from '../types/orderTypes';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../services/telegramService';
-import { formatVietnamTime } from '../utils/timeUtils';
+import { formatVietnamTime, formatVietnamTimeShort } from '../utils/timeUtils';
 import { formatHarsiValue } from '../utils/formatUtils';
 import {
   calculateRiskUnitStatistics,
@@ -299,19 +299,20 @@ export async function showOrderListForView(
       const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
       const status = order.actualRiskRewardRatio !== undefined ? '✅' : '⏳';
       
-      // Format date and time using Vietnam time utility
-      let dateTimeStr = 'N/A';
-      if (orderWithMeta.timestamp) {
-        dateTimeStr = formatVietnamTime(new Date(orderWithMeta.timestamp));
-      }
+      // Format date and time using Vietnam time utility (short format)
+      const dateTimeStr = orderWithMeta.timestamp 
+        ? formatVietnamTimeShort(new Date(orderWithMeta.timestamp))
+        : 'N/A';
       
-      // Format entry price
-      const entryStr = order.entry ? order.entry.toFixed(2) : 'N/A';
+      // Format entry price (no decimals)
+      const entryStr = order.entry ? Math.round(order.entry).toString() : 'N/A';
       const directionStr = order.direction ? order.direction.toUpperCase() : '';
-      const symbolStr = order.symbol || 'N/A';
+      // Remove USDT suffix from symbol (e.g., BTCUSDT -> BTC)
+      const symbolStr = order.symbol ? order.symbol.replace(/USDT$/i, '') : 'N/A';
       
-      // Create button text with more details
-      const buttonText = `${status} ${symbolStr} ${directionStr} | Entry: ${entryStr} | ${dateTimeStr}`;
+      // Create compact button text
+      // Format: ✅ BTC LONG | $50000 | 25/12 14:30
+      const buttonText = `${status} ${symbolStr} ${directionStr} | $${entryStr} | ${dateTimeStr}`;
       
       return [
         {
