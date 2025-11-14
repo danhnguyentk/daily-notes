@@ -117,7 +117,7 @@ export enum OrderConversationStep {
   COMPLETED = 'completed',
   // Update order flow
   WAITING_ORDER_SELECTION = 'waiting_order_selection',
-  WAITING_ACTUAL_CLOSE_PRICE = 'waiting_actual_close_price',
+  WAITING_CLOSE_PRICE = 'waiting_close_price',
 }
 
 export interface OrderConversationState {

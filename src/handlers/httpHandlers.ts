@@ -142,7 +142,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         // Tạo conversation state để nhập actual close price
         await saveConversationState({
           userId,
-          step: OrderConversationStep.WAITING_ACTUAL_CLOSE_PRICE,
+          step: OrderConversationStep.WAITING_CLOSE_PRICE,
           data: order,
           createdAt: Date.now(),
           selectedOrderId: orderId,

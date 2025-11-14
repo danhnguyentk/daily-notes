@@ -518,7 +518,7 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
       await saveConversationState(updatedState, env);
       return { completed: true, orderData: updatedState.data };
 
-    case OrderConversationStep.WAITING_ACTUAL_CLOSE_PRICE:
+    case OrderConversationStep.WAITING_CLOSE_PRICE:
       const closePrice = parseFloat(input.trim());
       if (isNaN(closePrice) || closePrice <= 0) {
         await sendMessageToTelegram({
@@ -614,7 +614,7 @@ ${updatedOrder.actualRiskRewardRatio !== undefined && updatedOrder.actualRiskRew
   await saveConversationState(updatedState, env);
   
   // Chỉ gửi message nếu chưa được gửi ở trên (tránh duplicate)
-  // Các case đã return sớm (WAITING_QUANTITY, WAITING_NOTES, WAITING_ACTUAL_CLOSE_PRICE) sẽ không đến đây
+  // Các case đã return sớm (WAITING_QUANTITY, WAITING_NOTES, WAITING_CLOSE_PRICE) sẽ không đến đây
   if (message) {
     await sendMessageToTelegram({ chat_id: chatId, text: message }, env);
   }
