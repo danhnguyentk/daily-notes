@@ -1,0 +1,12 @@
+# Always prefer enums for discrete option sets
+rules:
+  - match: "**/*.ts"
+    instructions: |
+      When adding fields or constants that take a small fixed set of values,
+      define/extend a TypeScript enum (or string union if better) instead of
+      repeating literal strings. Wire new fields to those enums.
+
+  - match: "src/types/orderTypes.ts"
+    instructions: |
+      HARSI-related options must come from the Harsi8hColor enum (Green, Red, Neutral).
+      Add future status/flag options as enums too.
