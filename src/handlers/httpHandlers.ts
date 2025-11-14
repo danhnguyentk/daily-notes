@@ -27,8 +27,9 @@ import {
   showRiskUnitStatistics,
   showMonthlyStatistics,
   showOrderSelectionForUpdate,
-  updateOrderWithActualClosePrice,
   getOrderById,
+  showOrderListForView,
+  showOrderDetails,
 } from './orderStatisticsHandler';
 
 // Route constants
@@ -114,6 +115,13 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       // - Must answer within 10 seconds, otherwise it will timeout
       await answerCallbackQuery(callbackQuery.id, env);
       
+      // Handle view order selection
+      if (callbackData.startsWith('view_order_')) {
+        const orderId = callbackData.substring(11); // Remove 'view_order_' prefix
+        await showOrderDetails(orderId, chatId, env);
+        return textResponse('Order details shown');
+      }
+
       // Handle update order selection
       if (callbackData.startsWith('update_order_')) {
         const orderId = callbackData.substring(13); // Remove 'update_order_' prefix
@@ -241,6 +249,11 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
     if (text === TelegramCommands.UPDATE_ORDER) {
       await showOrderSelectionForUpdate(userId, chatId, env);
       return textResponse('Order selection shown');
+    }
+
+    if (text === TelegramCommands.VIEW_ORDERS) {
+      await showOrderListForView(userId, chatId, env);
+      return textResponse('Order list shown');
     }
 
     // If user is in conversation, process input

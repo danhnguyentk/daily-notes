@@ -9,7 +9,6 @@ import { formatVietnamTime } from '../utils/timeUtils';
 import {
   calculateRiskUnitStatistics,
   formatRiskUnit,
-  RiskUnitStatistics,
   calculateOrderLoss,
 } from '../utils/orderCalcUtils';
 
@@ -41,7 +40,7 @@ export async function saveOrder(
 
   // Cập nhật danh sách orders của user
   const userOrdersJson = await env.DAILY_NOTES_KV.get(userOrdersKey);
-  const userOrders: string[] = userOrdersJson ? JSON.parse(userOrdersJson) : [];
+  const userOrders: string[] = userOrdersJson ? (JSON.parse(userOrdersJson) as string[]) : [];
   userOrders.push(orderId);
   await env.DAILY_NOTES_KV.put(userOrdersKey, JSON.stringify(userOrders));
 }
@@ -60,7 +59,7 @@ export async function getUserOrders(
     return [];
   }
 
-  const orderIds: string[] = JSON.parse(userOrdersJson);
+  const orderIds: string[] = JSON.parse(userOrdersJson) as string[];
   const orders: OrderData[] = [];
 
   for (const orderId of orderIds) {
@@ -318,6 +317,181 @@ export async function showOrderSelectionForUpdate(
       chat_id: chatId,
       text: message,
       reply_markup: keyboard,
+    },
+    env
+  );
+}
+
+/**
+ * Hiển thị danh sách orders để xem chi tiết
+ */
+export async function showOrderListForView(
+  userId: number,
+  chatId: string,
+  env: Env,
+  limit: number = 20
+): Promise<void> {
+  const allOrders = await getUserOrders(userId, env);
+  
+  if (allOrders.length === 0) {
+    await sendMessageToTelegram(
+      {
+        chat_id: chatId,
+        text: `📋 Không có lệnh nào.`,
+      },
+      env
+    );
+    return;
+  }
+
+  // Sắp xếp theo thời gian mới nhất trước
+  const sortedOrders = allOrders
+    .filter((order) => {
+      const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
+      return orderWithMeta.orderId && orderWithMeta.timestamp;
+    })
+    .sort((a, b) => {
+      const aTime = (a as OrderData & { timestamp: number }).timestamp || 0;
+      const bTime = (b as OrderData & { timestamp: number }).timestamp || 0;
+      return bTime - aTime; // Mới nhất trước
+    })
+    .slice(0, limit);
+
+  // Tạo inline keyboard với danh sách orders
+  const keyboard: TelegramInlineKeyboardMarkup = {
+    inline_keyboard: sortedOrders.map((order, index) => {
+      const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
+      const date = orderWithMeta.timestamp
+        ? new Date(orderWithMeta.timestamp).toLocaleDateString('vi-VN')
+        : 'N/A';
+      const status = order.actualRiskRewardRatio !== undefined ? '✅' : '⏳';
+      return [
+        {
+          text: `${status} ${index + 1}. ${order.symbol || 'N/A'} ${order.direction || ''} - ${date}`,
+          callback_data: `view_order_${orderWithMeta.orderId}`,
+        },
+      ];
+    }),
+  };
+
+  let message = `📋 Danh sách lệnh (${sortedOrders.length}/${allOrders.length}):\n\n`;
+  message += `✅ = Đã đóng | ⏳ = Chưa đóng\n\n`;
+  
+  sortedOrders.forEach((order, index) => {
+    const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
+    const date = orderWithMeta.timestamp
+      ? new Date(orderWithMeta.timestamp).toLocaleDateString('vi-VN')
+      : 'N/A';
+    const status = order.actualRiskRewardRatio !== undefined ? '✅' : '⏳';
+    message += `${status} ${index + 1}. ${order.symbol || 'N/A'} ${order.direction || ''} - Entry: ${order.entry || 'N/A'} - ${date}\n`;
+  });
+
+  await sendMessageToTelegram(
+    {
+      chat_id: chatId,
+      text: message,
+      reply_markup: keyboard,
+    },
+    env
+  );
+}
+
+/**
+ * Hiển thị chi tiết một order
+ */
+export async function showOrderDetails(
+  orderId: string,
+  chatId: string,
+  env: Env
+): Promise<void> {
+  const order = await getOrderById(orderId, env);
+  
+  if (!order) {
+    await sendMessageToTelegram(
+      {
+        chat_id: chatId,
+        text: '❌ Không tìm thấy lệnh này.',
+      },
+      env
+    );
+    return;
+  }
+
+  const orderWithMeta = order as OrderData & { orderId: string; timestamp: number; updatedAt?: number };
+  const date = orderWithMeta.timestamp
+    ? new Date(orderWithMeta.timestamp).toLocaleDateString('vi-VN') + ' ' + new Date(orderWithMeta.timestamp).toLocaleTimeString('vi-VN')
+    : 'N/A';
+  const updatedDate = orderWithMeta.updatedAt
+    ? new Date(orderWithMeta.updatedAt).toLocaleDateString('vi-VN') + ' ' + new Date(orderWithMeta.updatedAt).toLocaleTimeString('vi-VN')
+    : null;
+
+  const formatRiskUnit = (ratio: number | undefined): string => {
+    if (ratio === undefined) return 'N/A';
+    if (ratio > 0) {
+      return `+${ratio.toFixed(2)}R`;
+    } else if (ratio < 0) {
+      return `${ratio.toFixed(2)}R`;
+    }
+    return '0R';
+  };
+
+  let details = `
+📋 Chi tiết lệnh
+
+📊 Thông tin cơ bản:
+   • Symbol: ${order.symbol || 'N/A'}
+   • Direction: ${order.direction || 'N/A'}
+   • Entry: ${order.entry || 'N/A'}
+   • Stop Loss: ${order.stopLoss || 'N/A'}
+   • Take Profit: ${order.takeProfit || 'N/A'}
+   • Quantity: ${order.quantity || 'N/A'}
+   • Tạo lúc: ${date}
+   ${updatedDate ? `   • Cập nhật lúc: ${updatedDate}` : ''}
+  `.trim();
+
+  // Thông tin rủi ro tiềm năng
+  if (order.potentialStopLoss !== undefined) {
+    details += `\n\n📉 Rủi ro tiềm năng:`;
+    details += `\n   • Potential Stop Loss: ${order.potentialStopLoss.toFixed(4)} (${order.potentialStopLossPercent?.toFixed(2) || 'N/A'}%)`;
+    details += `\n   • Potential Stop Loss USD: $${order.potentialStopLossUsd?.toFixed(2) || 'N/A'}`;
+  }
+
+  if (order.potentialProfit !== undefined) {
+    details += `\n\n📈 Lợi nhuận tiềm năng:`;
+    details += `\n   • Potential Profit: ${order.potentialProfit.toFixed(4)} (${order.potentialProfitPercent?.toFixed(2) || 'N/A'}%)`;
+    details += `\n   • Potential Profit USD: $${order.potentialProfitUsd?.toFixed(2) || 'N/A'}`;
+  }
+
+  if (order.potentialRiskRewardRatio !== undefined) {
+    details += `\n   • Potential Risk/Reward: 1:${order.potentialRiskRewardRatio.toFixed(2)}`;
+  }
+
+  // Thông tin kết quả thực tế (nếu đã đóng)
+  if (order.actualRiskRewardRatio !== undefined) {
+    details += `\n\n📊 Kết quả thực tế:`;
+    details += `\n   • R: ${formatRiskUnit(order.actualRiskRewardRatio)}`;
+    details += `\n   ${order.actualRiskRewardRatio > 0
+      ? `(Lợi nhuận ${(order.actualRiskRewardRatio * 100).toFixed(1)}% rủi ro)`
+      : `(Thua lỗ ${Math.abs(order.actualRiskRewardRatio * 100).toFixed(1)}% rủi ro)`}`;
+    
+    if (order.actualRealizedPnL !== undefined) {
+      details += `\n   • Actual PnL: ${order.actualRealizedPnL > 0 ? '+' : ''}${order.actualRealizedPnL.toFixed(4)}`;
+      details += `\n   • Actual PnL USD: ${order.actualRealizedPnLUsd && order.actualRealizedPnLUsd > 0 ? '+' : ''}$${order.actualRealizedPnLUsd?.toFixed(2) || 'N/A'}`;
+      details += `\n   • Actual PnL %: ${order.actualRealizedPnLPercent && order.actualRealizedPnLPercent > 0 ? '+' : ''}${order.actualRealizedPnLPercent?.toFixed(2) || 'N/A'}%`;
+    }
+  } else {
+    details += `\n\n⏳ Lệnh chưa đóng`;
+  }
+
+  // Notes
+  if (order.notes) {
+    details += `\n\n📝 Notes:\n${order.notes}`;
+  }
+
+  await sendMessageToTelegram(
+    {
+      chat_id: chatId,
+      text: details,
     },
     env
   );

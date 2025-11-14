@@ -54,8 +54,11 @@ disable2candles1hbearish - Disable 2 Candles 1h Bearish
 disable1candles1hbearish - Disable 1 Candles 1h Bearish
 enabled_events - Enabled Events
 neworder - New Order
+updateorder - Update Order
 cancelorder - Cancel Order
 orderorder - Order Order
+orderstats - Order Stats
+orderstatsmonth - Order Stats Month
 ```
 
 ### ACTION TODO 

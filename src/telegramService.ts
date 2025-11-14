@@ -153,6 +153,7 @@ export const TelegramCommands = {
   ORDER_STATS: '/orderstats',
   ORDER_STATS_MONTH: '/orderstatsmonth',
   UPDATE_ORDER: '/updateorder',
+  VIEW_ORDERS: '/vieworders',
 } as const;
 
 export enum TelegramParseMode {
