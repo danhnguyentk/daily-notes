@@ -4,7 +4,7 @@
 
 import { Env } from '../types/env';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeyboardMarkup, TelegramReplyKeyboardRemove } from './telegramService';
-import { OrderConversationState, OrderConversationStep, OrderData, MarketState, OrderDirection } from '../types/orderTypes';
+import { OrderConversationState, OrderConversationStep, OrderData, MarketState, OrderDirection, TradingSymbol } from '../types/orderTypes';
 import { updateOrderWithClosePrice } from '../handlers/orderStatisticsHandler';
 import { formatHarsiValue } from '../utils/formatUtils';
 
@@ -142,10 +142,10 @@ export async function startOrderConversation(
   };
 
   await saveConversationState(newState, env);
-  const message = `📝 Bắt đầu nhập lệnh mới!\n\nVui lòng nhập Symbol: \n 
-/BTCUSDT - BTCUSDT\n
-/ETHUSDT - ETHUSDT\n
-/XAUUSD - XAUUSD\n`;
+  const message = `📝 Bắt đầu nhập lệnh mới!\n\nVui lòng chọn Symbol:\n` +
+    `/BTCUSDT - BTCUSDT\n` +
+    `/ETHUSDT - ETHUSDT\n` +
+    `/XAUUSD - XAUUSD\n`;
   await sendMessageToTelegram({
     chat_id: chatId,
     text: message,
@@ -175,7 +175,16 @@ export async function processOrderInput(
 
   switch (state.step) {
     case OrderConversationStep.WAITING_SYMBOL:
-      updatedState.data.symbol = input.trim().toUpperCase().replace('/', '');
+      const symbolInput = input.trim().toUpperCase().replace('/', '');
+      const symbolValue = Object.values(TradingSymbol).find(s => s === symbolInput);
+      if (!symbolValue) {
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: `❌ Symbol không hợp lệ. Vui lòng chọn:\n/BTCUSDT\n/ETHUSDT\n/XAUUSD`,
+        }, env);
+        return { completed: false };
+      }
+      updatedState.data.symbol = symbolValue;
       updatedState.step = OrderConversationStep.WAITING_DIRECTION;
       message = `✅ Symbol: ${updatedState.data.symbol}\n\nVui lòng chọn hướng:\n/LONG - Long\n/SHORT - Short`;
       break;

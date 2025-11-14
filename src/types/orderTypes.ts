@@ -3,9 +3,9 @@
  */
 
 export enum MarketState {
-  Bullish = 'Bullish',
-  Bearish = 'Bearish',
-  Neutral = 'Neutral',
+  Bullish = 'bullish',
+  Bearish = 'bearish',
+  Neutral = 'neutral',
 }
 
 export enum OrderDirection {
@@ -13,8 +13,14 @@ export enum OrderDirection {
   SHORT = 'short',
 }
 
+export enum TradingSymbol {
+  BTCUSDT = 'BTCUSDT',
+  ETHUSDT = 'ETHUSDT',
+  XAUUSD = 'XAUUSD',
+}
+
 export interface OrderData {
-  symbol?: string;
+  symbol?: TradingSymbol;
   direction?: OrderDirection;
   harsi1d?: MarketState;
   harsi12h?: MarketState;

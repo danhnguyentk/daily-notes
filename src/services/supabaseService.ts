@@ -4,7 +4,8 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Env } from '../types/env';
-import { OrderData, OrderDirection } from '../types/orderTypes';
+import { OrderData, OrderDirection, TradingSymbol, MarketState } from '../types/orderTypes';
+import { calculateOrderLoss } from '../utils/orderCalcUtils';
 
 export interface OrderRecord {
   id?: string;
@@ -58,20 +59,14 @@ export function convertOrderRecordToOrderData(record: OrderRecord): OrderData & 
   timestamp: number;
   updatedAt?: number;
 } {
-  // Helper function to capitalize first letter
-  const capitalize = (str: string | null | undefined): string | undefined => {
-    if (!str) return undefined;
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-  };
-
   return {
-    symbol: record.symbol,
+    symbol: record.symbol as TradingSymbol | undefined,
     direction: record.direction as OrderDirection | undefined,
-    harsi1d: capitalize(record.harsi1d) as any,
-    harsi12h: capitalize(record.harsi12h) as any,
-    harsi8h: capitalize(record.harsi8h) as any,
-    harsi6h: capitalize(record.harsi6h) as any,
-    harsi4h: capitalize(record.harsi4h) as any,
+    harsi1d: record.harsi1d as MarketState | undefined,
+    harsi12h: record.harsi12h as MarketState | undefined,
+    harsi8h: record.harsi8h as MarketState | undefined,
+    harsi6h: record.harsi6h as MarketState | undefined,
+    harsi4h: record.harsi4h as MarketState | undefined,
     entry: record.entry,
     stopLoss: record.stop_loss,
     takeProfit: record.take_profit,
@@ -111,11 +106,11 @@ export async function saveOrderToSupabase(
     user_id: userId,
     symbol: orderData.symbol,
     direction: orderData.direction,
-    harsi1d: orderData.harsi1d?.toLowerCase(),
-    harsi12h: orderData.harsi12h?.toLowerCase(),
-    harsi8h: orderData.harsi8h?.toLowerCase(),
-    harsi6h: orderData.harsi6h?.toLowerCase(),
-    harsi4h: orderData.harsi4h?.toLowerCase(),
+    harsi1d: orderData.harsi1d,
+    harsi12h: orderData.harsi12h,
+    harsi8h: orderData.harsi8h,
+    harsi6h: orderData.harsi6h,
+    harsi4h: orderData.harsi4h,
     entry: orderData.entry,
     stop_loss: orderData.stopLoss,
     take_profit: orderData.takeProfit,
