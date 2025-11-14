@@ -5,7 +5,7 @@
 import { BinanceSymbol, BinanceInterval } from '../services/binanceService';
 import { KVKeys } from '../services/cloudflareService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
-import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery } from '../services/telegramService';
+import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery, setWebhookTelegram } from '../services/telegramService';
 import { Env } from '../types/env';
 import { getCurrentPriceAndNotify } from '../services/binanceService';
 import { snapshotChart } from './chartHandlers';
@@ -20,9 +20,13 @@ import {
   addNoteToOrder,
   clearNotes,
   finishNotesSelection,
+  clearConversationState,
+  saveConversationState,
+  createHarsiMarketStateKeyboard,
+  handleHarsiSelection,
 } from '../services/orderConversationService';
 import { processOrderData } from './orderHandlers';
-import { OrderConversationStep } from '../types/orderTypes';
+import { OrderConversationStep, MarketState } from '../types/orderTypes';
 import {
   showRiskUnitStatistics,
   showMonthlyStatistics,
@@ -136,7 +140,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         }
 
         // Tạo conversation state để nhập actual close price
-        const { saveConversationState } = await import('../services/orderConversationService');
         await saveConversationState({
           userId,
           step: OrderConversationStep.WAITING_ACTUAL_CLOSE_PRICE,
@@ -154,10 +157,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
 
       // Handle HARSI 8H Bearish confirmation
       if (callbackData === 'harsi_8h_continue') {
-        const { getConversationState, saveConversationState } = await import('../services/orderConversationService');
-        const { OrderConversationStep } = await import('../types/orderTypes');
-        const { createHarsiMarketStateKeyboard } = await import('../services/orderConversationService');
-        
         const state = await getConversationState(userId, env);
         if (state && state.step === OrderConversationStep.WAITING_HARSI_8H_CONFIRMATION) {
           state.step = OrderConversationStep.WAITING_HARSI_6H;
@@ -174,9 +173,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       }
 
       if (callbackData === 'harsi_8h_cancel') {
-        const { clearConversationState } = await import('../services/orderConversationService');
-        const { sendMessageToTelegram } = await import('../telegramService');
-        
         // Cancel the entire order immediately
         await clearConversationState(userId, env);
         
@@ -192,9 +188,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
 
       // Handle HARSI market state selection
       if (callbackData.startsWith('harsi_')) {
-        const { handleHarsiSelection } = await import('../services/orderConversationService');
-        const { MarketState } = await import('../types/orderTypes');
-        
         if (callbackData === 'harsi_skip') {
           await handleHarsiSelection(userId, chatId, 'skip', env);
         } else {
@@ -231,7 +224,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
           if (result.completed && result.orderData) {
             await processOrderData(result.orderData, userId, chatId, env);
             // Clear conversation state after processing
-            const { clearConversationState } = await import('../services/orderConversationService');
             await clearConversationState(userId, env);
           }
         } else if (callbackData === 'note_skip') {
@@ -240,7 +232,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
           if (state) {
             state.data.notes = undefined;
             state.step = OrderConversationStep.COMPLETED;
-            const { saveConversationState, clearConversationState } = await import('../services/orderConversationService');
             await saveConversationState(state, env);
             
             await sendMessageToTelegram({
@@ -319,7 +310,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       if (result.completed && result.orderData) {
         await processOrderData(result.orderData, userId, chatId, env);
         // Clear conversation state after processing
-        const { clearConversationState } = await import('../services/orderConversationService');
         await clearConversationState(userId, env);
       }
       
@@ -350,7 +340,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
 
 // Route handlers
 async function handleSetWebhookTelegram(env: Env): Promise<Response> {
-  const { setWebhookTelegram } = await import('../telegramService');
   const result: unknown = await setWebhookTelegram(env);
   return jsonResponse(result);
 }
