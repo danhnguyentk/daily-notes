@@ -295,32 +295,42 @@ export async function showOrderListForView(
 
   // Tạo inline keyboard với danh sách orders
   const keyboard: TelegramInlineKeyboardMarkup = {
-    inline_keyboard: sortedOrders.map((order, index) => {
+    inline_keyboard: sortedOrders.map((order) => {
       const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
-      const date = orderWithMeta.timestamp
-        ? new Date(orderWithMeta.timestamp).toLocaleDateString('vi-VN')
-        : 'N/A';
       const status = order.actualRiskRewardRatio !== undefined ? '✅' : '⏳';
+      
+      // Format date and time using Vietnam time utility
+      let dateTimeStr = 'N/A';
+      if (orderWithMeta.timestamp) {
+        dateTimeStr = formatVietnamTime(new Date(orderWithMeta.timestamp));
+      }
+      
+      // Format entry price
+      const entryStr = order.entry ? order.entry.toFixed(2) : 'N/A';
+      const directionStr = order.direction ? order.direction.toUpperCase() : '';
+      const symbolStr = order.symbol || 'N/A';
+      
+      // Create button text with more details
+      const buttonText = `${status} ${symbolStr} ${directionStr} | Entry: ${entryStr} | ${dateTimeStr}`;
+      
       return [
         {
-          text: `${status} ${index + 1}. ${order.symbol || 'N/A'} ${order.direction || ''} - ${date}`,
+          text: buttonText,
           callback_data: `view_order_${orderWithMeta.orderId}`,
         },
       ];
     }),
   };
 
-  let message = `📋 Danh sách lệnh (${sortedOrders.length}/${allOrders.length}):\n\n`;
-  message += `✅ = Đã đóng | ⏳ = Chưa đóng\n\n`;
+  // Simplified message without full list
+  const closedCount = sortedOrders.filter(order => order.actualRiskRewardRatio !== undefined).length;
+  const openCount = sortedOrders.length - closedCount;
   
-  sortedOrders.forEach((order, index) => {
-    const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
-    const date = orderWithMeta.timestamp
-      ? new Date(orderWithMeta.timestamp).toLocaleDateString('vi-VN')
-      : 'N/A';
-    const status = order.actualRiskRewardRatio !== undefined ? '✅' : '⏳';
-    message += `${status} ${index + 1}. ${order.symbol || 'N/A'} ${order.direction || ''} - Entry: ${order.entry || 'N/A'} - ${date}\n`;
-  });
+  const message = `📋 Danh sách lệnh\n\n` +
+    `📊 Tổng số: ${sortedOrders.length}/${allOrders.length} lệnh\n` +
+    `✅ Đã đóng: ${closedCount}\n` +
+    `⏳ Chưa đóng: ${openCount}\n\n` +
+    `👉 Chọn lệnh bên dưới để xem chi tiết:`;
 
   await sendMessageToTelegram(
     {
