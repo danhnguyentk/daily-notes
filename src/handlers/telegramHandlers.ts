@@ -6,6 +6,7 @@ import { BinanceSymbol, BinanceInterval } from '../binanceService';
 import { KVKeys } from '../cloudflareService';
 import { fetchAndNotifyEtf } from '../fetchBtcEtf';
 import { TelegramCommandIntervals, TelegramCommands } from '../telegramService';
+import { showRiskUnitStatistics, showMonthlyStatistics } from './orderStatisticsHandler';
 import { TradingviewInterval } from '../tradingviewService';
 import { Env } from '../types';
 import { getCurrentPriceAndNotify } from '../binanceService';
@@ -243,6 +244,11 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
     case TelegramCommands.ORDER_PREVIEW:
       // This will be handled in httpHandlers with user context
       return { message: 'Order preview shown' };
+
+    case TelegramCommands.ORDER_STATS:
+    case TelegramCommands.ORDER_STATS_MONTH:
+      // This will be handled in httpHandlers with user context
+      return { message: 'Order statistics shown' };
 
     default:
       console.log(`No action taken for command: ${action}`);

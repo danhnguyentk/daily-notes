@@ -23,6 +23,13 @@ import {
 } from '../services/orderConversationService';
 import { processOrderData } from './orderHandlers';
 import { OrderConversationStep } from '../types/orderTypes';
+import {
+  showRiskUnitStatistics,
+  showMonthlyStatistics,
+  showOrderSelectionForUpdate,
+  updateOrderWithActualClosePrice,
+  getOrderById,
+} from './orderStatisticsHandler';
 
 // Route constants
 const ROUTES = {
@@ -107,6 +114,36 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       // - Must answer within 10 seconds, otherwise it will timeout
       await answerCallbackQuery(callbackQuery.id, env);
       
+      // Handle update order selection
+      if (callbackData.startsWith('update_order_')) {
+        const orderId = callbackData.substring(13); // Remove 'update_order_' prefix
+        const order = await getOrderById(orderId, env);
+        
+        if (!order) {
+          await sendMessageToTelegram({
+            chat_id: chatId,
+            text: '❌ Không tìm thấy lệnh này.',
+          }, env);
+          return textResponse('Order not found');
+        }
+
+        // Tạo conversation state để nhập actual close price
+        const { saveConversationState } = await import('../services/orderConversationService');
+        await saveConversationState({
+          userId,
+          step: OrderConversationStep.WAITING_ACTUAL_CLOSE_PRICE,
+          data: order,
+          createdAt: Date.now(),
+          selectedOrderId: orderId,
+        }, env);
+
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: `✅ Đã chọn lệnh:\n\nSymbol: ${order.symbol}\nDirection: ${order.direction}\nEntry: ${order.entry}\nStop Loss: ${order.stopLoss}\n\nVui lòng nhập Close Price:`,
+        }, env);
+        return textResponse('Order selected for update');
+      }
+
       // Handle note selection from inline keyboard
       if (callbackData.startsWith('note_')) {
         // Check if user is in conversation and waiting for notes
@@ -189,6 +226,21 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
     if (text === TelegramCommands.ORDER_PREVIEW) {
       await showOrderPreview(userId, chatId, env);
       return textResponse('Order preview shown');
+    }
+
+    if (text === TelegramCommands.ORDER_STATS) {
+      await showRiskUnitStatistics(userId, chatId, env);
+      return textResponse('Order statistics shown');
+    }
+
+    if (text === TelegramCommands.ORDER_STATS_MONTH) {
+      await showMonthlyStatistics(userId, chatId, env);
+      return textResponse('Monthly order statistics shown');
+    }
+
+    if (text === TelegramCommands.UPDATE_ORDER) {
+      await showOrderSelectionForUpdate(userId, chatId, env);
+      return textResponse('Order selection shown');
     }
 
     // If user is in conversation, process input

@@ -278,6 +278,82 @@ export async function processOrderInput(
       message = '✅ Đã hoàn thành nhập lệnh!';
       break;
 
+    case OrderConversationStep.WAITING_ACTUAL_CLOSE_PRICE:
+      const closePrice = parseFloat(input.trim());
+      if (isNaN(closePrice) || closePrice <= 0) {
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '❌ Close Price không hợp lệ. Vui lòng nhập số dương.',
+        }, env);
+        return { completed: false };
+      }
+
+      // Update order với close price
+      const { updateOrderWithActualClosePrice } = await import('../handlers/orderStatisticsHandler');
+      if (!updatedState.selectedOrderId) {
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '❌ Không tìm thấy order ID.',
+        }, env);
+        return { completed: false };
+      }
+
+      const updatedOrder = await updateOrderWithActualClosePrice(
+        updatedState.selectedOrderId,
+        closePrice,
+        env
+      );
+
+      if (!updatedOrder) {
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '❌ Không thể cập nhật lệnh.',
+        }, env);
+        return { completed: false };
+      }
+
+      // Hiển thị kết quả
+      const formatRiskUnit = (ratio: number): string => {
+        if (ratio > 0) {
+          return `+${ratio.toFixed(2)}R`;
+        } else if (ratio < 0) {
+          return `${ratio.toFixed(2)}R`;
+        }
+        return '0R';
+      };
+
+      const resultMessage = `
+✅ Đã cập nhật lệnh với Close Price!
+
+📋 Thông tin lệnh:
+Symbol: ${updatedOrder.symbol}
+Direction: ${updatedOrder.direction}
+Entry: ${updatedOrder.entry}
+Stop Loss: ${updatedOrder.stopLoss}
+Close Price: ${closePrice}
+
+📊 Kết quả:
+${updatedOrder.actualRiskRewardRatio !== undefined
+  ? `   • R: ${formatRiskUnit(updatedOrder.actualRiskRewardRatio)}
+   ${updatedOrder.actualRiskRewardRatio > 0
+     ? `(Lợi nhuận ${(updatedOrder.actualRiskRewardRatio * 100).toFixed(1)}% rủi ro)`
+     : `(Thua lỗ ${Math.abs(updatedOrder.actualRiskRewardRatio * 100).toFixed(1)}% rủi ro)`}
+   • Actual PnL: ${updatedOrder.actualRealizedPnL && updatedOrder.actualRealizedPnL > 0 ? '+' : ''}${updatedOrder.actualRealizedPnL?.toFixed(4) || 'N/A'}
+   • Actual PnL USD: ${updatedOrder.actualRealizedPnLUsd && updatedOrder.actualRealizedPnLUsd > 0 ? '+' : ''}$${updatedOrder.actualRealizedPnLUsd?.toFixed(2) || 'N/A'}`
+  : 'Chưa tính toán được R'}
+
+⏰ Thời gian: ${new Date().toLocaleString('vi-VN')}
+      `.trim();
+
+      await sendMessageToTelegram({
+        chat_id: chatId,
+        text: resultMessage,
+      }, env);
+
+      // Clear conversation state
+      await clearConversationState(userId, env);
+      return { completed: false }; // Không return completed vì đây là update, không phải tạo mới
+
     default:
       await sendMessageToTelegram({
         chat_id: chatId,
