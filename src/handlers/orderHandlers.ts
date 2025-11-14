@@ -103,8 +103,11 @@ export async function processOrderData(
 📋 Thông tin lệnh:
 Symbol: ${orderData.symbol}
 Direction: ${orderData.direction}
+HARSI 1D: ${orderData.harsi1d || 'N/A'}
 HARSI 12H: ${orderData.harsi12h || 'N/A'}
 HARSI 8H: ${orderData.harsi8h || 'N/A'}
+HARSI 6H: ${orderData.harsi6h || 'N/A'}
+HARSI 4H: ${orderData.harsi4h || 'N/A'}
 Entry: ${orderData.entry}
 Stop Loss: ${orderData.stopLoss}
 Take Profit: ${orderData.takeProfit || 'N/A'}
