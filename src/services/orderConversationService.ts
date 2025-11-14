@@ -3,7 +3,7 @@
  */
 
 import { Env } from '../types';
-import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeyboardMarkup } from '../telegramService';
+import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeyboardMarkup, TelegramReplyKeyboardRemove } from '../telegramService';
 import { OrderConversationState, OrderConversationStep, OrderData } from '../types/orderTypes';
 
 const CONVERSATION_STATE_KEY_PREFIX = 'order_conversation_';
@@ -243,6 +243,7 @@ export async function processOrderInput(
           await sendMessageToTelegram({
             chat_id: chatId,
             text: `❌ Quantity ${input.trim()} không hợp lệ. Vui lòng nhập số dương hoặc /skip.`,
+            reply_markup: createQuantityKeyboard(), // Giữ keyboard khi input sai
           }, env);
           return { completed: false };
         }
@@ -258,10 +259,20 @@ export async function processOrderInput(
       // Create inline keyboard with note examples
       const noteExamples = createNotesKeyboard(updatedState.data.notes);
       
+      // Remove reply keyboard và chuyển sang inline keyboard
+      const removeKeyboard: TelegramReplyKeyboardRemove = { remove_keyboard: true };
+      
       await saveConversationState(updatedState, env);
       await sendMessageToTelegram({ 
         chat_id: chatId, 
         text: message,
+        reply_markup: removeKeyboard,
+      }, env);
+      
+      // Gửi message riêng với inline keyboard
+      await sendMessageToTelegram({ 
+        chat_id: chatId, 
+        text: 'Chọn notes:',
         reply_markup: noteExamples,
       }, env);
       return { completed: false };
@@ -276,7 +287,15 @@ export async function processOrderInput(
       }
       updatedState.step = OrderConversationStep.COMPLETED;
       message = '✅ Đã hoàn thành nhập lệnh!';
-      break;
+      // Remove any remaining keyboards
+      const removeKeyboardOnComplete: TelegramReplyKeyboardRemove = { remove_keyboard: true };
+      await sendMessageToTelegram({
+        chat_id: chatId,
+        text: message,
+        reply_markup: removeKeyboardOnComplete,
+      }, env);
+      await saveConversationState(updatedState, env);
+      return { completed: true, orderData: updatedState.data };
 
     case OrderConversationStep.WAITING_ACTUAL_CLOSE_PRICE:
       const closePrice = parseFloat(input.trim());
@@ -345,9 +364,12 @@ ${updatedOrder.actualRiskRewardRatio !== undefined
 ⏰ Thời gian: ${new Date().toLocaleString('vi-VN')}
       `.trim();
 
+      // Remove any keyboards trước khi gửi kết quả
+      const removeKeyboardOnUpdate: TelegramReplyKeyboardRemove = { remove_keyboard: true };
       await sendMessageToTelegram({
         chat_id: chatId,
         text: resultMessage,
+        reply_markup: removeKeyboardOnUpdate,
       }, env);
 
       // Clear conversation state
@@ -363,10 +385,11 @@ ${updatedOrder.actualRiskRewardRatio !== undefined
   }
 
   await saveConversationState(updatedState, env);
-  await sendMessageToTelegram({ chat_id: chatId, text: message }, env);
-
-  if (updatedState.step === OrderConversationStep.COMPLETED) {
-    return { completed: true, orderData: updatedState.data };
+  
+  // Chỉ gửi message nếu chưa được gửi ở trên (tránh duplicate)
+  // Các case đã return sớm (WAITING_QUANTITY, WAITING_NOTES, WAITING_ACTUAL_CLOSE_PRICE) sẽ không đến đây
+  if (message) {
+    await sendMessageToTelegram({ chat_id: chatId, text: message }, env);
   }
 
   return { completed: false };
@@ -390,9 +413,13 @@ export async function cancelOrderConversation(
   }
 
   await clearConversationState(userId, env);
+  
+  // Remove reply keyboard khi cancel
+  const removeKeyboard: TelegramReplyKeyboardRemove = { remove_keyboard: true };
   await sendMessageToTelegram({
     chat_id: chatId,
     text: '✅ Đã hủy nhập lệnh.',
+    reply_markup: removeKeyboard,
   }, env);
 }
 

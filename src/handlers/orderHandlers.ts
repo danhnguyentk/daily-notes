@@ -4,7 +4,7 @@
 
 import { Env } from '../types';
 import { OrderData } from '../types/orderTypes';
-import { sendMessageToTelegram } from '../telegramService';
+import { sendMessageToTelegram, TelegramReplyKeyboardRemove } from '../telegramService';
 import { formatVietnamTime } from '../utils/timeUtils';
 import { formatNotes } from '../services/orderConversationService';
 import { calculateOrderLoss } from '../utils/orderCalcUtils';
@@ -117,9 +117,12 @@ ${formattedNotes}
 ⏰ Thời gian: ${formatVietnamTime()}
   `.trim();
 
+  // Remove any remaining keyboards khi hoàn thành order
+  const removeKeyboard: TelegramReplyKeyboardRemove = { remove_keyboard: true };
   await sendMessageToTelegram({
     chat_id: chatId,
     text: summary,
+    reply_markup: removeKeyboard,
   }, env);
 
   // You can also send to a logging channel or save to database

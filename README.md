@@ -64,5 +64,3 @@ orderstatsmonth - Order Stats Month
 
 ### ACTION TODO 
 - Open question xac dinh xu huong
-- Refactor, split index.ts
-- Refactor common generic type

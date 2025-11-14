@@ -34,11 +34,16 @@ export type TelegramReplyKeyboardMarkup = {
   one_time_keyboard?: boolean;
 };
 
+export type TelegramReplyKeyboardRemove = {
+  remove_keyboard: true;
+  selective?: boolean;
+};
+
 export type TelegramMessageRequest = {
   chat_id: string;
   text: string;
   parse_mode?: TelegramParseMode;
-  reply_markup?: TelegramInlineKeyboardMarkup | TelegramReplyKeyboardMarkup;
+  reply_markup?: TelegramInlineKeyboardMarkup | TelegramReplyKeyboardMarkup | TelegramReplyKeyboardRemove;
 }
 
 export enum TelegramChatAction {
