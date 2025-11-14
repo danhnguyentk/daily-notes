@@ -9,77 +9,40 @@ import { formatVietnamTime } from '../utils/timeUtils';
 import {
   calculateRiskUnitStatistics,
   formatRiskUnit,
-  calculateOrderLoss,
 } from '../utils/orderCalcUtils';
-
-const ORDERS_KEY_PREFIX = 'order_';
-const USER_ORDERS_KEY_PREFIX = 'user_orders_';
+import {
+  saveOrderToSupabase,
+  getUserOrdersFromSupabase,
+  getUserOrdersByDateRangeFromSupabase,
+  getOrderByIdFromSupabase,
+  updateOrderWithClosePriceInSupabase,
+  convertOrderRecordToOrderData,
+} from '../services/supabaseService';
 
 /**
- * Lưu order vào KV store
+ * Lưu order vào Supabase
  */
 export async function saveOrder(
   userId: number,
   orderData: OrderData,
   env: Env
 ): Promise<void> {
-  const orderId = `${Date.now()}_${userId}`;
-  const orderKey = `${ORDERS_KEY_PREFIX}${orderId}`;
-  const userOrdersKey = `${USER_ORDERS_KEY_PREFIX}${userId}`;
-
-  // Lưu order chi tiết
-  await env.DAILY_NOTES_KV.put(
-    orderKey,
-    JSON.stringify({
-      ...orderData,
-      orderId,
-      userId,
-      timestamp: Date.now(),
-    })
-  );
-
-  // Cập nhật danh sách orders của user
-  const userOrdersJson = await env.DAILY_NOTES_KV.get(userOrdersKey);
-  const userOrders: string[] = userOrdersJson ? (JSON.parse(userOrdersJson) as string[]) : [];
-  userOrders.push(orderId);
-  await env.DAILY_NOTES_KV.put(userOrdersKey, JSON.stringify(userOrders));
+  await saveOrderToSupabase(userId, orderData, env);
 }
 
 /**
- * Lấy tất cả orders của một user
+ * Lấy tất cả orders của một user từ Supabase
  */
 export async function getUserOrders(
   userId: number,
   env: Env
 ): Promise<OrderData[]> {
-  const userOrdersKey = `${USER_ORDERS_KEY_PREFIX}${userId}`;
-  const userOrdersJson = await env.DAILY_NOTES_KV.get(userOrdersKey);
-
-  if (!userOrdersJson) {
-    return [];
-  }
-
-  const orderIds: string[] = JSON.parse(userOrdersJson) as string[];
-  const orders: OrderData[] = [];
-
-  for (const orderId of orderIds) {
-    const orderKey = `${ORDERS_KEY_PREFIX}${orderId}`;
-    const orderJson = await env.DAILY_NOTES_KV.get(orderKey);
-    if (orderJson) {
-      const order = JSON.parse(orderJson) as OrderData & {
-        orderId: string;
-        userId: number;
-        timestamp: number;
-      };
-      orders.push(order);
-    }
-  }
-
-  return orders;
+  const records = await getUserOrdersFromSupabase(userId, env);
+  return records.map(convertOrderRecordToOrderData);
 }
 
 /**
- * Lấy orders trong khoảng thời gian
+ * Lấy orders trong khoảng thời gian từ Supabase
  */
 export async function getUserOrdersByDateRange(
   userId: number,
@@ -87,13 +50,8 @@ export async function getUserOrdersByDateRange(
   endDate: Date,
   env: Env
 ): Promise<OrderData[]> {
-  const allOrders = await getUserOrders(userId, env);
-  return allOrders.filter((order) => {
-    const orderWithTimestamp = order as OrderData & { timestamp: number };
-    if (!orderWithTimestamp.timestamp) return false;
-    const orderDate = new Date(orderWithTimestamp.timestamp);
-    return orderDate >= startDate && orderDate <= endDate;
-  });
+  const records = await getUserOrdersByDateRangeFromSupabase(userId, startDate, endDate, env);
+  return records.map(convertOrderRecordToOrderData);
 }
 
 /**
@@ -186,55 +144,32 @@ export async function showMonthlyStatistics(
 }
 
 /**
- * Lấy order theo orderId
+ * Lấy order theo orderId từ Supabase
  */
 export async function getOrderById(
   orderId: string,
   env: Env
-): Promise<(OrderData & { orderId: string; userId: number; timestamp: number }) | null> {
-  const orderKey = `${ORDERS_KEY_PREFIX}${orderId}`;
-  const orderJson = await env.DAILY_NOTES_KV.get(orderKey);
-  if (!orderJson) {
+): Promise<(OrderData & { orderId: string; userId: number; timestamp: number; updatedAt?: number }) | null> {
+  const record = await getOrderByIdFromSupabase(orderId, env);
+  if (!record) {
     return null;
   }
-  return JSON.parse(orderJson) as OrderData & {
-    orderId: string;
-    userId: number;
-    timestamp: number;
-  };
+  return convertOrderRecordToOrderData(record);
 }
 
 /**
- * Cập nhật order với close price
+ * Cập nhật order với close price trong Supabase
  */
-export async function updateOrderWithActualClosePrice(
+export async function updateOrderWithClosePrice(
   orderId: string,
   closePrice: number,
   env: Env
 ): Promise<OrderData | null> {
-  const order = await getOrderById(orderId, env);
-  if (!order) {
+  const record = await updateOrderWithClosePriceInSupabase(orderId, closePrice, env);
+  if (!record) {
     return null;
   }
-
-  // Tính toán lại với close price
-  const updatedOrder = calculateOrderLoss(order, closePrice);
-
-  // Lưu lại order đã cập nhật
-  const orderKey = `${ORDERS_KEY_PREFIX}${orderId}`;
-  await env.DAILY_NOTES_KV.put(
-    orderKey,
-    JSON.stringify({
-      ...updatedOrder,
-      orderId: order.orderId,
-      userId: order.userId,
-      timestamp: order.timestamp,
-      closePrice,
-      updatedAt: Date.now(),
-    })
-  );
-
-  return updatedOrder;
+  return convertOrderRecordToOrderData(record);
 }
 
 /**

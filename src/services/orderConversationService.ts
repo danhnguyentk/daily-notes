@@ -5,6 +5,7 @@
 import { Env } from '../types';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeyboardMarkup, TelegramReplyKeyboardRemove } from '../telegramService';
 import { OrderConversationState, OrderConversationStep, OrderData, MarketState } from '../types/orderTypes';
+import { updateOrderWithClosePrice } from '../handlers/orderStatisticsHandler';
 
 const CONVERSATION_STATE_KEY_PREFIX = 'order_conversation_';
 
@@ -527,7 +528,6 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
       }
 
       // Update order với close price
-      const { updateOrderWithActualClosePrice } = await import('../handlers/orderStatisticsHandler');
       if (!updatedState.selectedOrderId) {
         await sendMessageToTelegram({
           chat_id: chatId,
@@ -536,7 +536,7 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
         return { completed: false };
       }
 
-      const updatedOrder = await updateOrderWithActualClosePrice(
+      const updatedOrder = await updateOrderWithClosePrice(
         updatedState.selectedOrderId,
         closePrice,
         env
