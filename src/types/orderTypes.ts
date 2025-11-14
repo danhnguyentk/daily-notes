@@ -106,6 +106,7 @@ export enum OrderConversationStep {
   WAITING_HARSI_1D = 'waiting_harsi_1d',
   WAITING_HARSI_12H = 'waiting_harsi_12h',
   WAITING_HARSI_8H = 'waiting_harsi_8h',
+  WAITING_HARSI_8H_CONFIRMATION = 'waiting_harsi_8h_confirmation',
   WAITING_HARSI_6H = 'waiting_harsi_6h',
   WAITING_HARSI_4H = 'waiting_harsi_4h',
   WAITING_ENTRY = 'waiting_entry',

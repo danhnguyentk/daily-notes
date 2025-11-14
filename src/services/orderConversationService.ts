@@ -39,7 +39,7 @@ function createQuantityKeyboard(): TelegramReplyKeyboardMarkup {
 /**
  * Create inline keyboard for HARSI market state selection
  */
-function createHarsiMarketStateKeyboard(): TelegramInlineKeyboardMarkup {
+export function createHarsiMarketStateKeyboard(): TelegramInlineKeyboardMarkup {
   return {
     inline_keyboard: [
       [
@@ -284,21 +284,62 @@ export async function processOrderInput(
         }
         updatedState.data.harsi8h = harsi8hValue;
       }
-      updatedState.step = OrderConversationStep.WAITING_HARSI_6H;
-      message = `✅ HARSI 8H: ${updatedState.data.harsi8h || 'N/A'}\n\nVui lòng chọn HARSI 6H:`;
       
-      // Quick warning if Bearish
       if (updatedState.data.harsi8h === MarketState.Bearish) {
-        message += `\n\n⚠️ Lưu ý: HARSI 8H Bearish - Dễ chạm Stop Loss!`;
+        // Show warning and ask for confirmation
+        updatedState.step = OrderConversationStep.WAITING_HARSI_8H_CONFIRMATION;
+        await saveConversationState(updatedState, env);
+        
+        const warningMessage = `
+⚠️ CẢNH BÁO RỦI RO
+
+HARSI 8H đang ở trạng thái Bearish (Giảm).
+
+📌 Lưu ý:
+   • Thị trường có xu hướng giảm trên khung thời gian 8 giờ
+   • Dễ dàng chạm Stop Loss nếu xu hướng giảm tiếp tục
+   • Nên cân nhắc kỹ trước khi vào lệnh
+   • Đảm bảo Stop Loss được đặt hợp lý và quản lý rủi ro tốt
+
+💡 Gợi ý:
+   • Kiểm tra lại các khung thời gian khác (1D, 12H, 6H, 4H)
+   • Xem xét các tín hiệu phân tích kỹ thuật khác
+   • Quản lý vốn cẩn thận, không nên risk quá nhiều
+        `.trim();
+
+        const confirmationKeyboard: TelegramInlineKeyboardMarkup = {
+          inline_keyboard: [
+            [
+              { text: '✅ Tiếp Tục', callback_data: 'harsi_8h_continue' },
+              { text: '❌ Hủy', callback_data: 'harsi_8h_cancel' },
+            ],
+          ],
+        };
+
+        await sendMessageToTelegram({ 
+          chat_id: chatId, 
+          text: warningMessage,
+        }, env);
+        
+        await sendMessageToTelegram({ 
+          chat_id: chatId, 
+          text: 'Bạn muốn tiếp tục chứ?',
+          reply_markup: confirmationKeyboard,
+        }, env);
+        return { completed: false };
+      } else {
+        // Not Bearish, proceed normally
+        updatedState.step = OrderConversationStep.WAITING_HARSI_6H;
+        message = `✅ HARSI 8H: ${updatedState.data.harsi8h || 'N/A'}\n\nVui lòng chọn HARSI 6H:`;
+        
+        await saveConversationState(updatedState, env);
+        await sendMessageToTelegram({ 
+          chat_id: chatId, 
+          text: message,
+          reply_markup: createHarsiMarketStateKeyboard(),
+        }, env);
+        return { completed: false };
       }
-      
-      await saveConversationState(updatedState, env);
-      await sendMessageToTelegram({ 
-        chat_id: chatId, 
-        text: message,
-        reply_markup: createHarsiMarketStateKeyboard(),
-      }, env);
-      return { completed: false };
 
     case OrderConversationStep.WAITING_HARSI_6H:
       // This case is handled by callback queries (harsi_Bullish, harsi_Bearish, harsi_Neutral, harsi_skip)
@@ -698,24 +739,70 @@ export async function handleHarsiSelection(
   } else if (state.step === OrderConversationStep.WAITING_HARSI_8H) {
     if (marketState === 'skip') {
       state.data.harsi8h = undefined;
-    } else {
+      state.step = OrderConversationStep.WAITING_HARSI_6H;
+      await saveConversationState(state, env);
+      
+      const message = `✅ HARSI 8H: ${state.data.harsi8h || 'N/A'}\n\nVui lòng chọn HARSI 6H:`;
+      await sendMessageToTelegram({ 
+        chat_id: chatId, 
+        text: message,
+        reply_markup: createHarsiMarketStateKeyboard(),
+      }, env);
+    } else if (marketState === MarketState.Bearish) {
+      // Show warning and ask for confirmation
       state.data.harsi8h = marketState;
+      state.step = OrderConversationStep.WAITING_HARSI_8H_CONFIRMATION;
+      await saveConversationState(state, env);
+      
+      const warningMessage = `
+⚠️ CẢNH BÁO RỦI RO
+
+HARSI 8H đang ở trạng thái Bearish (Giảm).
+
+📌 Lưu ý:
+   • Thị trường có xu hướng giảm trên khung thời gian 8 giờ
+   • Dễ dàng chạm Stop Loss nếu xu hướng giảm tiếp tục
+   • Nên cân nhắc kỹ trước khi vào lệnh
+   • Đảm bảo Stop Loss được đặt hợp lý và quản lý rủi ro tốt
+
+💡 Gợi ý:
+   • Kiểm tra lại các khung thời gian khác (1D, 12H, 6H, 4H)
+   • Xem xét các tín hiệu phân tích kỹ thuật khác
+   • Quản lý vốn cẩn thận, không nên risk quá nhiều
+      `.trim();
+
+      const confirmationKeyboard: TelegramInlineKeyboardMarkup = {
+        inline_keyboard: [
+          [
+            { text: '✅ Tiếp Tục', callback_data: 'harsi_8h_continue' },
+            { text: '❌ Hủy', callback_data: 'harsi_8h_cancel' },
+          ],
+        ],
+      };
+
+      await sendMessageToTelegram({ 
+        chat_id: chatId, 
+        text: warningMessage,
+      }, env);
+      
+      await sendMessageToTelegram({ 
+        chat_id: chatId, 
+        text: 'Bạn muốn tiếp tục chứ?',
+        reply_markup: confirmationKeyboard,
+      }, env);
+    } else {
+      // Not Bearish, proceed normally
+      state.data.harsi8h = marketState;
+      state.step = OrderConversationStep.WAITING_HARSI_6H;
+      await saveConversationState(state, env);
+      
+      const message = `✅ HARSI 8H: ${state.data.harsi8h || 'N/A'}\n\nVui lòng chọn HARSI 6H:`;
+      await sendMessageToTelegram({ 
+        chat_id: chatId, 
+        text: message,
+        reply_markup: createHarsiMarketStateKeyboard(),
+      }, env);
     }
-    state.step = OrderConversationStep.WAITING_HARSI_6H;
-    await saveConversationState(state, env);
-    
-    let message = `✅ HARSI 8H: ${state.data.harsi8h || 'N/A'}\n\nVui lòng chọn HARSI 6H:`;
-    
-    // Quick warning if Bearish
-    if (marketState === MarketState.Bearish) {
-      message += `\n\n⚠️ Lưu ý: HARSI 8H Bearish - Dễ chạm Stop Loss!`;
-    }
-    
-    await sendMessageToTelegram({ 
-      chat_id: chatId, 
-      text: message,
-      reply_markup: createHarsiMarketStateKeyboard(),
-    }, env);
   } else if (state.step === OrderConversationStep.WAITING_HARSI_6H) {
     if (marketState === 'skip') {
       state.data.harsi6h = undefined;

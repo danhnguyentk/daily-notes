@@ -152,6 +152,44 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Order selected for update');
       }
 
+      // Handle HARSI 8H Bearish confirmation
+      if (callbackData === 'harsi_8h_continue') {
+        const { getConversationState, saveConversationState } = await import('../services/orderConversationService');
+        const { OrderConversationStep } = await import('../types/orderTypes');
+        const { createHarsiMarketStateKeyboard } = await import('../services/orderConversationService');
+        
+        const state = await getConversationState(userId, env);
+        if (state && state.step === OrderConversationStep.WAITING_HARSI_8H_CONFIRMATION) {
+          state.step = OrderConversationStep.WAITING_HARSI_6H;
+          await saveConversationState(state, env);
+          
+          const message = `✅ HARSI 8H: ${state.data.harsi8h || 'N/A'}\n\nVui lòng chọn HARSI 6H:`;
+          await sendMessageToTelegram({ 
+            chat_id: chatId, 
+            text: message,
+            reply_markup: createHarsiMarketStateKeyboard(),
+          }, env);
+        }
+        return textResponse('HARSI 8H confirmation handled');
+      }
+
+      if (callbackData === 'harsi_8h_cancel') {
+        const { clearConversationState } = await import('../services/orderConversationService');
+        const { sendMessageToTelegram } = await import('../telegramService');
+        
+        // Cancel the entire order immediately
+        await clearConversationState(userId, env);
+        
+        // Remove any keyboards and send cancellation message
+        await sendMessageToTelegram({ 
+          chat_id: chatId, 
+          text: '❌ Đã hủy nhập lệnh.',
+          reply_markup: { remove_keyboard: true },
+        }, env);
+        
+        return textResponse('Order cancelled');
+      }
+
       // Handle HARSI market state selection
       if (callbackData.startsWith('harsi_')) {
         const { handleHarsiSelection } = await import('../services/orderConversationService');
