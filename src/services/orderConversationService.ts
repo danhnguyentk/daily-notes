@@ -4,7 +4,7 @@
 
 import { Env } from '../types';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeyboardMarkup, TelegramReplyKeyboardRemove } from '../telegramService';
-import { OrderConversationState, OrderConversationStep, OrderData } from '../types/orderTypes';
+import { OrderConversationState, OrderConversationStep, OrderData, MarketState } from '../types/orderTypes';
 
 const CONVERSATION_STATE_KEY_PREFIX = 'order_conversation_';
 
@@ -33,6 +33,24 @@ function createQuantityKeyboard(): TelegramReplyKeyboardMarkup {
     ],
     resize_keyboard: true,
     one_time_keyboard: true,
+  };
+}
+
+/**
+ * Create inline keyboard for HARSI market state selection
+ */
+function createHarsiMarketStateKeyboard(): TelegramInlineKeyboardMarkup {
+  return {
+    inline_keyboard: [
+      [
+        { text: '📈 Bullish', callback_data: `harsi_${MarketState.Bullish}` },
+        { text: '📉 Bearish', callback_data: `harsi_${MarketState.Bearish}` },
+      ],
+      [
+        { text: '⚪ Neutral', callback_data: `harsi_${MarketState.Neutral}` },
+        { text: '⏭️ Skip', callback_data: 'harsi_skip' },
+      ],
+    ],
   };
 }
 
@@ -173,8 +191,70 @@ export async function processOrderInput(
         }, env);
         return { completed: false };
       }
+      updatedState.step = OrderConversationStep.WAITING_HARSI_12H;
+      message = `✅ Direction: ${updatedState.data.direction}\n\nVui lòng chọn HARSI 12H:`;
+      
+      await saveConversationState(updatedState, env);
+      await sendMessageToTelegram({ 
+        chat_id: chatId, 
+        text: message,
+        reply_markup: createHarsiMarketStateKeyboard(),
+      }, env);
+      return { completed: false };
+
+    case OrderConversationStep.WAITING_HARSI_12H:
+      // This case is handled by callback queries (harsi_Bullish, harsi_Bearish, harsi_Neutral, harsi_skip)
+      // Regular text input still works for manual entry
+      const harsi12hInput = input.trim();
+      if (harsi12hInput.toUpperCase() === '/SKIP' || harsi12hInput === '') {
+        updatedState.data.harsi12h = undefined;
+      } else {
+        const harsi12hValue = Object.values(MarketState).find(
+          v => v.toLowerCase() === harsi12hInput.toLowerCase()
+        );
+        if (!harsi12hValue) {
+          await sendMessageToTelegram({
+            chat_id: chatId,
+            text: '❌ Vui lòng chọn Bullish, Bearish, Neutral hoặc /skip',
+            reply_markup: createHarsiMarketStateKeyboard(),
+          }, env);
+          return { completed: false };
+        }
+        updatedState.data.harsi12h = harsi12hValue;
+      }
+      updatedState.step = OrderConversationStep.WAITING_HARSI_8H;
+      message = `✅ HARSI 12H: ${updatedState.data.harsi12h || 'N/A'}\n\nVui lòng chọn HARSI 8H:`;
+      
+      await saveConversationState(updatedState, env);
+      await sendMessageToTelegram({ 
+        chat_id: chatId, 
+        text: message,
+        reply_markup: createHarsiMarketStateKeyboard(),
+      }, env);
+      return { completed: false };
+
+    case OrderConversationStep.WAITING_HARSI_8H:
+      // This case is handled by callback queries (harsi_Bullish, harsi_Bearish, harsi_Neutral, harsi_skip)
+      // Regular text input still works for manual entry
+      const harsi8hInput = input.trim();
+      if (harsi8hInput.toUpperCase() === '/SKIP' || harsi8hInput === '') {
+        updatedState.data.harsi8h = undefined;
+      } else {
+        const harsi8hValue = Object.values(MarketState).find(
+          v => v.toLowerCase() === harsi8hInput.toLowerCase()
+        );
+        if (!harsi8hValue) {
+          await sendMessageToTelegram({
+            chat_id: chatId,
+            text: '❌ Vui lòng chọn Bullish, Bearish, Neutral hoặc /skip',
+            reply_markup: createHarsiMarketStateKeyboard(),
+          }, env);
+          return { completed: false };
+        }
+        updatedState.data.harsi8h = harsi8hValue;
+      }
       updatedState.step = OrderConversationStep.WAITING_ENTRY;
-      message = `✅ Direction: ${updatedState.data.direction}\n\nVui lòng nhập Entry price:`;
+      message = `✅ HARSI 8H: ${updatedState.data.harsi8h || 'N/A'}\n\nVui lòng nhập Entry price:`;
       break;
 
     case OrderConversationStep.WAITING_ENTRY:
@@ -470,6 +550,61 @@ export async function addNoteToOrder(
 }
 
 /**
+ * Handle HARSI market state selection (for both 12H and 8H)
+ */
+export async function handleHarsiSelection(
+  userId: number,
+  chatId: string,
+  marketState: MarketState | 'skip',
+  env: Env
+): Promise<void> {
+  const state = await getConversationState(userId, env);
+  if (!state) {
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: '❌ Không tìm thấy phiên nhập lệnh.',
+    }, env);
+    return;
+  }
+
+  if (state.step === OrderConversationStep.WAITING_HARSI_12H) {
+    if (marketState === 'skip') {
+      state.data.harsi12h = undefined;
+    } else {
+      state.data.harsi12h = marketState;
+    }
+    state.step = OrderConversationStep.WAITING_HARSI_8H;
+    await saveConversationState(state, env);
+    
+    const message = `✅ HARSI 12H: ${state.data.harsi12h || 'N/A'}\n\nVui lòng chọn HARSI 8H:`;
+    await sendMessageToTelegram({ 
+      chat_id: chatId, 
+      text: message,
+      reply_markup: createHarsiMarketStateKeyboard(),
+    }, env);
+  } else if (state.step === OrderConversationStep.WAITING_HARSI_8H) {
+    if (marketState === 'skip') {
+      state.data.harsi8h = undefined;
+    } else {
+      state.data.harsi8h = marketState;
+    }
+    state.step = OrderConversationStep.WAITING_ENTRY;
+    await saveConversationState(state, env);
+    
+    const message = `✅ HARSI 8H: ${state.data.harsi8h || 'N/A'}\n\nVui lòng nhập Entry price:`;
+    await sendMessageToTelegram({ 
+      chat_id: chatId, 
+      text: message,
+    }, env);
+  } else {
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: '❌ Không ở bước nhập HARSI.',
+    }, env);
+  }
+}
+
+/**
  * Clear all notes
  */
 export async function clearNotes(
@@ -580,10 +715,12 @@ export async function showOrderPreview(
   const preview = `
 📋 Thông tin lệnh hiện tại:
 
-Symbol: ${data.symbol || 'Chưa nhập'}
-Direction: ${data.direction || 'Chưa nhập'}
-Entry: ${data.entry || 'Chưa nhập'}
-Stop Loss: ${data.stopLoss || 'Chưa nhập'}
+Symbol: ${data.symbol || 'N/A'}
+Direction: ${data.direction || 'N/A'}
+HARSI 12H: ${data.harsi12h || 'N/A'}
+HARSI 8H: ${data.harsi8h || 'N/A'}
+Entry: ${data.entry || 'N/A'}
+Stop Loss: ${data.stopLoss || 'N/A'}
 Take Profit: ${data.takeProfit || 'N/A'}
 Quantity: ${data.quantity || 'N/A'}
 Notes:

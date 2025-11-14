@@ -1,9 +1,18 @@
 /**
  * Types for order conversation flow
  */
+
+export enum MarketState {
+  Bullish = 'Bullish',
+  Bearish = 'Bearish',
+  Neutral = 'Neutral',
+}
+
 export interface OrderData {
   symbol?: string;
   direction?: 'LONG' | 'SHORT';
+  harsi12h?: MarketState;
+  harsi8h?: MarketState;
   entry?: number;
   stopLoss?: number;
   takeProfit?: number;
@@ -91,6 +100,8 @@ export enum OrderConversationStep {
   IDLE = 'idle',
   WAITING_SYMBOL = 'waiting_symbol',
   WAITING_DIRECTION = 'waiting_direction',
+  WAITING_HARSI_12H = 'waiting_harsi_12h',
+  WAITING_HARSI_8H = 'waiting_harsi_8h',
   WAITING_ENTRY = 'waiting_entry',
   WAITING_STOP_LOSS = 'waiting_stop_loss',
   WAITING_TAKE_PROFIT = 'waiting_take_profit',

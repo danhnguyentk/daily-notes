@@ -152,6 +152,23 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Order selected for update');
       }
 
+      // Handle HARSI market state selection
+      if (callbackData.startsWith('harsi_')) {
+        const { handleHarsiSelection } = await import('../services/orderConversationService');
+        const { MarketState } = await import('../types/orderTypes');
+        
+        if (callbackData === 'harsi_skip') {
+          await handleHarsiSelection(userId, chatId, 'skip', env);
+        } else {
+          const marketStateValue = callbackData.substring(6); // Remove 'harsi_' prefix
+          const marketState = Object.values(MarketState).find(c => c === marketStateValue);
+          if (marketState) {
+            await handleHarsiSelection(userId, chatId, marketState, env);
+          }
+        }
+        return textResponse('HARSI selection handled');
+      }
+
       // Handle note selection from inline keyboard
       if (callbackData.startsWith('note_')) {
         // Check if user is in conversation and waiting for notes

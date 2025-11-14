@@ -441,6 +441,8 @@ export async function showOrderDetails(
 📊 Thông tin cơ bản:
    • Symbol: ${order.symbol || 'N/A'}
    • Direction: ${order.direction || 'N/A'}
+   • HARSI 12H: ${order.harsi12h || 'N/A'}
+   • HARSI 8H: ${order.harsi8h || 'N/A'}
    • Entry: ${order.entry || 'N/A'}
    • Stop Loss: ${order.stopLoss || 'N/A'}
    • Take Profit: ${order.takeProfit || 'N/A'}
