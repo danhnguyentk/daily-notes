@@ -550,8 +550,15 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
         return { completed: false };
       }
 
+      // Helper function to safely format numbers with toFixed
+      const safeToFixed = (value: number | undefined | null, decimals: number, fallback: string = 'N/A'): string => {
+        if (value === undefined || value === null || isNaN(value)) return fallback;
+        return value.toFixed(decimals);
+      };
+
       // Hiển thị kết quả
-      const formatRiskUnit = (ratio: number): string => {
+      const formatRiskUnit = (ratio: number | undefined | null): string => {
+        if (ratio === undefined || ratio === null || isNaN(ratio)) return 'N/A';
         if (ratio > 0) {
           return `+${ratio.toFixed(2)}R`;
         } else if (ratio < 0) {
@@ -571,13 +578,13 @@ Stop Loss: ${updatedOrder.stopLoss}
 Close Price: ${closePrice}
 
 📊 Kết quả:
-${updatedOrder.actualRiskRewardRatio !== undefined
+${updatedOrder.actualRiskRewardRatio !== undefined && updatedOrder.actualRiskRewardRatio !== null
   ? `   • R: ${formatRiskUnit(updatedOrder.actualRiskRewardRatio)}
    ${updatedOrder.actualRiskRewardRatio > 0
-     ? `(Lợi nhuận ${(updatedOrder.actualRiskRewardRatio * 100).toFixed(1)}% rủi ro)`
-     : `(Thua lỗ ${Math.abs(updatedOrder.actualRiskRewardRatio * 100).toFixed(1)}% rủi ro)`}
-   • Actual PnL: ${updatedOrder.actualRealizedPnL && updatedOrder.actualRealizedPnL > 0 ? '+' : ''}${updatedOrder.actualRealizedPnL?.toFixed(4) || 'N/A'}
-   • Actual PnL USD: ${updatedOrder.actualRealizedPnLUsd && updatedOrder.actualRealizedPnLUsd > 0 ? '+' : ''}$${updatedOrder.actualRealizedPnLUsd?.toFixed(2) || 'N/A'}`
+     ? `(Lợi nhuận ${safeToFixed(updatedOrder.actualRiskRewardRatio * 100, 1)}% rủi ro)`
+     : `(Thua lỗ ${safeToFixed(Math.abs(updatedOrder.actualRiskRewardRatio * 100), 1)}% rủi ro)`}
+   • Actual PnL: ${updatedOrder.actualRealizedPnL && updatedOrder.actualRealizedPnL > 0 ? '+' : ''}${safeToFixed(updatedOrder.actualRealizedPnL, 4)}
+   • Actual PnL USD: ${updatedOrder.actualRealizedPnLUsd && updatedOrder.actualRealizedPnLUsd > 0 ? '+' : ''}$${safeToFixed(updatedOrder.actualRealizedPnLUsd, 2)}`
   : 'Chưa tính toán được R'}
 
 ⏰ Thời gian: ${new Date().toLocaleString('vi-VN')}

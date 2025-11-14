@@ -360,14 +360,20 @@ export async function showOrderDetails(
     ? new Date(orderWithMeta.updatedAt).toLocaleDateString('vi-VN') + ' ' + new Date(orderWithMeta.updatedAt).toLocaleTimeString('vi-VN')
     : null;
 
-  const formatRiskUnit = (ratio: number | undefined): string => {
-    if (ratio === undefined) return 'N/A';
+  const formatRiskUnit = (ratio: number | undefined | null): string => {
+    if (ratio === undefined || ratio === null) return 'N/A';
     if (ratio > 0) {
       return `+${ratio.toFixed(2)}R`;
     } else if (ratio < 0) {
       return `${ratio.toFixed(2)}R`;
     }
     return '0R';
+  };
+
+  // Helper function to safely format numbers with toFixed
+  const safeToFixed = (value: number | undefined | null, decimals: number, fallback: string = 'N/A'): string => {
+    if (value === undefined || value === null || isNaN(value)) return fallback;
+    return value.toFixed(decimals);
   };
 
   let details = `
@@ -390,34 +396,38 @@ export async function showOrderDetails(
   `.trim();
 
   // Thông tin rủi ro tiềm năng
-  if (order.potentialStopLoss !== undefined) {
+  if (order.potentialStopLoss !== undefined && order.potentialStopLoss !== null) {
     details += `\n\n📉 Rủi ro tiềm năng:`;
-    details += `\n   • Potential Stop Loss: ${order.potentialStopLoss.toFixed(4)} (${order.potentialStopLossPercent?.toFixed(2) || 'N/A'}%)`;
-    details += `\n   • Potential Stop Loss USD: $${order.potentialStopLossUsd?.toFixed(2) || 'N/A'}`;
+    details += `\n   • Potential Stop Loss: ${safeToFixed(order.potentialStopLoss, 4)} (${safeToFixed(order.potentialStopLossPercent, 2)}%)`;
+    details += `\n   • Potential Stop Loss USD: $${safeToFixed(order.potentialStopLossUsd, 2)}`;
   }
 
-  if (order.potentialProfit !== undefined) {
+  if (order.potentialProfit !== undefined && order.potentialProfit !== null) {
     details += `\n\n📈 Lợi nhuận tiềm năng:`;
-    details += `\n   • Potential Profit: ${order.potentialProfit.toFixed(4)} (${order.potentialProfitPercent?.toFixed(2) || 'N/A'}%)`;
-    details += `\n   • Potential Profit USD: $${order.potentialProfitUsd?.toFixed(2) || 'N/A'}`;
+    details += `\n   • Potential Profit: ${safeToFixed(order.potentialProfit, 4)} (${safeToFixed(order.potentialProfitPercent, 2)}%)`;
+    details += `\n   • Potential Profit USD: $${safeToFixed(order.potentialProfitUsd, 2)}`;
   }
 
-  if (order.potentialRiskRewardRatio !== undefined) {
-    details += `\n   • Potential Risk/Reward: 1:${order.potentialRiskRewardRatio.toFixed(2)}`;
+  if (order.potentialRiskRewardRatio !== undefined && order.potentialRiskRewardRatio !== null) {
+    details += `\n   • Potential Risk/Reward: 1:${safeToFixed(order.potentialRiskRewardRatio, 2)}`;
   }
 
   // Thông tin kết quả thực tế (nếu đã đóng)
-  if (order.actualRiskRewardRatio !== undefined) {
+  if (order.actualRiskRewardRatio !== undefined && order.actualRiskRewardRatio !== null) {
     details += `\n\n📊 Kết quả thực tế:`;
     details += `\n   • R: ${formatRiskUnit(order.actualRiskRewardRatio)}`;
+    const ratioPercent = order.actualRiskRewardRatio * 100;
     details += `\n   ${order.actualRiskRewardRatio > 0
-      ? `(Lợi nhuận ${(order.actualRiskRewardRatio * 100).toFixed(1)}% rủi ro)`
-      : `(Thua lỗ ${Math.abs(order.actualRiskRewardRatio * 100).toFixed(1)}% rủi ro)`}`;
+      ? `(Lợi nhuận ${safeToFixed(ratioPercent, 1)}% rủi ro)`
+      : `(Thua lỗ ${safeToFixed(Math.abs(ratioPercent), 1)}% rủi ro)`}`;
     
-    if (order.actualRealizedPnL !== undefined) {
-      details += `\n   • Actual PnL: ${order.actualRealizedPnL > 0 ? '+' : ''}${order.actualRealizedPnL.toFixed(4)}`;
-      details += `\n   • Actual PnL USD: ${order.actualRealizedPnLUsd && order.actualRealizedPnLUsd > 0 ? '+' : ''}$${order.actualRealizedPnLUsd?.toFixed(2) || 'N/A'}`;
-      details += `\n   • Actual PnL %: ${order.actualRealizedPnLPercent && order.actualRealizedPnLPercent > 0 ? '+' : ''}${order.actualRealizedPnLPercent?.toFixed(2) || 'N/A'}%`;
+    if (order.actualRealizedPnL !== undefined && order.actualRealizedPnL !== null) {
+      const pnlSign = order.actualRealizedPnL > 0 ? '+' : '';
+      const pnlUsdSign = order.actualRealizedPnLUsd && order.actualRealizedPnLUsd > 0 ? '+' : '';
+      const pnlPercentSign = order.actualRealizedPnLPercent && order.actualRealizedPnLPercent > 0 ? '+' : '';
+      details += `\n   • Actual PnL: ${pnlSign}${safeToFixed(order.actualRealizedPnL, 4)}`;
+      details += `\n   • Actual PnL USD: ${pnlUsdSign}$${safeToFixed(order.actualRealizedPnLUsd, 2)}`;
+      details += `\n   • Actual PnL %: ${pnlPercentSign}${safeToFixed(order.actualRealizedPnLPercent, 2)}%`;
     }
   } else {
     details += `\n\n⏳ Lệnh chưa đóng`;

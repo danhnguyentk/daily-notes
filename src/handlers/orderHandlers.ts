@@ -54,28 +54,35 @@ export async function processOrderData(
   // Format order summary
   const formattedNotes = formatNotes(orderData.notes);
   
+  // Helper function to safely format numbers with toFixed
+  const safeToFixed = (value: number | undefined | null, decimals: number, fallback: string = 'N/A'): string => {
+    if (value === undefined || value === null || isNaN(value)) return fallback;
+    return value.toFixed(decimals);
+  };
+
   // Format loss information
-  const lossInfo = orderData.potentialStopLoss !== undefined ? `
+  const lossInfo = orderData.potentialStopLoss !== undefined && orderData.potentialStopLoss !== null ? `
 📉 Thông tin rủi ro (nếu chạm Stop Loss):
-   • Mức thua lỗ: ${orderData.potentialStopLoss.toFixed(4)} (${orderData.potentialStopLossPercent?.toFixed(2) || 'N/A'}%)
-   • Thua lỗ USD: $${orderData.potentialStopLossUsd?.toFixed(2) || 'N/A'}
+   • Mức thua lỗ: ${safeToFixed(orderData.potentialStopLoss, 4)} (${safeToFixed(orderData.potentialStopLossPercent, 2)}%)
+   • Thua lỗ USD: $${safeToFixed(orderData.potentialStopLossUsd, 2)}
   `.trim() : '';
 
   // Format profit information
-  const profitInfo = orderData.potentialProfit !== undefined ? `
+  const profitInfo = orderData.potentialProfit !== undefined && orderData.potentialProfit !== null ? `
 📈 Thông tin lợi nhuận (nếu chạm Take Profit):
-   • Mức tăng giá: ${orderData.potentialProfit.toFixed(4)} (${orderData.potentialProfitPercent?.toFixed(2) || 'N/A'}%)
-   • Lợi nhuận USD: $${orderData.potentialProfitUsd?.toFixed(2) || 'N/A'}
+   • Mức tăng giá: ${safeToFixed(orderData.potentialProfit, 4)} (${safeToFixed(orderData.potentialProfitPercent, 2)}%)
+   • Lợi nhuận USD: $${safeToFixed(orderData.potentialProfitUsd, 2)}
   `.trim() : '';
 
   // Format potential risk/reward ratio
-  const potentialRiskRewardInfo = orderData.potentialRiskRewardRatio !== undefined ? `
-⚖️ Tỷ lệ Risk/Reward (tiềm năng): 1:${orderData.potentialRiskRewardRatio.toFixed(2)}
+  const potentialRiskRewardInfo = orderData.potentialRiskRewardRatio !== undefined && orderData.potentialRiskRewardRatio !== null ? `
+⚖️ Tỷ lệ Risk/Reward (tiềm năng): 1:${safeToFixed(orderData.potentialRiskRewardRatio, 2)}
   `.trim() : '';
 
   // Format actual risk/reward ratio theo đơn vị R (if order was closed early)
   // Dương = lợi nhuận, Âm = thua lỗ
-  const formatRiskUnit = (ratio: number): string => {
+  const formatRiskUnit = (ratio: number | undefined | null): string => {
+    if (ratio === undefined || ratio === null || isNaN(ratio)) return 'N/A';
     const absRatio = Math.abs(ratio);
     const formatted = absRatio.toFixed(2);
     
@@ -89,12 +96,12 @@ export async function processOrderData(
     return '0R';
   };
 
-  const actualRiskRewardInfo = orderData.actualRiskRewardRatio !== undefined ? `
+  const actualRiskRewardInfo = orderData.actualRiskRewardRatio !== undefined && orderData.actualRiskRewardRatio !== null ? `
 📊 Kết quả thực tế: ${formatRiskUnit(orderData.actualRiskRewardRatio)}
    ${orderData.actualRiskRewardRatio > 0 
-     ? `(Lợi nhuận ${(orderData.actualRiskRewardRatio * 100).toFixed(1)}% rủi ro)`
-     : `(Thua lỗ ${Math.abs(orderData.actualRiskRewardRatio * 100).toFixed(1)}% rủi ro)`}
-   • 1R = ${orderData.potentialStopLoss?.toFixed(4) || 'N/A'} (rủi ro tiềm năng)
+     ? `(Lợi nhuận ${safeToFixed(orderData.actualRiskRewardRatio * 100, 1)}% rủi ro)`
+     : `(Thua lỗ ${safeToFixed(Math.abs(orderData.actualRiskRewardRatio * 100), 1)}% rủi ro)`}
+   • 1R = ${safeToFixed(orderData.potentialStopLoss, 4)} (rủi ro tiềm năng)
   `.trim() : '';
 
   const summary = `
