@@ -4,14 +4,14 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Env } from '../types/env';
-import { OrderData } from '../types/orderTypes';
+import { OrderData, OrderDirection } from '../types/orderTypes';
 
 export interface OrderRecord {
   id?: string;
   order_id: string;
   user_id: number;
   symbol?: string;
-  direction?: 'LONG' | 'SHORT';
+  direction?: string; // Stored as lowercase in DB: 'long' | 'short'
   harsi1d?: string;
   harsi12h?: string;
   harsi8h?: string;
@@ -66,7 +66,7 @@ export function convertOrderRecordToOrderData(record: OrderRecord): OrderData & 
 
   return {
     symbol: record.symbol,
-    direction: record.direction?.toUpperCase() as 'LONG' | 'SHORT' | undefined,
+    direction: record.direction as OrderDirection | undefined,
     harsi1d: capitalize(record.harsi1d) as any,
     harsi12h: capitalize(record.harsi12h) as any,
     harsi8h: capitalize(record.harsi8h) as any,
@@ -110,7 +110,7 @@ export async function saveOrderToSupabase(
     order_id: orderId,
     user_id: userId,
     symbol: orderData.symbol,
-    direction: orderData.direction?.toLowerCase(),
+    direction: orderData.direction,
     harsi1d: orderData.harsi1d?.toLowerCase(),
     harsi12h: orderData.harsi12h?.toLowerCase(),
     harsi8h: orderData.harsi8h?.toLowerCase(),

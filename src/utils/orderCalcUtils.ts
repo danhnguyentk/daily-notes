@@ -1,4 +1,4 @@
-import { OrderData } from '../types/orderTypes';
+import { OrderData, OrderDirection } from '../types/orderTypes';
 
 /**
  * Interface cho thống kê tổng hợp R
@@ -48,8 +48,8 @@ export function calculateOrderLoss(
   let potentialRiskRewardRatio: number | undefined = undefined;
   let actualRiskRewardRatio: number | undefined = undefined;
 
-  const isLong = data.direction === 'LONG';
-  const isShort = data.direction === 'SHORT';
+  const isLong = data.direction === OrderDirection.LONG;
+  const isShort = data.direction === OrderDirection.SHORT;
 
   // Calculate potential loss (stop loss scenario)
   if (typeof data.entry === 'number' && typeof data.stopLoss === 'number') {

@@ -8,9 +8,14 @@ export enum MarketState {
   Neutral = 'Neutral',
 }
 
+export enum OrderDirection {
+  LONG = 'long',
+  SHORT = 'short',
+}
+
 export interface OrderData {
   symbol?: string;
-  direction?: 'LONG' | 'SHORT';
+  direction?: OrderDirection;
   harsi1d?: MarketState;
   harsi12h?: MarketState;
   harsi8h?: MarketState;

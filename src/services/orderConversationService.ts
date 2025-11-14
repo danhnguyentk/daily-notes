@@ -4,7 +4,7 @@
 
 import { Env } from '../types/env';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeyboardMarkup, TelegramReplyKeyboardRemove } from './telegramService';
-import { OrderConversationState, OrderConversationStep, OrderData, MarketState } from '../types/orderTypes';
+import { OrderConversationState, OrderConversationStep, OrderData, MarketState, OrderDirection } from '../types/orderTypes';
 import { updateOrderWithClosePrice } from '../handlers/orderStatisticsHandler';
 import { formatHarsiValue } from '../utils/formatUtils';
 
@@ -181,11 +181,11 @@ export async function processOrderInput(
       break;
 
     case OrderConversationStep.WAITING_DIRECTION:
-      const directionInput = input.trim().toUpperCase().replace('/', '');
-      if (directionInput === 'LONG') {
-        updatedState.data.direction = 'LONG';
-      } else if (directionInput === 'SHORT') {
-        updatedState.data.direction = 'SHORT';
+      const directionInput = input.trim().toLowerCase().replace('/', '');
+      if (directionInput === OrderDirection.LONG) {
+        updatedState.data.direction = OrderDirection.LONG;
+      } else if (directionInput === OrderDirection.SHORT) {
+        updatedState.data.direction = OrderDirection.SHORT;
       } else {
         await sendMessageToTelegram({
           chat_id: chatId,
