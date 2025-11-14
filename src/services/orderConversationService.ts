@@ -40,7 +40,8 @@ function createQuantityKeyboard(): TelegramReplyKeyboardMarkup {
  * Create inline keyboard for notes selection with current selected notes
  */
 function createNotesKeyboard(currentNotes?: string): TelegramInlineKeyboardMarkup {
-  const notes = currentNotes ? currentNotes.split(', ').filter(n => n.trim()) : [];
+  // Split by comma (handles both "note1, note2" and "note1,note2" formats)
+  const notes = currentNotes ? currentNotes.split(',').map(n => n.trim()).filter(n => n) : [];
   
   return {
     inline_keyboard: [
@@ -338,13 +339,16 @@ export async function addNoteToOrder(
   }
 
   const currentNotes = state.data.notes || '';
-  const notesArray = currentNotes ? currentNotes.split(', ').filter(n => n.trim()) : [];
+  // Split by comma (handles both "note1, note2" and "note1,note2" formats)
+  const notesArray = currentNotes ? currentNotes.split(',').map(n => n.trim()).filter(n => n) : [];
   
   // Add new note if not already exists
-  if (!notesArray.includes(noteText.trim())) {
-    notesArray.push(noteText.trim());
+  const trimmedNote = noteText.trim();
+  if (!notesArray.includes(trimmedNote)) {
+    notesArray.push(trimmedNote);
   }
   
+  // Join with comma and space for consistent storage
   state.data.notes = notesArray.join(', ');
   await saveConversationState(state, env);
 
@@ -431,13 +435,15 @@ export async function finishNotesSelection(
 /**
  * Format notes for beautiful display
  * Exported so it can be used in other modules
+ * Handles both comma-separated formats: "note1, note2" or "note1,note2"
  */
 export function formatNotes(notes?: string): string {
   if (!notes || notes.trim() === '') {
     return 'N/A';
   }
   
-  // Split notes by comma and format each note
+  // Split notes by comma (with or without space) and format each note
+  // This handles both "note1, note2" and "note1,note2" formats
   const notesArray = notes.split(',').map(n => n.trim()).filter(n => n);
   
   if (notesArray.length === 0) {
