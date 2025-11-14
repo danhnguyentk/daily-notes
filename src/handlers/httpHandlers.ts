@@ -35,6 +35,7 @@ import {
   showOrderListForView,
   showOrderDetails,
   deleteOrder,
+  showDeleteOrderConfirmation,
 } from './orderStatisticsHandler';
 
 // Route constants
@@ -127,11 +128,29 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Order details shown');
       }
 
-      // Handle delete order
-      if (callbackData.startsWith(CallbackDataPrefix.DELETE_ORDER)) {
+      // Handle delete order confirmation request
+      if (callbackData.startsWith(CallbackDataPrefix.DELETE_ORDER) && 
+          !callbackData.startsWith(CallbackDataPrefix.DELETE_ORDER_CONFIRM) &&
+          callbackData !== CallbackDataPrefix.DELETE_ORDER_CANCEL) {
         const orderId = callbackData.substring(CallbackDataPrefix.DELETE_ORDER.length);
+        await showDeleteOrderConfirmation(orderId, userId, chatId, env);
+        return textResponse('Delete confirmation shown');
+      }
+
+      // Handle delete order confirmation
+      if (callbackData.startsWith(CallbackDataPrefix.DELETE_ORDER_CONFIRM)) {
+        const orderId = callbackData.substring(CallbackDataPrefix.DELETE_ORDER_CONFIRM.length);
         await deleteOrder(orderId, userId, chatId, env);
         return textResponse('Order deletion processed');
+      }
+
+      // Handle delete order cancellation
+      if (callbackData === CallbackDataPrefix.DELETE_ORDER_CANCEL) {
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '✅ Đã hủy thao tác xóa lệnh.',
+        }, env);
+        return textResponse('Delete cancelled');
       }
 
       // Handle update order selection

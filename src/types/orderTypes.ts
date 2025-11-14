@@ -21,6 +21,8 @@ export enum TradingSymbol {
 
 export enum CallbackDataPrefix {
   DELETE_ORDER = 'delete_order_',
+  DELETE_ORDER_CONFIRM = 'delete_order_confirm_',
+  DELETE_ORDER_CANCEL = 'delete_order_cancel',
   VIEW_ORDER = 'view_order_',
   UPDATE_ORDER = 'update_order_',
   HARSI = 'harsi_',

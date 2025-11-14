@@ -451,7 +451,7 @@ export async function showOrderDetails(
     details += `\n\n📝 Notes:\n${order.notes}`;
   }
 
-  // Add delete button
+  // Add delete button with confirmation
   const keyboard: TelegramInlineKeyboardMarkup = {
     inline_keyboard: [
       [
@@ -468,6 +468,86 @@ export async function showOrderDetails(
       chat_id: chatId,
       text: details,
       reply_markup: keyboard,
+    },
+    env
+  );
+}
+
+/**
+ * Show delete order confirmation dialog
+ */
+export async function showDeleteOrderConfirmation(
+  orderId: string,
+  userId: number,
+  chatId: string,
+  env: Env
+): Promise<void> {
+  // First verify the order exists and belongs to the user
+  const order = await getOrderById(orderId, env);
+  
+  if (!order) {
+    await sendMessageToTelegram(
+      {
+        chat_id: chatId,
+        text: '❌ Không tìm thấy lệnh này.',
+      },
+      env
+    );
+    return;
+  }
+
+  const orderWithMeta = order as OrderData & { userId: number; orderId: string; timestamp: number };
+  
+  // Verify ownership
+  if (orderWithMeta.userId !== userId) {
+    await sendMessageToTelegram(
+      {
+        chat_id: chatId,
+        text: '❌ Bạn không có quyền xóa lệnh này.',
+      },
+      env
+    );
+    return;
+  }
+
+  // Format order info for confirmation message
+  const symbolStr = order.symbol ? order.symbol.replace(/USDT$/i, '') : 'N/A';
+  const directionStr = order.direction ? order.direction.toUpperCase() : 'N/A';
+  const entryStr = order.entry ? Math.round(order.entry).toString() : 'N/A';
+  
+  // Format date/time
+  const dateTimeStr = orderWithMeta.timestamp 
+    ? formatVietnamTimeShort(new Date(orderWithMeta.timestamp))
+    : 'N/A';
+
+  const confirmationKeyboard: TelegramInlineKeyboardMarkup = {
+    inline_keyboard: [
+      [
+        {
+          text: '✅ Xác nhận xóa',
+          callback_data: `${CallbackDataPrefix.DELETE_ORDER_CONFIRM}${orderId}`,
+        },
+        {
+          text: '❌ Hủy',
+          callback_data: CallbackDataPrefix.DELETE_ORDER_CANCEL,
+        },
+      ],
+    ],
+  };
+
+  const message = `⚠️ Xác nhận xóa lệnh\n\n` +
+    `📊 Thông tin lệnh:\n` +
+    `   • Symbol: ${symbolStr}\n` +
+    `   • Direction: ${directionStr}\n` +
+    `   • Entry: $${entryStr}\n` +
+    `   • Tạo lúc: ${dateTimeStr}\n\n` +
+    `Bạn có chắc chắn muốn xóa lệnh này?`;
+
+  await sendMessageToTelegram(
+    {
+      chat_id: chatId,
+      text: message,
+      reply_markup: confirmationKeyboard,
     },
     env
   );
