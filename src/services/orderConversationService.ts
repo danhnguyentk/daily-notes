@@ -287,6 +287,11 @@ export async function processOrderInput(
       updatedState.step = OrderConversationStep.WAITING_HARSI_6H;
       message = `✅ HARSI 8H: ${updatedState.data.harsi8h || 'N/A'}\n\nVui lòng chọn HARSI 6H:`;
       
+      // Quick warning if Bearish
+      if (updatedState.data.harsi8h === MarketState.Bearish) {
+        message += `\n\n⚠️ Lưu ý: HARSI 8H Bearish - Dễ chạm Stop Loss!`;
+      }
+      
       await saveConversationState(updatedState, env);
       await sendMessageToTelegram({ 
         chat_id: chatId, 
@@ -699,7 +704,13 @@ export async function handleHarsiSelection(
     state.step = OrderConversationStep.WAITING_HARSI_6H;
     await saveConversationState(state, env);
     
-    const message = `✅ HARSI 8H: ${state.data.harsi8h || 'N/A'}\n\nVui lòng chọn HARSI 6H:`;
+    let message = `✅ HARSI 8H: ${state.data.harsi8h || 'N/A'}\n\nVui lòng chọn HARSI 6H:`;
+    
+    // Quick warning if Bearish
+    if (marketState === MarketState.Bearish) {
+      message += `\n\n⚠️ Lưu ý: HARSI 8H Bearish - Dễ chạm Stop Loss!`;
+    }
+    
     await sendMessageToTelegram({ 
       chat_id: chatId, 
       text: message,

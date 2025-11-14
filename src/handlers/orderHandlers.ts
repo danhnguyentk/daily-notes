@@ -3,7 +3,7 @@
  */
 
 import { Env } from '../types';
-import { OrderData } from '../types/orderTypes';
+import { OrderData, MarketState } from '../types/orderTypes';
 import { sendMessageToTelegram, TelegramReplyKeyboardRemove } from '../telegramService';
 import { formatVietnamTime } from '../utils/timeUtils';
 import { formatNotes } from '../services/orderConversationService';
@@ -129,6 +129,31 @@ ${formattedNotes}
     text: summary,
     reply_markup: removeKeyboard,
   }, env);
+
+  // Warning alert if HARSI 8h is Bearish
+  if (orderData.harsi8h === MarketState.Bearish) {
+    const warningMessage = `
+⚠️ CẢNH BÁO RỦI RO
+
+HARSI 8H đang ở trạng thái Bearish (Giảm).
+
+📌 Lưu ý:
+   • Thị trường có xu hướng giảm trên khung thời gian 8 giờ
+   • Dễ dàng chạm Stop Loss nếu xu hướng giảm tiếp tục
+   • Nên cân nhắc kỹ trước khi vào lệnh
+   • Đảm bảo Stop Loss được đặt hợp lý và quản lý rủi ro tốt
+
+💡 Gợi ý:
+   • Kiểm tra lại các khung thời gian khác (1D, 12H, 6H, 4H)
+   • Xem xét các tín hiệu phân tích kỹ thuật khác
+   • Quản lý vốn cẩn thận, không nên risk quá nhiều
+    `.trim();
+
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: warningMessage,
+    }, env);
+  }
 
   // You can also send to a logging channel or save to database
   // TODO: Implement this
