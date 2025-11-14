@@ -2,9 +2,9 @@
  * Handler để thống kê và hiển thị tổng hợp R từ các orders
  */
 
-import { Env } from '../types';
+import { Env } from '../types/env';
 import { OrderData } from '../types/orderTypes';
-import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../telegramService';
+import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../services/telegramService';
 import { formatVietnamTime } from '../utils/timeUtils';
 import {
   calculateRiskUnitStatistics,

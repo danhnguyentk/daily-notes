@@ -1,5 +1,5 @@
 import { TradingviewInterval } from './tradingviewService';
-import { Env } from './types';
+import { Env } from '../types/env';
 
 export type TelegramImageRequest = {
   chat_id: string;

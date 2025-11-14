@@ -1,5 +1,5 @@
 import { TelegramParseMode, sendMessageToTelegram } from "./telegramService";
-import { Env } from "./types";
+import { Env } from "../types/env";
 import * as cheerio from "cheerio";
 
 export type EtfRow = {

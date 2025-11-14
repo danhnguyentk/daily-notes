@@ -2,8 +2,8 @@
  * Telegram utility functions
  */
 
-import { sendMessageToTelegram } from '../telegramService';
-import { Env } from '../types';
+import { sendMessageToTelegram } from '../services/telegramService';
+import { Env } from '../types/env';
 
 /**
  * Helper function to send messages to Telegram

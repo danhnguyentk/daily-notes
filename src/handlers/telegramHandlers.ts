@@ -2,14 +2,14 @@
  * Telegram command handlers
  */
 
-import { BinanceSymbol, BinanceInterval } from '../binanceService';
-import { KVKeys } from '../cloudflareService';
-import { fetchAndNotifyEtf } from '../fetchBtcEtf';
-import { TelegramCommandIntervals, TelegramCommands } from '../telegramService';
+import { BinanceSymbol, BinanceInterval } from '../services/binanceService';
+import { KVKeys } from '../services/cloudflareService';
+import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
+import { TelegramCommandIntervals, TelegramCommands } from '../services/telegramService';
 import { showRiskUnitStatistics, showMonthlyStatistics } from './orderStatisticsHandler';
-import { TradingviewInterval } from '../tradingviewService';
-import { Env } from '../types';
-import { getCurrentPriceAndNotify } from '../binanceService';
+import { TradingviewInterval } from '../services/tradingviewService';
+import { Env } from '../types/env';
+import { getCurrentPriceAndNotify } from '../services/binanceService';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
 import { snapshotChart, snapshotChartWithSpecificInterval } from './chartHandlers';
 import { notifyNumberClosedCandlesBullish } from './candleHandlers';

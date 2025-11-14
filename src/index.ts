@@ -15,8 +15,8 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-import { TelegramMessageTitle, sendMessageToTelegram } from './telegramService';
-import { Env } from './types';
+import { TelegramMessageTitle, sendMessageToTelegram } from './services/telegramService';
+import { Env } from './types/env';
 import { handleFetch } from './handlers/httpHandlers';
 import { handleScheduled } from './handlers/scheduledHandlers';
 

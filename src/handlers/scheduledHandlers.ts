@@ -2,10 +2,10 @@
  * Scheduled job handlers
  */
 
-import { BinanceSymbol, BinanceInterval, BinanceCandlesRequest } from '../binanceService';
-import { KVKeys } from '../cloudflareService';
-import { fetchAndNotifyEtf } from '../fetchBtcEtf';
-import { Env } from '../types';
+import { BinanceSymbol, BinanceInterval, BinanceCandlesRequest } from '../services/binanceService';
+import { KVKeys } from '../services/cloudflareService';
+import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
+import { Env } from '../types/env';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
 import { snapshotChart } from './chartHandlers';
 import { notifyNumberClosedCandlesBullish, notifyNumberClosedCandlesBearish, CandleDirection } from './candleHandlers';

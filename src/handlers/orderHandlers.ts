@@ -2,9 +2,9 @@
  * Order handlers - Process completed order data
  */
 
-import { Env } from '../types';
+import { Env } from '../types/env';
 import { OrderData, MarketState } from '../types/orderTypes';
-import { sendMessageToTelegram, TelegramReplyKeyboardRemove } from '../telegramService';
+import { sendMessageToTelegram, TelegramReplyKeyboardRemove } from '../services/telegramService';
 import { formatVietnamTime } from '../utils/timeUtils';
 import { formatNotes } from '../services/orderConversationService';
 import { calculateOrderLoss } from '../utils/orderCalcUtils';

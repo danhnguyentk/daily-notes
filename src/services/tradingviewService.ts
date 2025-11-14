@@ -1,4 +1,4 @@
-import { Env } from './types';
+import { Env } from '../types/env';
 
 export type TradingviewRequest = {
   symbol: string;

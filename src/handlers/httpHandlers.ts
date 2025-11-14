@@ -2,12 +2,12 @@
  * HTTP request handlers
  */
 
-import { BinanceSymbol, BinanceInterval } from '../binanceService';
-import { KVKeys } from '../cloudflareService';
-import { fetchAndNotifyEtf } from '../fetchBtcEtf';
-import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery } from '../telegramService';
-import { Env } from '../types';
-import { getCurrentPriceAndNotify } from '../binanceService';
+import { BinanceSymbol, BinanceInterval } from '../services/binanceService';
+import { KVKeys } from '../services/cloudflareService';
+import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
+import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery } from '../services/telegramService';
+import { Env } from '../types/env';
+import { getCurrentPriceAndNotify } from '../services/binanceService';
 import { snapshotChart } from './chartHandlers';
 import { notifyNumberClosedCandlesBullish } from './candleHandlers';
 import { takeTelegramAction } from './telegramHandlers';

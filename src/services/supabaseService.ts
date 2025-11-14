@@ -3,7 +3,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Env } from '../types';
+import { Env } from '../types/env';
 import { OrderData } from '../types/orderTypes';
 
 export interface OrderRecord {

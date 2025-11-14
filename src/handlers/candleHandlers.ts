@@ -2,8 +2,8 @@
  * Candle analysis handlers
  */
 
-import { BinanceCandlesRequest, BinanceToTradingviewInterval, checkNumberClosedCandlesBullish, checkNumberClosedCandlesBearish } from '../binanceService';
-import { Env } from '../types';
+import { BinanceCandlesRequest, BinanceToTradingviewInterval, checkNumberClosedCandlesBullish, checkNumberClosedCandlesBearish } from '../services/binanceService';
+import { Env } from '../types/env';
 import { formatVietnamTime } from '../utils/timeUtils';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
 import { snapshotChartWithSpecificInterval } from './chartHandlers';

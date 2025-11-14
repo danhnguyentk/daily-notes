@@ -2,9 +2,9 @@
  * Chart snapshot handlers
  */
 
-import { sendImageGroupToTelegram, sendImageToTelegram, TelegramImageRequest } from '../telegramService';
-import { TradingviewInterval, TradingviewSymbol, getTradingViewImage } from '../tradingviewService';
-import { Env } from '../types';
+import { sendImageGroupToTelegram, sendImageToTelegram, TelegramImageRequest } from '../services/telegramService';
+import { TradingviewInterval, TradingviewSymbol, getTradingViewImage } from '../services/tradingviewService';
+import { Env } from '../types/env';
 import { formatVietnamTime } from '../utils/timeUtils';
 
 export async function snapshotChart(env: Env): Promise<void> {

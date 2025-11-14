@@ -2,8 +2,8 @@
  * Service to manage order conversation flow
  */
 
-import { Env } from '../types';
-import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeyboardMarkup, TelegramReplyKeyboardRemove } from '../telegramService';
+import { Env } from '../types/env';
+import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeyboardMarkup, TelegramReplyKeyboardRemove } from './telegramService';
 import { OrderConversationState, OrderConversationStep, OrderData, MarketState } from '../types/orderTypes';
 import { updateOrderWithClosePrice } from '../handlers/orderStatisticsHandler';
 
