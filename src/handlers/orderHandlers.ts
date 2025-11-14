@@ -8,6 +8,7 @@ import { sendMessageToTelegram, TelegramReplyKeyboardRemove } from '../services/
 import { formatVietnamTime } from '../utils/timeUtils';
 import { formatNotes } from '../services/orderConversationService';
 import { calculateOrderLoss } from '../utils/orderCalcUtils';
+import { formatHarsiValue } from '../utils/formatUtils';
 import { saveOrder } from './orderStatisticsHandler';
 
 /**
@@ -110,11 +111,11 @@ export async function processOrderData(
 📋 Thông tin lệnh:
 Symbol: ${orderData.symbol}
 Direction: ${orderData.direction}
-HARSI 1D: ${orderData.harsi1d || 'N/A'}
-HARSI 12H: ${orderData.harsi12h || 'N/A'}
-HARSI 8H: ${orderData.harsi8h || 'N/A'}
-HARSI 6H: ${orderData.harsi6h || 'N/A'}
-HARSI 4H: ${orderData.harsi4h || 'N/A'}
+HARSI 1D: ${formatHarsiValue(orderData.harsi1d)}
+HARSI 12H: ${formatHarsiValue(orderData.harsi12h)}
+HARSI 8H: ${formatHarsiValue(orderData.harsi8h)}
+HARSI 6H: ${formatHarsiValue(orderData.harsi6h)}
+HARSI 4H: ${formatHarsiValue(orderData.harsi4h)}
 Entry: ${orderData.entry}
 Stop Loss: ${orderData.stopLoss}
 Take Profit: ${orderData.takeProfit || 'N/A'}

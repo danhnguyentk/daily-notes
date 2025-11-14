@@ -6,6 +6,7 @@ import { Env } from '../types/env';
 import { OrderData } from '../types/orderTypes';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../services/telegramService';
 import { formatVietnamTime } from '../utils/timeUtils';
+import { formatHarsiValue } from '../utils/formatUtils';
 import {
   calculateRiskUnitStatistics,
   formatRiskUnit,
@@ -382,11 +383,11 @@ export async function showOrderDetails(
 📊 Thông tin cơ bản:
    • Symbol: ${order.symbol || 'N/A'}
    • Direction: ${order.direction || 'N/A'}
-   • HARSI 1D: ${order.harsi1d || 'N/A'}
-   • HARSI 12H: ${order.harsi12h || 'N/A'}
-   • HARSI 8H: ${order.harsi8h || 'N/A'}
-   • HARSI 6H: ${order.harsi6h || 'N/A'}
-   • HARSI 4H: ${order.harsi4h || 'N/A'}
+   • HARSI 1D: ${formatHarsiValue(order.harsi1d)}
+   • HARSI 12H: ${formatHarsiValue(order.harsi12h)}
+   • HARSI 8H: ${formatHarsiValue(order.harsi8h)}
+   • HARSI 6H: ${formatHarsiValue(order.harsi6h)}
+   • HARSI 4H: ${formatHarsiValue(order.harsi4h)}
    • Entry: ${order.entry || 'N/A'}
    • Stop Loss: ${order.stopLoss || 'N/A'}
    • Take Profit: ${order.takeProfit || 'N/A'}

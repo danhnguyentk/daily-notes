@@ -6,6 +6,7 @@ import { Env } from '../types/env';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeyboardMarkup, TelegramReplyKeyboardRemove } from './telegramService';
 import { OrderConversationState, OrderConversationStep, OrderData, MarketState } from '../types/orderTypes';
 import { updateOrderWithClosePrice } from '../handlers/orderStatisticsHandler';
+import { formatHarsiValue } from '../utils/formatUtils';
 
 const CONVERSATION_STATE_KEY_PREFIX = 'order_conversation_';
 
@@ -960,11 +961,11 @@ export async function showOrderPreview(
 
 Symbol: ${data.symbol || 'N/A'}
 Direction: ${data.direction || 'N/A'}
-HARSI 1D: ${data.harsi1d || 'N/A'}
-HARSI 12H: ${data.harsi12h || 'N/A'}
-HARSI 8H: ${data.harsi8h || 'N/A'}
-HARSI 6H: ${data.harsi6h || 'N/A'}
-HARSI 4H: ${data.harsi4h || 'N/A'}
+HARSI 1D: ${formatHarsiValue(data.harsi1d)}
+HARSI 12H: ${formatHarsiValue(data.harsi12h)}
+HARSI 8H: ${formatHarsiValue(data.harsi8h)}
+HARSI 6H: ${formatHarsiValue(data.harsi6h)}
+HARSI 4H: ${formatHarsiValue(data.harsi4h)}
 Entry: ${data.entry || 'N/A'}
 Stop Loss: ${data.stopLoss || 'N/A'}
 Take Profit: ${data.takeProfit || 'N/A'}
