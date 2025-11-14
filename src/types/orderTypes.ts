@@ -19,6 +19,20 @@ export enum TradingSymbol {
   XAUUSD = 'XAUUSD',
 }
 
+export enum CallbackDataPrefix {
+  DELETE_ORDER = 'delete_order_',
+  VIEW_ORDER = 'view_order_',
+  UPDATE_ORDER = 'update_order_',
+  HARSI = 'harsi_',
+  HARSI_8H_CONTINUE = 'harsi_8h_continue',
+  HARSI_8H_CANCEL = 'harsi_8h_cancel',
+  HARSI_SKIP = 'harsi_skip',
+  NOTE_ADD = 'note_add_',
+  NOTE_CLEAR = 'note_clear',
+  NOTE_DONE = 'note_done',
+  NOTE_SKIP = 'note_skip',
+}
+
 export interface OrderData {
   symbol?: TradingSymbol;
   direction?: OrderDirection;

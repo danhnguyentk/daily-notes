@@ -4,7 +4,7 @@
 
 import { Env } from '../types/env';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeyboardMarkup, TelegramReplyKeyboardRemove } from './telegramService';
-import { OrderConversationState, OrderConversationStep, OrderData, MarketState, OrderDirection, TradingSymbol } from '../types/orderTypes';
+import { OrderConversationState, OrderConversationStep, OrderData, MarketState, OrderDirection, TradingSymbol, CallbackDataPrefix } from '../types/orderTypes';
 import { updateOrderWithClosePrice } from '../handlers/orderStatisticsHandler';
 import { formatHarsiValue } from '../utils/formatUtils';
 
@@ -45,12 +45,12 @@ export function createHarsiMarketStateKeyboard(): TelegramInlineKeyboardMarkup {
   return {
     inline_keyboard: [
       [
-        { text: '📈 Bullish', callback_data: `harsi_${MarketState.Bullish}` },
-        { text: '📉 Bearish', callback_data: `harsi_${MarketState.Bearish}` },
+        { text: '📈 Bullish', callback_data: `${CallbackDataPrefix.HARSI}${MarketState.Bullish}` },
+        { text: '📉 Bearish', callback_data: `${CallbackDataPrefix.HARSI}${MarketState.Bearish}` },
       ],
       [
-        { text: '⚪ Neutral', callback_data: `harsi_${MarketState.Neutral}` },
-        { text: '⏭️ Skip', callback_data: 'harsi_skip' },
+        { text: '⚪ Neutral', callback_data: `${CallbackDataPrefix.HARSI}${MarketState.Neutral}` },
+        { text: '⏭️ Skip', callback_data: CallbackDataPrefix.HARSI_SKIP },
       ],
     ],
   };
@@ -66,15 +66,15 @@ function createNotesKeyboard(currentNotes?: string): TelegramInlineKeyboardMarku
   return {
     inline_keyboard: [
       [
-        { text: '2 Nen 15M Tang lien tuc', callback_data: 'note_add_2 Nen 15M Tang lien tuc' },
+        { text: '2 Nen 15M Tang lien tuc', callback_data: `${CallbackDataPrefix.NOTE_ADD}2 Nen 15M Tang lien tuc` },
       ],
       [
-        { text: 'HARSI 8h Xanh', callback_data: 'note_add_HARSI 8h Xanh' },
+        { text: 'HARSI 8h Xanh', callback_data: `${CallbackDataPrefix.NOTE_ADD}HARSI 8h Xanh` },
       ],
       [
-        ...(notes.length > 0 ? [{ text: '🗑️ Clear', callback_data: 'note_clear' }] : []),
-        { text: '✅ Done', callback_data: 'note_done' },
-        { text: '⏭️ Skip', callback_data: 'note_skip' },
+        ...(notes.length > 0 ? [{ text: '🗑️ Clear', callback_data: CallbackDataPrefix.NOTE_CLEAR }] : []),
+        { text: '✅ Done', callback_data: CallbackDataPrefix.NOTE_DONE },
+        { text: '⏭️ Skip', callback_data: CallbackDataPrefix.NOTE_SKIP },
       ],
     ],
   };
@@ -321,8 +321,8 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
         const confirmationKeyboard: TelegramInlineKeyboardMarkup = {
           inline_keyboard: [
             [
-              { text: '✅ Tiếp Tục', callback_data: 'harsi_8h_continue' },
-              { text: '❌ Hủy', callback_data: 'harsi_8h_cancel' },
+              { text: '✅ Tiếp Tục', callback_data: CallbackDataPrefix.HARSI_8H_CONTINUE },
+              { text: '❌ Hủy', callback_data: CallbackDataPrefix.HARSI_8H_CANCEL },
             ],
           ],
         };
@@ -791,8 +791,8 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
       const confirmationKeyboard: TelegramInlineKeyboardMarkup = {
         inline_keyboard: [
           [
-            { text: '✅ Tiếp Tục', callback_data: 'harsi_8h_continue' },
-            { text: '❌ Hủy', callback_data: 'harsi_8h_cancel' },
+            { text: '✅ Tiếp Tục', callback_data: CallbackDataPrefix.HARSI_8H_CONTINUE },
+            { text: '❌ Hủy', callback_data: CallbackDataPrefix.HARSI_8H_CANCEL },
           ],
         ],
       };

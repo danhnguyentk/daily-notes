@@ -3,7 +3,7 @@
  */
 
 import { Env } from '../types/env';
-import { OrderData } from '../types/orderTypes';
+import { OrderData, CallbackDataPrefix } from '../types/orderTypes';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../services/telegramService';
 import { formatVietnamTime, formatVietnamTimeShort } from '../utils/timeUtils';
 import { formatHarsiValue } from '../utils/formatUtils';
@@ -18,6 +18,7 @@ import {
   getOrderByIdFromSupabase,
   updateOrderWithClosePriceInSupabase,
   convertOrderRecordToOrderData,
+  deleteOrderFromSupabase,
 } from '../services/supabaseService';
 
 /**
@@ -233,7 +234,7 @@ export async function showOrderSelectionForUpdate(
       return [
         {
           text: `${index + 1}. ${order.symbol || 'N/A'} ${order.direction || ''} - ${date}`,
-          callback_data: `update_order_${orderWithMeta.orderId}`,
+          callback_data: `${CallbackDataPrefix.UPDATE_ORDER}${orderWithMeta.orderId}`,
         },
       ];
     }),
@@ -317,7 +318,7 @@ export async function showOrderListForView(
       return [
         {
           text: buttonText,
-          callback_data: `view_order_${orderWithMeta.orderId}`,
+          callback_data: `${CallbackDataPrefix.VIEW_ORDER}${orderWithMeta.orderId}`,
         },
       ];
     }),
@@ -450,12 +451,83 @@ export async function showOrderDetails(
     details += `\n\n📝 Notes:\n${order.notes}`;
   }
 
+  // Add delete button
+  const keyboard: TelegramInlineKeyboardMarkup = {
+    inline_keyboard: [
+      [
+        {
+          text: '🗑️ Xóa lệnh',
+          callback_data: `${CallbackDataPrefix.DELETE_ORDER}${orderWithMeta.orderId}`,
+        },
+      ],
+    ],
+  };
+
   await sendMessageToTelegram(
     {
       chat_id: chatId,
       text: details,
+      reply_markup: keyboard,
     },
     env
   );
+}
+
+/**
+ * Delete an order
+ */
+export async function deleteOrder(
+  orderId: string,
+  userId: number,
+  chatId: string,
+  env: Env
+): Promise<void> {
+  // First verify the order exists and belongs to the user
+  const order = await getOrderById(orderId, env);
+  
+  if (!order) {
+    await sendMessageToTelegram(
+      {
+        chat_id: chatId,
+        text: '❌ Không tìm thấy lệnh này.',
+      },
+      env
+    );
+    return;
+  }
+
+  const orderWithMeta = order as OrderData & { userId: number };
+  
+  // Verify ownership
+  if (orderWithMeta.userId !== userId) {
+    await sendMessageToTelegram(
+      {
+        chat_id: chatId,
+        text: '❌ Bạn không có quyền xóa lệnh này.',
+      },
+      env
+    );
+    return;
+  }
+
+  try {
+    await deleteOrderFromSupabase(orderId, env);
+    await sendMessageToTelegram(
+      {
+        chat_id: chatId,
+        text: '✅ Đã xóa lệnh thành công.',
+      },
+      env
+    );
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    await sendMessageToTelegram(
+      {
+        chat_id: chatId,
+        text: `❌ Lỗi khi xóa lệnh: ${(error as Error).message}`,
+      },
+      env
+    );
+  }
 }
 

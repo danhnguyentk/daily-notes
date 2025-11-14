@@ -7,6 +7,19 @@ import { Env } from '../types/env';
 import { OrderData, OrderDirection, TradingSymbol, MarketState } from '../types/orderTypes';
 import { calculateOrderLoss } from '../utils/orderCalcUtils';
 
+// Supabase table and column enums
+export enum SupabaseTables {
+  ORDERS = 'orders',
+}
+
+export enum OrderColumns {
+  ORDER_ID = 'order_id',
+  USER_ID = 'user_id',
+  CREATED_AT = 'created_at',
+  UPDATED_AT = 'updated_at',
+  ID = 'id',
+}
+
 export interface OrderRecord {
   id?: string;
   order_id: string;
@@ -131,9 +144,9 @@ export async function saveOrderToSupabase(
   };
 
   const { data, error } = await supabase
-    .from('orders')
+    .from(SupabaseTables.ORDERS)
     .insert(orderRecord)
-    .select('id')
+    .select(OrderColumns.ID)
     .single();
 
   if (error) {
@@ -154,10 +167,10 @@ export async function getUserOrdersFromSupabase(
   const supabase = getSupabaseClient(env);
 
   const { data, error } = await supabase
-    .from('orders')
+    .from(SupabaseTables.ORDERS)
     .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .eq(OrderColumns.USER_ID, userId)
+    .order(OrderColumns.CREATED_AT, { ascending: false });
 
   if (error) {
     console.error('Error fetching user orders from Supabase:', error);
@@ -179,12 +192,12 @@ export async function getUserOrdersByDateRangeFromSupabase(
   const supabase = getSupabaseClient(env);
 
   const { data, error } = await supabase
-    .from('orders')
+    .from(SupabaseTables.ORDERS)
     .select('*')
-    .eq('user_id', userId)
-    .gte('created_at', startDate.toISOString())
-    .lte('created_at', endDate.toISOString())
-    .order('created_at', { ascending: false });
+    .eq(OrderColumns.USER_ID, userId)
+    .gte(OrderColumns.CREATED_AT, startDate.toISOString())
+    .lte(OrderColumns.CREATED_AT, endDate.toISOString())
+    .order(OrderColumns.CREATED_AT, { ascending: false });
 
   if (error) {
     console.error('Error fetching orders by date range from Supabase:', error);
@@ -204,9 +217,9 @@ export async function getOrderByIdFromSupabase(
   const supabase = getSupabaseClient(env);
 
   const { data, error } = await supabase
-    .from('orders')
+    .from(SupabaseTables.ORDERS)
     .select('*')
-    .eq('order_id', orderId)
+    .eq(OrderColumns.ORDER_ID, orderId)
     .single();
 
   if (error) {
@@ -244,7 +257,7 @@ export async function updateOrderWithClosePriceInSupabase(
   const updatedOrder = calculateOrderLoss(orderData, closePrice);
 
   const { data, error } = await supabase
-    .from('orders')
+    .from(SupabaseTables.ORDERS)
     .update({
       actual_realized_pnl: updatedOrder.actualRealizedPnL,
       actual_realized_pnl_usd: updatedOrder.actualRealizedPnLUsd,
@@ -252,7 +265,7 @@ export async function updateOrderWithClosePriceInSupabase(
       actual_risk_reward_ratio: updatedOrder.actualRiskRewardRatio,
       updated_at: new Date().toISOString(),
     })
-    .eq('order_id', orderId)
+    .eq(OrderColumns.ORDER_ID, orderId)
     .select()
     .single();
 
@@ -262,5 +275,27 @@ export async function updateOrderWithClosePriceInSupabase(
   }
 
   return data;
+}
+
+/**
+ * Delete order from Supabase
+ */
+export async function deleteOrderFromSupabase(
+  orderId: string,
+  env: Env
+): Promise<boolean> {
+  const supabase = getSupabaseClient(env);
+
+  const { error } = await supabase
+    .from(SupabaseTables.ORDERS)
+    .delete()
+    .eq(OrderColumns.ORDER_ID, orderId);
+
+  if (error) {
+    console.error('Error deleting order from Supabase:', error);
+    throw new Error(`Failed to delete order: ${error.message}`);
+  }
+
+  return true;
 }
 

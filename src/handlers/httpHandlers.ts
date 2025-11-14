@@ -26,7 +26,7 @@ import {
   handleHarsiSelection,
 } from '../services/orderConversationService';
 import { processOrderData } from './orderHandlers';
-import { OrderConversationStep, MarketState } from '../types/orderTypes';
+import { OrderConversationStep, MarketState, CallbackDataPrefix } from '../types/orderTypes';
 import {
   showRiskUnitStatistics,
   showMonthlyStatistics,
@@ -34,6 +34,7 @@ import {
   getOrderById,
   showOrderListForView,
   showOrderDetails,
+  deleteOrder,
 } from './orderStatisticsHandler';
 
 // Route constants
@@ -120,15 +121,22 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       await answerCallbackQuery(callbackQuery.id, env);
       
       // Handle view order selection
-      if (callbackData.startsWith('view_order_')) {
-        const orderId = callbackData.substring(11); // Remove 'view_order_' prefix
+      if (callbackData.startsWith(CallbackDataPrefix.VIEW_ORDER)) {
+        const orderId = callbackData.substring(CallbackDataPrefix.VIEW_ORDER.length);
         await showOrderDetails(orderId, chatId, env);
         return textResponse('Order details shown');
       }
 
+      // Handle delete order
+      if (callbackData.startsWith(CallbackDataPrefix.DELETE_ORDER)) {
+        const orderId = callbackData.substring(CallbackDataPrefix.DELETE_ORDER.length);
+        await deleteOrder(orderId, userId, chatId, env);
+        return textResponse('Order deletion processed');
+      }
+
       // Handle update order selection
-      if (callbackData.startsWith('update_order_')) {
-        const orderId = callbackData.substring(13); // Remove 'update_order_' prefix
+      if (callbackData.startsWith(CallbackDataPrefix.UPDATE_ORDER)) {
+        const orderId = callbackData.substring(CallbackDataPrefix.UPDATE_ORDER.length);
         const order = await getOrderById(orderId, env);
         
         if (!order) {
@@ -156,7 +164,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       }
 
       // Handle HARSI 8H Bearish confirmation
-      if (callbackData === 'harsi_8h_continue') {
+      if (callbackData === CallbackDataPrefix.HARSI_8H_CONTINUE) {
         const state = await getConversationState(userId, env);
         if (state && state.step === OrderConversationStep.WAITING_HARSI_8H_CONFIRMATION) {
           state.step = OrderConversationStep.WAITING_HARSI_6H;
@@ -172,7 +180,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('HARSI 8H confirmation handled');
       }
 
-      if (callbackData === 'harsi_8h_cancel') {
+      if (callbackData === CallbackDataPrefix.HARSI_8H_CANCEL) {
         // Cancel the entire order immediately
         await clearConversationState(userId, env);
         
@@ -187,11 +195,11 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       }
 
       // Handle HARSI market state selection
-      if (callbackData.startsWith('harsi_')) {
-        if (callbackData === 'harsi_skip') {
+      if (callbackData.startsWith(CallbackDataPrefix.HARSI)) {
+        if (callbackData === CallbackDataPrefix.HARSI_SKIP) {
           await handleHarsiSelection(userId, chatId, 'skip', env);
         } else {
-          const marketStateValue = callbackData.substring(6); // Remove 'harsi_' prefix
+          const marketStateValue = callbackData.substring(CallbackDataPrefix.HARSI.length);
           const marketState = Object.values(MarketState).find(c => c === marketStateValue);
           if (marketState) {
             await handleHarsiSelection(userId, chatId, marketState, env);
@@ -209,14 +217,14 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         }
 
         // Handle different note actions
-        if (callbackData.startsWith('note_add_')) {
+        if (callbackData.startsWith(CallbackDataPrefix.NOTE_ADD)) {
           // Add a note to the list
-          const noteValue = callbackData.substring(9); // Remove 'note_add_' prefix
+          const noteValue = callbackData.substring(CallbackDataPrefix.NOTE_ADD.length);
           await addNoteToOrder(userId, chatId, noteValue, env);
-        } else if (callbackData === 'note_clear') {
+        } else if (callbackData === CallbackDataPrefix.NOTE_CLEAR) {
           // Clear all notes
           await clearNotes(userId, chatId, env);
-        } else if (callbackData === 'note_done') {
+        } else if (callbackData === CallbackDataPrefix.NOTE_DONE) {
           // Finish notes selection
           const result = await finishNotesSelection(userId, chatId, env);
           
@@ -226,7 +234,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
             // Clear conversation state after processing
             await clearConversationState(userId, env);
           }
-        } else if (callbackData === 'note_skip') {
+        } else if (callbackData === CallbackDataPrefix.NOTE_SKIP) {
           // Skip notes (set to undefined)
           const state = await getConversationState(userId, env);
           if (state) {
