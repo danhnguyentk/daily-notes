@@ -519,6 +519,7 @@ export async function showOrderDetails(
    • Stop Loss: ${order.stopLoss || 'N/A'}
    • Take Profit: ${order.takeProfit || 'N/A'}
    • Quantity: ${order.quantity || 'N/A'}
+   ${!order?.actualClosePrice ? '' : `   • Close Price: ${safeToFixed(order.actualClosePrice as number, 2, 'N/A')}`}
    • Tạo lúc: ${date}
    ${updatedDate ? `   • Cập nhật lúc: ${updatedDate}` : ''}
   `.trim();

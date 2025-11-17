@@ -120,6 +120,7 @@ Entry: ${orderData.entry}
 Stop Loss: ${orderData.stopLoss}
 Take Profit: ${orderData.takeProfit || 'N/A'}
 Quantity: ${orderData.quantity || 'N/A'}
+${!orderData?.actualClosePrice ? '' : `Close Price: ${safeToFixed(orderData.actualClosePrice, 2)}`}
 ${lossInfo ? '\n' + lossInfo : ''}
 ${profitInfo ? '\n' + profitInfo : ''}
 ${potentialRiskRewardInfo ? '\n' + potentialRiskRewardInfo : ''}

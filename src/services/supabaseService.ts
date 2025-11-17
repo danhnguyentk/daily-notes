@@ -43,6 +43,7 @@ export interface OrderRecord {
   potential_profit_usd?: number;
   potential_profit_percent?: number;
   potential_risk_reward_ratio?: number;
+  actual_close_price?: number;
   actual_realized_pnl?: number;
   actual_realized_pnl_usd?: number;
   actual_realized_pnl_percent?: number;
@@ -92,6 +93,7 @@ export function convertOrderRecordToOrderData(record: OrderRecord): OrderData & 
     potentialProfitUsd: record.potential_profit_usd,
     potentialProfitPercent: record.potential_profit_percent,
     potentialRiskRewardRatio: record.potential_risk_reward_ratio,
+    actualClosePrice: record.actual_close_price,
     actualRealizedPnL: record.actual_realized_pnl,
     actualRealizedPnLUsd: record.actual_realized_pnl_usd,
     actualRealizedPnLPercent: record.actual_realized_pnl_percent,
@@ -259,6 +261,7 @@ export async function updateOrderWithClosePriceInSupabase(
   const { data, error } = await supabase
     .from(SupabaseTables.ORDERS)
     .update({
+      actual_close_price: closePrice,
       actual_realized_pnl: updatedOrder.actualRealizedPnL,
       actual_realized_pnl_usd: updatedOrder.actualRealizedPnLUsd,
       actual_realized_pnl_percent: updatedOrder.actualRealizedPnLPercent,

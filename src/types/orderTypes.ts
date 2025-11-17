@@ -87,6 +87,10 @@ export interface OrderData {
   potentialRiskRewardRatio?: number;
 
   /**
+   * Actual close price when order is closed
+   */
+  actualClosePrice?: number;
+  /**
    * Actual realized PnL (closePrice - entry for LONG, entry - closePrice for SHORT)
    * Positive = profit, Negative = loss
    */

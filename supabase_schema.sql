@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS orders (
   potential_risk_reward_ratio NUMERIC,
   
   -- Actual realized PnL fields
+  actual_close_price NUMERIC,
   actual_realized_pnl NUMERIC,
   actual_realized_pnl_usd NUMERIC,
   actual_realized_pnl_percent NUMERIC,
