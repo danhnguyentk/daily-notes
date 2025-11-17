@@ -4,13 +4,9 @@
 
 import { BinanceSymbol, BinanceInterval } from '../services/binanceService';
 import { KVKeys } from '../services/cloudflareService';
-import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
 import { TelegramCommands } from '../services/telegramService';
-import { TradingviewInterval } from '../services/tradingviewService';
 import { Env } from '../types/env';
-import { getCurrentPriceAndNotify } from '../services/binanceService';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
-import { snapshotChart, snapshotChartWithSpecificInterval } from './chartHandlers';
 import { notifyNumberClosedCandlesBullish } from './candleHandlers';
 
 // Configuration for schedule enable/disable commands

@@ -232,7 +232,14 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       if (callbackData === CallbackDataPrefix.CHART_BTC_PRICE) {
         await answerCallbackQuery(callbackQuery.id, env, 'Đang lấy giá BTC...');
         callbackAnswered = true;
-        await getCurrentPriceAndNotify(BinanceSymbol.BTCUSDT, env);
+        try {
+          await getCurrentPriceAndNotify(BinanceSymbol.BTCUSDT, chatId, env);
+        } catch (error) {
+          await sendMessageToTelegram({
+            chat_id: chatId,
+            text: `❌ Lỗi khi lấy giá BTC: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          }, env);
+        }
         return textResponse('BTC price fetched');
       }
 

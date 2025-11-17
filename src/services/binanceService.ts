@@ -1,7 +1,8 @@
-import { buildScraperApiUrl } from "./scraperApiService";
+// import { buildScraperApiUrl } from "./scraperApiService";
 import { sendMessageToTelegram } from "./telegramService";
 import { TradingviewInterval } from "./tradingviewService";
 import { Env } from "../types/env";
+import { buildScrapingBeeApiUrl } from "./scrapingbeeApiService";
 
 export type BinanceKline = {
   openTime: number;
@@ -90,7 +91,7 @@ function parseKline(data: any[]): BinanceKline {
 
 async function getBinanceCandles(request: BinanceCandlesRequest, env: Env): Promise<BinanceKline[]> {
   const { symbol, interval, limit = 500 } = request;
-  const url = `https://api.scraperapi.com?api_key=72dcac2fb1a01d4a325294bcbfe041b3&url=https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+  const url = buildScrapingBeeApiUrl(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, env);
   
   const response = await fetch(url, {
     headers: {
@@ -144,7 +145,7 @@ export async function checkNumberClosedCandlesBearish(
 
 // Fetch current price for a given symbol from Binance
 export async function getCurrentPrice(symbol: BinanceSymbol, env: Env): Promise<number> {
-  const url = buildScraperApiUrl(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, env);
+  const url = buildScrapingBeeApiUrl(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, env);
 
   const response = await fetch(url, {
     headers: {
@@ -152,15 +153,19 @@ export async function getCurrentPrice(symbol: BinanceSymbol, env: Env): Promise<
     },
   });
 
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Binance price: ${response.status} ${response.statusText} ${await response.text()}`);
+  }
+
   const data = await response.json() as { symbol: string; price: string; };
   return parseFloat(data.price);
 }
 
-export async function getCurrentPriceAndNotify(symbol: BinanceSymbol, env: Env): Promise<number> {
+export async function getCurrentPriceAndNotify(symbol: BinanceSymbol, chatId: string, env: Env): Promise<number> {
   const price = await getCurrentPrice(symbol, env);
   const message = `${CryptoSymbolIcons[symbol]}: ${price.toLocaleString('en-US', { maximumFractionDigits: 0 })} USD`;
   await sendMessageToTelegram({
-    chat_id: env.TELEGRAM_CHAT_ID,
+    chat_id: chatId,
     text: message,
   }, env);
   return price;
