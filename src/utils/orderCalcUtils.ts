@@ -1,4 +1,4 @@
-import { OrderData, OrderDirection, OrderResult } from '../types/orderTypes';
+import { OrderData, OrderDirection, OrderResult, TradingSymbol } from '../types/orderTypes';
 
 /**
  * Interface cho thống kê tổng hợp R
@@ -17,13 +17,13 @@ export interface RiskUnitStatistics {
 /**
  * Calculates expected and actual loss fields for an order.
  * - potentialStopLoss: entry - stopLoss (LONG) or stopLoss - entry (SHORT)
- * - potentialStopLossUsd: potentialStopLoss * quantity
+ * - potentialStopLossUsd: potentialStopLoss * quantity (multiplied by 100 for XAUUSD)
  * - potentialStopLossPercent: (potentialStopLoss / entry) * 100
  * - actualRealizedPnL: closePrice - entry (LONG) or entry - closePrice (SHORT)
- * - actualRealizedPnLUsd: actualRealizedPnL * quantity
+ * - actualRealizedPnLUsd: actualRealizedPnL * quantity (multiplied by 100 for XAUUSD)
  * - actualRealizedPnLPercent: (actualRealizedPnL / entry) * 100
  * - potentialProfit: takeProfit - entry (LONG) or entry - takeProfit (SHORT)
- * - potentialProfitUsd: potentialProfit * quantity
+ * - potentialProfitUsd: potentialProfit * quantity (multiplied by 100 for XAUUSD)
  * - potentialProfitPercent: (potentialProfit / entry) * 100
  * - potentialRiskRewardRatio: potentialProfit / potentialStopLoss
  * - actualRiskRewardRatio: actualRealizedPnL / potentialStopLoss
@@ -70,6 +70,10 @@ export function calculateOrderLoss(
     }
     if (typeof data.quantity === 'number') {
       potentialStopLossUsd = potentialStopLoss * data.quantity;
+      // For XAUUSD, multiply by 100 (contract multiplier)
+      if (data.symbol === TradingSymbol.XAUUSD) {
+        potentialStopLossUsd = potentialStopLossUsd * 100;
+      }
     }
   }
 
@@ -95,6 +99,10 @@ export function calculateOrderLoss(
     }
     if (typeof data.quantity === 'number') {
       actualRealizedPnLUsd = actualRealizedPnL * data.quantity;
+      // For XAUUSD, multiply by 100 (contract multiplier)
+      if (data.symbol === TradingSymbol.XAUUSD) {
+        actualRealizedPnLUsd = actualRealizedPnLUsd * 100;
+      }
     }
   }
 
@@ -115,6 +123,10 @@ export function calculateOrderLoss(
     }
     if (typeof data.quantity === 'number') {
       potentialProfitUsd = potentialProfit * data.quantity;
+      // For XAUUSD, multiply by 100 (contract multiplier)
+      if (data.symbol === TradingSymbol.XAUUSD) {
+        potentialProfitUsd = potentialProfitUsd * 100;
+      }
     }
   }
 
