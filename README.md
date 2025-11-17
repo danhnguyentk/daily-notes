@@ -53,13 +53,9 @@ schedule1candles1hbearish - Schedule 1 Candles 1h Bearish
 disable2candles1hbearish - Disable 2 Candles 1h Bearish
 disable1candles1hbearish - Disable 1 Candles 1h Bearish
 enabled_events - Enabled Events
-neworder - New Order
-updateorder - Update Order
-vieworders - View Orders
-cancelorder - Cancel Order
-orderorder - Order Order
-orderstats - Order Stats
-orderstatsmonth - Order Stats Month
+orders - Order Management Menu
+orderstats - Order Statistics
+orderstatsmonth - Monthly Order Statistics
 ```
 
 ### ACTION TODO 

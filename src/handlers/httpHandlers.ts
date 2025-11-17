@@ -36,6 +36,7 @@ import {
   showOrderDetails,
   deleteOrder,
   showDeleteOrderConfirmation,
+  showOrderMenu,
 } from './orderStatisticsHandler';
 
 // Route constants
@@ -113,16 +114,12 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       
       console.log(`Received callback query from user ${userId}. Chat ID: ${chatId}. Callback Data: ${callbackData}`);
       
-      // Answer the callback query first (REQUIRED by Telegram API)
-      // If this button is not called:
-      // - Button will be "stuck" in loading state (spinner will show indefinitely)
-      // - User will not know if the bot has processed the request or not 
-      // - Telegram may rate-limit the bot if callback queries are not answered
-      // - Must answer within 10 seconds, otherwise it will timeout
-      await answerCallbackQuery(callbackQuery.id, env);
+      // Track if callback query has been answered
+      let callbackAnswered = false;
       
       // Handle view order selection
       if (callbackData.startsWith(CallbackDataPrefix.VIEW_ORDER)) {
+        callbackAnswered = true;
         const orderId = callbackData.substring(CallbackDataPrefix.VIEW_ORDER.length);
         await showOrderDetails(orderId, chatId, env);
         return textResponse('Order details shown');
@@ -132,6 +129,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       if (callbackData.startsWith(CallbackDataPrefix.DELETE_ORDER) && 
           !callbackData.startsWith(CallbackDataPrefix.DELETE_ORDER_CONFIRM) &&
           callbackData !== CallbackDataPrefix.DELETE_ORDER_CANCEL) {
+        callbackAnswered = true;
         const orderId = callbackData.substring(CallbackDataPrefix.DELETE_ORDER.length);
         await showDeleteOrderConfirmation(orderId, userId, chatId, env);
         return textResponse('Delete confirmation shown');
@@ -139,6 +137,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
 
       // Handle delete order confirmation
       if (callbackData.startsWith(CallbackDataPrefix.DELETE_ORDER_CONFIRM)) {
+        callbackAnswered = true;
         const orderId = callbackData.substring(CallbackDataPrefix.DELETE_ORDER_CONFIRM.length);
         await deleteOrder(orderId, userId, chatId, env);
         return textResponse('Order deletion processed');
@@ -146,6 +145,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
 
       // Handle delete order cancellation
       if (callbackData === CallbackDataPrefix.DELETE_ORDER_CANCEL) {
+        callbackAnswered = true;
         await sendMessageToTelegram({
           chat_id: chatId,
           text: '✅ Đã hủy thao tác xóa lệnh.',
@@ -155,6 +155,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
 
       // Handle update order selection
       if (callbackData.startsWith(CallbackDataPrefix.UPDATE_ORDER)) {
+        callbackAnswered = true;
         const orderId = callbackData.substring(CallbackDataPrefix.UPDATE_ORDER.length);
         const order = await getOrderById(orderId, env);
         
@@ -180,6 +181,49 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
           text: `✅ Đã chọn lệnh:\n\nSymbol: ${order.symbol}\nDirection: ${order.direction}\nEntry: ${order.entry}\nStop Loss: ${order.stopLoss}\n\nVui lòng nhập Close Price:`,
         }, env);
         return textResponse('Order selected for update');
+      }
+
+      // Handle order menu actions
+      if (callbackData === CallbackDataPrefix.ORDER_NEW) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tạo lệnh mới...');
+        callbackAnswered = true;
+        await startOrderConversation(userId, chatId, env);
+        return textResponse('Order conversation started');
+      }
+
+      if (callbackData === CallbackDataPrefix.ORDER_CANCEL) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đã hủy lệnh');
+        callbackAnswered = true;
+        await cancelOrderConversation(userId, chatId, env);
+        return textResponse('Order conversation cancelled');
+      }
+
+      if (callbackData === CallbackDataPrefix.ORDER_PREVIEW) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang hiển thị preview...');
+        callbackAnswered = true;
+        await showOrderPreview(userId, chatId, env);
+        return textResponse('Order preview shown');
+      }
+
+      if (callbackData === CallbackDataPrefix.ORDER_UPDATE) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải danh sách lệnh...');
+        callbackAnswered = true;
+        await showOrderSelectionForUpdate(userId, chatId, env);
+        return textResponse('Order selection shown');
+      }
+
+      if (callbackData === CallbackDataPrefix.ORDER_VIEW) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải danh sách lệnh...');
+        callbackAnswered = true;
+        await showOrderListForView(userId, chatId, env);
+        return textResponse('Order list shown');
+      }
+
+      // Handle separator (do nothing, just answer the callback)
+      if (callbackData === 'order_separator') {
+        await answerCallbackQuery(callbackQuery.id, env);
+        callbackAnswered = true;
+        return textResponse('Separator clicked');
       }
 
       // Handle HARSI 8H Bearish confirmation
@@ -273,7 +317,13 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
           }
         }
         
+        callbackAnswered = true;
         return textResponse('Callback query handled');
+      }
+      
+      // Answer callback query if not already answered
+      if (!callbackAnswered) {
+        await answerCallbackQuery(callbackQuery.id, env);
       }
       
       return textResponse('Callback query received but not handled');
@@ -293,20 +343,10 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
     // Check if user is in an active conversation
     const conversationState = await getConversationState(userId, env);
     
-    // Handle order-related commands
-    if (text === TelegramCommands.NEW_ORDER) {
-      await startOrderConversation(userId, chatId, env);
-      return textResponse('Order conversation started');
-    }
-
-    if (text === TelegramCommands.CANCEL_ORDER) {
-      await cancelOrderConversation(userId, chatId, env);
-      return textResponse('Order conversation cancelled');
-    }
-
-    if (text === TelegramCommands.ORDER_PREVIEW) {
-      await showOrderPreview(userId, chatId, env);
-      return textResponse('Order preview shown');
+    // Handle order menu command
+    if (text === TelegramCommands.ORDERS) {
+      await showOrderMenu(userId, chatId, env);
+      return textResponse('Order menu shown');
     }
 
     if (text === TelegramCommands.ORDER_STATS) {
@@ -317,16 +357,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
     if (text === TelegramCommands.ORDER_STATS_MONTH) {
       await showMonthlyStatistics(userId, chatId, env);
       return textResponse('Monthly order statistics shown');
-    }
-
-    if (text === TelegramCommands.UPDATE_ORDER) {
-      await showOrderSelectionForUpdate(userId, chatId, env);
-      return textResponse('Order selection shown');
-    }
-
-    if (text === TelegramCommands.VIEW_ORDERS) {
-      await showOrderListForView(userId, chatId, env);
-      return textResponse('Order list shown');
     }
 
     // If user is in conversation, process input

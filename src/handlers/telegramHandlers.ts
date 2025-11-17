@@ -6,18 +6,12 @@ import { BinanceSymbol, BinanceInterval } from '../services/binanceService';
 import { KVKeys } from '../services/cloudflareService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
 import { TelegramCommandIntervals, TelegramCommands } from '../services/telegramService';
-import { showRiskUnitStatistics, showMonthlyStatistics } from './orderStatisticsHandler';
 import { TradingviewInterval } from '../services/tradingviewService';
 import { Env } from '../types/env';
 import { getCurrentPriceAndNotify } from '../services/binanceService';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
 import { snapshotChart, snapshotChartWithSpecificInterval } from './chartHandlers';
 import { notifyNumberClosedCandlesBullish } from './candleHandlers';
-import {
-  startOrderConversation,
-  cancelOrderConversation,
-  showOrderPreview,
-} from '../services/orderConversationService';
 
 // Configuration for schedule enable/disable commands
 interface ScheduleConfig {
@@ -233,17 +227,9 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
       await handleEnabledEvents(env);
       break;
 
-    case TelegramCommands.NEW_ORDER:
+    case TelegramCommands.ORDERS:
       // This will be handled in httpHandlers with user context
-      return { message: 'Order conversation started' };
-
-    case TelegramCommands.CANCEL_ORDER:
-      // This will be handled in httpHandlers with user context
-      return { message: 'Order conversation cancelled' };
-
-    case TelegramCommands.ORDER_PREVIEW:
-      // This will be handled in httpHandlers with user context
-      return { message: 'Order preview shown' };
+      return { message: 'Order menu shown' };
 
     case TelegramCommands.ORDER_STATS:
     case TelegramCommands.ORDER_STATS_MONTH:

@@ -150,15 +150,12 @@ export const TelegramCommands = {
   SCHEDULE_ONE_1H_BEARISH: '/schedule1candles1hbearish',
   DISABLE_TWO_1H_BEARISH: '/disable2candles1hbearish',
   DISABLE_ONE_1H_BEARISH: '/disable1candles1hbearish',
-
   ENABLED_EVENTS: '/enabled_events',
-  NEW_ORDER: '/neworder',
-  CANCEL_ORDER: '/cancelorder',
-  ORDER_PREVIEW: '/orderpreview',
+
+  ORDERS: '/orders',
+  
   ORDER_STATS: '/orderstats',
   ORDER_STATS_MONTH: '/orderstatsmonth',
-  UPDATE_ORDER: '/updateorder',
-  VIEW_ORDERS: '/vieworders',
 } as const;
 
 export enum TelegramParseMode {

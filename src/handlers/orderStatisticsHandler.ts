@@ -260,6 +260,121 @@ export async function showOrderSelectionForUpdate(
 }
 
 /**
+ * Hiển thị menu quản lý orders với inline keyboard và danh sách orders
+ */
+export async function showOrderMenu(
+  userId: number,
+  chatId: string,
+  env: Env
+): Promise<void> {
+  // Menu buttons
+  const menuButtons = [
+    [
+      {
+        text: '➕ Tạo lệnh mới',
+        callback_data: CallbackDataPrefix.ORDER_NEW,
+      },
+    ],
+    [
+      {
+        text: '👀 Xem preview',
+        callback_data: CallbackDataPrefix.ORDER_PREVIEW,
+      },
+      {
+        text: '❌ Hủy lệnh',
+        callback_data: CallbackDataPrefix.ORDER_CANCEL,
+      },
+    ],
+  ];
+
+  // Get orders list
+  const allOrders = await getUserOrders(userId, env);
+  
+  // Build order list buttons
+  const orderButtons: TelegramInlineKeyboardMarkup['inline_keyboard'] = [];
+  
+  if (allOrders.length > 0) {
+    // Sắp xếp theo thời gian mới nhất trước
+    const sortedOrders = allOrders
+      .filter((order) => {
+        const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
+        return orderWithMeta.orderId && orderWithMeta.timestamp;
+      })
+      .sort((a, b) => {
+        const aTime = (a as OrderData & { timestamp: number }).timestamp || 0;
+        const bTime = (b as OrderData & { timestamp: number }).timestamp || 0;
+        return bTime - aTime; // Mới nhất trước
+      })
+      .slice(0, 20); // Limit to 20 orders
+
+    // Add separator row (non-clickable visual separator)
+    orderButtons.push([
+      {
+        text: '━━━━━━━━━━━━━━━━',
+        callback_data: 'order_separator',
+      },
+    ]);
+
+    // Add order buttons
+    sortedOrders.forEach((order) => {
+      const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
+      const status = order.actualRiskRewardRatio !== undefined ? '✅' : '⏳';
+      
+      // Format date and time using Vietnam time utility (short format)
+      const dateTimeStr = orderWithMeta.timestamp 
+        ? formatVietnamTimeShort(new Date(orderWithMeta.timestamp))
+        : 'N/A';
+      
+      // Format entry price (no decimals)
+      const entryStr = order.entry ? Math.round(order.entry).toString() : 'N/A';
+      const directionStr = order.direction ? order.direction.toUpperCase() : '';
+      // Remove USDT suffix from symbol (e.g., BTCUSDT -> BTC)
+      const symbolStr = order.symbol ? order.symbol.replace(/USDT$/i, '') : 'N/A';
+      
+      // Create compact button text
+      // Format: ✅ BTC LONG | $50000 | 25/12 14:30
+      const buttonText = `${status} ${symbolStr} ${directionStr} | $${entryStr} | ${dateTimeStr}`;
+      
+      orderButtons.push([
+        {
+          text: buttonText,
+          callback_data: `${CallbackDataPrefix.VIEW_ORDER}${orderWithMeta.orderId}`,
+        },
+      ]);
+    });
+  }
+
+  // Combine menu and order buttons
+  const keyboard: TelegramInlineKeyboardMarkup = {
+    inline_keyboard: [...menuButtons, ...orderButtons],
+  };
+
+  // Build message
+  let message = '📋 Menu quản lý lệnh\n\nChọn một hành động:';
+  
+  if (allOrders.length > 0) {
+    const closedCount = allOrders.filter(order => order.actualRiskRewardRatio !== undefined).length;
+    const openCount = allOrders.length - closedCount;
+    
+    message += `\n\n📊 Tổng số: ${allOrders.length} lệnh\n` +
+      `✅ Đã đóng: ${closedCount}\n` +
+      `⏳ Chưa đóng: ${openCount}\n\n` +
+      `👉 Chọn lệnh bên dưới để xem chi tiết:`;
+  } else {
+    message += `\n\n📋 Không có lệnh nào.`;
+  }
+
+  await sendMessageToTelegram(
+    {
+      chat_id: chatId,
+      text: message,
+      reply_markup: keyboard,
+    },
+    env
+  );
+}
+
+/**
  * Hiển thị danh sách orders để xem chi tiết
  */
 export async function showOrderListForView(
@@ -451,10 +566,14 @@ export async function showOrderDetails(
     details += `\n\n📝 Notes:\n${order.notes}`;
   }
 
-  // Add delete button with confirmation
+  // Add update and delete buttons
   const keyboard: TelegramInlineKeyboardMarkup = {
     inline_keyboard: [
       [
+        {
+          text: '✏️ Cập nhật lệnh',
+          callback_data: `${CallbackDataPrefix.UPDATE_ORDER}${orderWithMeta.orderId}`,
+        },
         {
           text: '🗑️ Xóa lệnh',
           callback_data: `${CallbackDataPrefix.DELETE_ORDER}${orderWithMeta.orderId}`,
