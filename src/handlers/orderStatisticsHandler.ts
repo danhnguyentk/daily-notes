@@ -318,7 +318,7 @@ export async function showOrderMenu(
     // Add order buttons
     sortedOrders.forEach((order) => {
       const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
-      const status = order.actualRiskRewardRatio !== undefined ? '✅' : '⏳';
+      const status = order.orderResult !== undefined ? '✅' : '⏳';
       
       // Format date and time using Vietnam time utility (short format)
       const dateTimeStr = orderWithMeta.timestamp 
@@ -413,7 +413,7 @@ export async function showOrderListForView(
   const keyboard: TelegramInlineKeyboardMarkup = {
     inline_keyboard: sortedOrders.map((order) => {
       const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
-      const status = order.actualRiskRewardRatio !== undefined ? '✅' : '⏳';
+      const status = order.orderResult !== undefined ? '✅' : '⏳';
       
       // Format date and time using Vietnam time utility (short format)
       const dateTimeStr = orderWithMeta.timestamp 
