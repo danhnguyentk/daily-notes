@@ -576,19 +576,28 @@ export async function showOrderDetails(
   }
 
   // Add update and delete buttons
+  // Only show "Đóng lệnh" button if order is not closed (still in progress)
+  const isOrderClosed = order.orderResult && order.orderResult !== OrderResult.IN_PROGRESS;
+  const keyboardButtons: Array<Array<{ text: string; callback_data: string }>> = [];
+  
+  if (!isOrderClosed) {
+    keyboardButtons.push([
+      {
+        text: '🔒 Đóng lệnh',
+        callback_data: `${CallbackDataPrefix.CLOSE_ORDER}${orderWithMeta.orderId}`,
+      },
+    ]);
+  }
+  
+  keyboardButtons.push([
+    {
+      text: '🗑️ Xóa lệnh',
+      callback_data: `${CallbackDataPrefix.DELETE_ORDER}${orderWithMeta.orderId}`,
+    },
+  ]);
+  
   const keyboard: TelegramInlineKeyboardMarkup = {
-    inline_keyboard: [
-      [
-        {
-          text: '🔒 Đóng lệnh',
-          callback_data: `${CallbackDataPrefix.CLOSE_ORDER}${orderWithMeta.orderId}`,
-        },
-        {
-          text: '🗑️ Xóa lệnh',
-          callback_data: `${CallbackDataPrefix.DELETE_ORDER}${orderWithMeta.orderId}`,
-        },
-      ],
-    ],
+    inline_keyboard: keyboardButtons,
   };
 
   await sendMessageToTelegram(
