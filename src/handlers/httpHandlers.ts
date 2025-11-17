@@ -153,10 +153,10 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Delete cancelled');
       }
 
-      // Handle update order selection
-      if (callbackData.startsWith(CallbackDataPrefix.UPDATE_ORDER)) {
+      // Handle close order (update close price)
+      if (callbackData.startsWith(CallbackDataPrefix.CLOSE_ORDER)) {
         callbackAnswered = true;
-        const orderId = callbackData.substring(CallbackDataPrefix.UPDATE_ORDER.length);
+        const orderId = callbackData.substring(CallbackDataPrefix.CLOSE_ORDER.length);
         const order = await getOrderById(orderId, env);
         
         if (!order) {

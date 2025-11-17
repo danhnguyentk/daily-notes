@@ -1,4 +1,4 @@
-import { OrderData, OrderDirection } from '../types/orderTypes';
+import { OrderData, OrderDirection, OrderResult } from '../types/orderTypes';
 
 /**
  * Interface cho thống kê tổng hợp R
@@ -47,6 +47,7 @@ export function calculateOrderLoss(
   let potentialProfitPercent: number | undefined = undefined;
   let potentialRiskRewardRatio: number | undefined = undefined;
   let actualRiskRewardRatio: number | undefined = undefined;
+  let orderResult: OrderResult | undefined = undefined;
 
   const isLong = data.direction === OrderDirection.LONG;
   const isShort = data.direction === OrderDirection.SHORT;
@@ -142,6 +143,18 @@ export function calculateOrderLoss(
     actualRiskRewardRatio = actualRealizedPnL / potentialStopLoss;
   }
 
+  // Determine order result based on actualRiskRewardRatio
+  // Breakeven if actualRiskRewardRatio is between -0.2 and 0.2
+  if (actualRiskRewardRatio !== undefined) {
+    if (actualRiskRewardRatio >= -0.2 && actualRiskRewardRatio <= 0.2) {
+      orderResult = OrderResult.BREAKEVEN;
+    } else if (actualRiskRewardRatio > 0.2) {
+      orderResult = OrderResult.WIN;
+    } else {
+      orderResult = OrderResult.LOSS;
+    }
+  }
+
   return {
     ...data,
     potentialStopLoss,
@@ -155,6 +168,7 @@ export function calculateOrderLoss(
     actualRealizedPnLUsd,
     actualRealizedPnLPercent,
     actualRiskRewardRatio,
+    orderResult,
   };
 }
 
@@ -194,11 +208,11 @@ export function calculateRiskUnitStatistics(
   let breakevenOrders = 0;
 
   orders.forEach((order) => {
-    if (order.actualRiskRewardRatio !== undefined) {
+    if (order.actualRiskRewardRatio !== undefined && order.orderResult !== undefined) {
       const r = order.actualRiskRewardRatio;
       
-      // Nếu trong khoảng -0.2 đến 0.2 thì tính là hòa
-      if (r >= -0.2 && r <= 0.2) {
+      // Use orderResult to determine category
+      if (order.orderResult === OrderResult.BREAKEVEN) {
         // Hòa vốn (r trong khoảng -0.2 đến 0.2)
         breakevenOrders++;
         // Vẫn cộng vào totalProfitR nếu dương (0 -> 0.2), hoặc totalLossR nếu âm (-0.2 -> 0)
@@ -208,13 +222,13 @@ export function calculateRiskUnitStatistics(
           totalLossR += Math.abs(r);
         }
         // Không cộng vào totalR vì coi như hòa vốn
-      } else if (r > 0.2) {
-        // Lợi nhuận (giá trị dương > 0.2)
+      } else if (order.orderResult === OrderResult.WIN) {
+        // Lợi nhuận (r > 0.2)
         totalR += r;
         totalProfitR += r;
         winningOrders++;
-      } else {
-        // Thua lỗ (giá trị âm < -0.2)
+      } else if (order.orderResult === OrderResult.LOSS) {
+        // Thua lỗ (r < -0.2)
         totalR += r;
         totalLossR += Math.abs(r);
         losingOrders++;

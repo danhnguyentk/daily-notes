@@ -4,7 +4,7 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Env } from '../types/env';
-import { OrderData, OrderDirection, TradingSymbol, MarketState } from '../types/orderTypes';
+import { OrderData, OrderDirection, TradingSymbol, MarketState, OrderResult } from '../types/orderTypes';
 import { calculateOrderLoss } from '../utils/orderCalcUtils';
 
 // Supabase table and column enums
@@ -44,6 +44,7 @@ export interface OrderRecord {
   potential_profit_percent?: number;
   potential_risk_reward_ratio?: number;
   actual_close_price?: number;
+  order_result?: string; // 'win' | 'loss' | 'breakeven'
   actual_realized_pnl?: number;
   actual_realized_pnl_usd?: number;
   actual_realized_pnl_percent?: number;
@@ -94,6 +95,7 @@ export function convertOrderRecordToOrderData(record: OrderRecord): OrderData & 
     potentialProfitPercent: record.potential_profit_percent,
     potentialRiskRewardRatio: record.potential_risk_reward_ratio,
     actualClosePrice: record.actual_close_price,
+    orderResult: record.order_result as OrderResult | undefined,
     actualRealizedPnL: record.actual_realized_pnl,
     actualRealizedPnLUsd: record.actual_realized_pnl_usd,
     actualRealizedPnLPercent: record.actual_realized_pnl_percent,
@@ -262,6 +264,7 @@ export async function updateOrderWithClosePriceInSupabase(
     .from(SupabaseTables.ORDERS)
     .update({
       actual_close_price: closePrice,
+      order_result: updatedOrder.orderResult,
       actual_realized_pnl: updatedOrder.actualRealizedPnL,
       actual_realized_pnl_usd: updatedOrder.actualRealizedPnLUsd,
       actual_realized_pnl_percent: updatedOrder.actualRealizedPnLPercent,

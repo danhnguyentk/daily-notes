@@ -3,7 +3,7 @@
  */
 
 import { Env } from '../types/env';
-import { OrderData, CallbackDataPrefix } from '../types/orderTypes';
+import { OrderData, CallbackDataPrefix, OrderResult } from '../types/orderTypes';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../services/telegramService';
 import { formatVietnamTime, formatVietnamTimeShort } from '../utils/timeUtils';
 import { formatHarsiValue } from '../utils/formatUtils';
@@ -234,7 +234,7 @@ export async function showOrderSelectionForUpdate(
       return [
         {
           text: `${index + 1}. ${order.symbol || 'N/A'} ${order.direction || ''} - ${date}`,
-          callback_data: `${CallbackDataPrefix.UPDATE_ORDER}${orderWithMeta.orderId}`,
+          callback_data: `${CallbackDataPrefix.CLOSE_ORDER}${orderWithMeta.orderId}`,
         },
       ];
     }),
@@ -544,6 +544,11 @@ export async function showOrderDetails(
   // Thông tin kết quả thực tế (nếu đã đóng)
   if (order.actualRiskRewardRatio !== undefined && order.actualRiskRewardRatio !== null) {
     details += `\n\n📊 Kết quả thực tế:`;
+    if (order.orderResult) {
+      const resultEmoji = order.orderResult === OrderResult.WIN ? '✅' : order.orderResult === OrderResult.LOSS ? '❌' : '⚖️';
+      const resultText = order.orderResult === OrderResult.WIN ? 'WIN' : order.orderResult === OrderResult.LOSS ? 'LOSS' : 'BREAKEVEN';
+      details += `\n   • Kết quả: ${resultEmoji} ${resultText}`;
+    }
     details += `\n   • R: ${formatRiskUnit(order.actualRiskRewardRatio)}`;
     const ratioPercent = order.actualRiskRewardRatio * 100;
     details += `\n   ${order.actualRiskRewardRatio > 0
@@ -572,8 +577,8 @@ export async function showOrderDetails(
     inline_keyboard: [
       [
         {
-          text: '✏️ Cập nhật lệnh',
-          callback_data: `${CallbackDataPrefix.UPDATE_ORDER}${orderWithMeta.orderId}`,
+          text: '🔒 Đóng lệnh',
+          callback_data: `${CallbackDataPrefix.CLOSE_ORDER}${orderWithMeta.orderId}`,
         },
         {
           text: '🗑️ Xóa lệnh',

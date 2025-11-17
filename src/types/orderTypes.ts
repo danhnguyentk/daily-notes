@@ -19,12 +19,18 @@ export enum TradingSymbol {
   XAUUSD = 'XAUUSD',
 }
 
+export enum OrderResult {
+  WIN = 'win',
+  LOSS = 'loss',
+  BREAKEVEN = 'breakeven',
+}
+
 export enum CallbackDataPrefix {
   DELETE_ORDER = 'delete_order_',
   DELETE_ORDER_CONFIRM = 'delete_order_confirm_',
   DELETE_ORDER_CANCEL = 'delete_order_cancel',
   VIEW_ORDER = 'view_order_',
-  UPDATE_ORDER = 'update_order_',
+  CLOSE_ORDER = 'close_order_',
   ORDER_NEW = 'order_new',
   ORDER_CANCEL = 'order_cancel',
   ORDER_PREVIEW = 'order_preview',
@@ -90,6 +96,10 @@ export interface OrderData {
    * Actual close price when order is closed
    */
   actualClosePrice?: number;
+  /**
+   * Order result when closed: WIN, LOSS, or BREAKEVEN
+   */
+  orderResult?: OrderResult;
   /**
    * Actual realized PnL (closePrice - entry for LONG, entry - closePrice for SHORT)
    * Positive = profit, Negative = loss
