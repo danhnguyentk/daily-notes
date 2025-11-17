@@ -6,7 +6,7 @@ import { Env } from '../types/env';
 import { OrderData, CallbackDataPrefix, OrderResult } from '../types/orderTypes';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../services/telegramService';
 import { formatVietnamTime, formatVietnamTimeShort } from '../utils/timeUtils';
-import { formatHarsiValue } from '../utils/formatUtils';
+import { formatHarsiValue, OrderResultIcon } from '../utils/formatUtils';
 import {
   calculateRiskUnitStatistics,
   formatRiskUnit,
@@ -318,7 +318,8 @@ export async function showOrderMenu(
     // Add order buttons
     sortedOrders.forEach((order) => {
       const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
-      const status = order.orderResult !== undefined ? '✅' : '⏳';
+      const statusKey = order.orderResult ?? OrderResult.IN_PROGRESS;
+      const status = OrderResultIcon[statusKey].join('');
       
       // Format date and time using Vietnam time utility (short format)
       const dateTimeStr = orderWithMeta.timestamp 
@@ -353,7 +354,7 @@ export async function showOrderMenu(
   let message = '📋 Menu quản lý lệnh\n\nChọn một hành động:';
   
   if (allOrders.length > 0) {
-    const closedCount = allOrders.filter(order => order.actualRiskRewardRatio !== undefined).length;
+    const closedCount = allOrders.filter(order => order.orderResult && order.orderResult !== OrderResult.IN_PROGRESS).length;
     const openCount = allOrders.length - closedCount;
     
     message += `\n\n📊 Tổng số: ${allOrders.length} lệnh\n` +
@@ -440,7 +441,7 @@ export async function showOrderListForView(
   };
 
   // Simplified message without full list
-  const closedCount = sortedOrders.filter(order => order.actualRiskRewardRatio !== undefined).length;
+  const closedCount = sortedOrders.filter(order => order.orderResult && order.orderResult !== OrderResult.IN_PROGRESS).length;
   const openCount = sortedOrders.length - closedCount;
   
   const message = `📋 Danh sách lệnh\n\n` +
@@ -545,8 +546,10 @@ export async function showOrderDetails(
   if (order.actualRiskRewardRatio !== undefined && order.actualRiskRewardRatio !== null) {
     details += `\n\n📊 Kết quả thực tế:`;
     if (order.orderResult) {
-      const resultEmoji = order.orderResult === OrderResult.WIN ? '✅' : order.orderResult === OrderResult.LOSS ? '❌' : '⚖️';
-      const resultText = order.orderResult === OrderResult.WIN ? 'WIN' : order.orderResult === OrderResult.LOSS ? 'LOSS' : 'BREAKEVEN';
+      const statusKey = order.orderResult;
+      const statusEmojis = OrderResultIcon[statusKey];
+      const resultEmoji = statusEmojis.join('');
+      const resultText = statusKey === OrderResult.WIN ? 'WIN' : statusKey === OrderResult.LOSS ? 'LOSS' : statusKey === OrderResult.BREAKEVEN ? 'BREAKEVEN' : 'IN_PROGRESS';
       details += `\n   • Kết quả: ${resultEmoji} ${resultText}`;
     }
     details += `\n   • R: ${formatRiskUnit(order.actualRiskRewardRatio)}`;

@@ -140,6 +140,8 @@ export async function saveOrderToSupabase(
     potential_profit_usd: orderData.potentialProfitUsd,
     potential_profit_percent: orderData.potentialProfitPercent,
     potential_risk_reward_ratio: orderData.potentialRiskRewardRatio,
+    actual_close_price: orderData.actualClosePrice,
+    order_result: orderData.orderResult ?? OrderResult.IN_PROGRESS,
     actual_realized_pnl: orderData.actualRealizedPnL,
     actual_realized_pnl_usd: orderData.actualRealizedPnLUsd,
     actual_realized_pnl_percent: orderData.actualRealizedPnLPercent,

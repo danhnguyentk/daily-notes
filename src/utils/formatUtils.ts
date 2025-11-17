@@ -1,10 +1,21 @@
-import { MarketState } from '../types/orderTypes';
+import { MarketState, OrderResult } from '../types/orderTypes';
+
+/**
+ * Order result icon mapping
+ */
+export const OrderResultIcon: Record<OrderResult, string[]> = {
+  [OrderResult.WIN]: ['🟢', '📈'],
+  [OrderResult.LOSS]: ['🔴', '📉'],
+  [OrderResult.BREAKEVEN]: ['⚪', '➖'],
+  [OrderResult.IN_PROGRESS]: ['🟡', '⏳'],
+};
 
 /**
  * Format HARSI market state value with emoji indicator
  * @param value MarketState value or undefined
  * @returns Formatted string with emoji (🟢 Bullish, 🔴 Bearish, ⚪ Neutral) or 'N/A'
  */
+
 export function formatHarsiValue(value: MarketState | undefined): string {
   if (!value) return 'N/A';
   switch (value) {

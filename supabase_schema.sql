@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS orders (
   
   -- Actual realized PnL fields
   actual_close_price NUMERIC,
-  order_result TEXT CHECK (order_result IN ('win', 'loss', 'breakeven')),
+  order_result TEXT CHECK (order_result IN ('win', 'loss', 'breakeven', 'in_progress')),
   actual_realized_pnl NUMERIC,
   actual_realized_pnl_usd NUMERIC,
   actual_realized_pnl_percent NUMERIC,

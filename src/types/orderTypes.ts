@@ -23,6 +23,7 @@ export enum OrderResult {
   WIN = 'win',
   LOSS = 'loss',
   BREAKEVEN = 'breakeven',
+  IN_PROGRESS = 'in_progress',
 }
 
 export enum CallbackDataPrefix {
