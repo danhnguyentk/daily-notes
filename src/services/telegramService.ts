@@ -113,35 +113,8 @@ export type TelegramWebhookRequest = {
 // Define the Telegram commands
 export const TelegramCommands = {
   CHARTS: '/charts',
-
-  TWO_15M_BULLISH: '/2candles15m',
-  ONE_15M_BULLISH: '/1candles15m',
-
-  SCHEDULE_TWO_15M_BULLISH: '/schedule2candles15m',
-  SCHEDULE_ONE_15M_BULLISH: '/schedule1candles15m',
-  DISABLE_TWO_15M_BULLISH: '/disable2candles15m',
-  DISABLE_ONE_15M_BULLISH: '/disable1candles15m',
-
-  SCHEDULE_TWO_15M_BEARISH: '/schedule2candles15mbearish',
-  SCHEDULE_ONE_15M_BEARISH: '/schedule1candles15mbearish',
-  DISABLE_TWO_15M_BEARISH: '/disable2candles15mbearish',
-  DISABLE_ONE_15M_BEARISH: '/disable1candles15mbearish',
-
-  TWO_1H_BULLISH: '/2candles1h',
-  ONE_1H_BULLISH: '/1candles1h',
-
-  SCHEDULE_TWO_1H_BULLISH: '/schedule2candles1h',
-  SCHEDULE_ONE_1H_BULLISH: '/schedule1candles1h',
-  DISABLE_TWO_1H_BULLISH: '/disable2candles1h',
-  DISABLE_ONE_1H_BULLISH: '/disable1candles1h',
-
-  SCHEDULE_TWO_1H_BEARISH: '/schedule2candles1hbearish',
-  SCHEDULE_ONE_1H_BEARISH: '/schedule1candles1hbearish',
-  DISABLE_TWO_1H_BEARISH: '/disable2candles1hbearish',
-  DISABLE_ONE_1H_BEARISH: '/disable1candles1hbearish',
-  ENABLED_EVENTS: '/enabled_events',
-
   ORDERS: '/orders',
+  EVENTS: '/events',
   
   ORDER_STATS: '/orderstats',
   ORDER_STATS_MONTH: '/orderstatsmonth',

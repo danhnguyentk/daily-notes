@@ -55,6 +55,9 @@ export enum CallbackDataPrefix {
   CHART_BTC_15M = 'chart_btc_15m',
   CHART_SNAPSHOT = 'chart_snapshot',
   CHART_ETF = 'chart_etf',
+  EVENT_ENABLE = 'event_enable_',
+  EVENT_DISABLE = 'event_disable_',
+  EVENT_VERIFY = 'event_verify_',
 }
 
 export interface OrderData {

@@ -40,6 +40,7 @@ import {
   showOrderMenu,
 } from './orderStatisticsHandler';
 import { showChartMenu } from './chartMenuHandler';
+import { handleAllEvents } from './telegramHandlers';
 
 // Route constants
 const ROUTES = {
@@ -346,6 +347,36 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('ETF data analyzed');
       }
 
+      // Handle event enable/disable actions
+      if (callbackData.startsWith(CallbackDataPrefix.EVENT_ENABLE)) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang bật event...');
+        callbackAnswered = true;
+        const command = callbackData.substring(CallbackDataPrefix.EVENT_ENABLE.length);
+        await takeTelegramAction(command, env);
+        // Refresh events list
+        await handleAllEvents(chatId, env);
+        return textResponse('Event enabled');
+      }
+
+      if (callbackData.startsWith(CallbackDataPrefix.EVENT_DISABLE)) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tắt event...');
+        callbackAnswered = true;
+        const command = callbackData.substring(CallbackDataPrefix.EVENT_DISABLE.length);
+        await takeTelegramAction(command, env);
+        // Refresh events list
+        await handleAllEvents(chatId, env);
+        return textResponse('Event disabled');
+      }
+
+      // Handle event verify action (immediate execution)
+      if (callbackData.startsWith(CallbackDataPrefix.EVENT_VERIFY)) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang verify event...');
+        callbackAnswered = true;
+        const command = callbackData.substring(CallbackDataPrefix.EVENT_VERIFY.length);
+        await takeTelegramAction(command, env);
+        return textResponse('Event verified');
+      }
+
       // Handle HARSI 8H Bearish confirmation
       if (callbackData === CallbackDataPrefix.HARSI_8H_CONTINUE) {
         const state = await getConversationState(userId, env);
@@ -473,6 +504,12 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
     if (text === TelegramCommands.CHARTS) {
       await showChartMenu(chatId, env);
       return textResponse('Chart menu shown');
+    }
+
+    // Handle events command
+    if (text === TelegramCommands.EVENTS) {
+      await handleAllEvents(chatId, env);
+      return textResponse('Events menu shown');
     }
 
     if (text === TelegramCommands.ORDER_STATS) {
