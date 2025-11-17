@@ -85,6 +85,10 @@ const SCHEDULE_CONFIGS: Record<string, ScheduleConfig> = {
     kvKey: KVKeys.EnableNotifyTwoClosed1hCandlesBearish,
     message: '✅ Disabled scheduled check for 2 closed 1h bearish candles.',
   },
+  '/disable1candles1hbearish': {
+    kvKey: KVKeys.EnableNotifyOneClosed1hCandlesBearish,
+    message: '✅ Disabled scheduled check for 1 closed 1h bearish candle.',
+  },
 };
 
 // Map of candle check commands to their configurations
