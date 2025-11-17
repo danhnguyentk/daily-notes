@@ -8,7 +8,8 @@ import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
 import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery, setWebhookTelegram } from '../services/telegramService';
 import { Env } from '../types/env';
 import { getCurrentPriceAndNotify } from '../services/binanceService';
-import { snapshotChart } from './chartHandlers';
+import { snapshotChart, snapshotChartWithSpecificInterval } from './chartHandlers';
+import { TradingviewInterval } from '../services/tradingviewService';
 import { notifyNumberClosedCandlesBullish } from './candleHandlers';
 import { takeTelegramAction } from './telegramHandlers';
 import {
@@ -38,6 +39,7 @@ import {
   showDeleteOrderConfirmation,
   showOrderMenu,
 } from './orderStatisticsHandler';
+import { showChartMenu } from './chartMenuHandler';
 
 // Route constants
 const ROUTES = {
@@ -226,6 +228,117 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Separator clicked');
       }
 
+      // Handle chart menu actions
+      if (callbackData === CallbackDataPrefix.CHART_BTC_PRICE) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang lấy giá BTC...');
+        callbackAnswered = true;
+        await getCurrentPriceAndNotify(BinanceSymbol.BTCUSDT, env);
+        return textResponse('BTC price fetched');
+      }
+
+      if (callbackData === CallbackDataPrefix.CHART_BTC_1W3D1D) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tạo biểu đồ...');
+        callbackAnswered = true;
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '📊 Generating chart BTC1w3d1d... Please wait.',
+        }, env);
+        await snapshotChartWithSpecificInterval({ key: '1W', value: TradingviewInterval.Weekly }, env);
+        await snapshotChartWithSpecificInterval({ key: '3D', value: TradingviewInterval.ThreeDay }, env);
+        await snapshotChartWithSpecificInterval({ key: '1D', value: TradingviewInterval.Daily }, env);
+        return textResponse('Chart generated');
+      }
+
+      if (callbackData === CallbackDataPrefix.CHART_BTC_4H1H15M) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tạo biểu đồ...');
+        callbackAnswered = true;
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '📊 Generating chart BTC4h1h15m... Please wait.',
+        }, env);
+        await snapshotChartWithSpecificInterval({ key: '4h', value: TradingviewInterval.H4 }, env);
+        await snapshotChartWithSpecificInterval({ key: '1h', value: TradingviewInterval.H1 }, env);
+        await snapshotChartWithSpecificInterval({ key: '15m', value: TradingviewInterval.Min15 }, env);
+        return textResponse('Chart generated');
+      }
+
+      if (callbackData === CallbackDataPrefix.CHART_BTC_1D) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tạo biểu đồ...');
+        callbackAnswered = true;
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '📊 Generating chart... Please wait.',
+        }, env);
+        await snapshotChartWithSpecificInterval({ key: '1D', value: TradingviewInterval.Daily }, env);
+        return textResponse('Chart generated');
+      }
+
+      if (callbackData === CallbackDataPrefix.CHART_BTC_8H) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tạo biểu đồ...');
+        callbackAnswered = true;
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '📊 Generating chart... Please wait.',
+        }, env);
+        await snapshotChartWithSpecificInterval({ key: '8h', value: TradingviewInterval.H8 }, env);
+        return textResponse('Chart generated');
+      }
+
+      if (callbackData === CallbackDataPrefix.CHART_BTC_4H) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tạo biểu đồ...');
+        callbackAnswered = true;
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '📊 Generating chart... Please wait.',
+        }, env);
+        await snapshotChartWithSpecificInterval({ key: '4h', value: TradingviewInterval.H4 }, env);
+        return textResponse('Chart generated');
+      }
+
+      if (callbackData === CallbackDataPrefix.CHART_BTC_1H) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tạo biểu đồ...');
+        callbackAnswered = true;
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '📊 Generating chart... Please wait.',
+        }, env);
+        await snapshotChartWithSpecificInterval({ key: '1h', value: TradingviewInterval.H1 }, env);
+        return textResponse('Chart generated');
+      }
+
+      if (callbackData === CallbackDataPrefix.CHART_BTC_15M) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tạo biểu đồ...');
+        callbackAnswered = true;
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '📊 Generating chart... Please wait.',
+        }, env);
+        await snapshotChartWithSpecificInterval({ key: '15m', value: TradingviewInterval.Min15 }, env);
+        return textResponse('Chart generated');
+      }
+
+      if (callbackData === CallbackDataPrefix.CHART_SNAPSHOT) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tạo snapshot...');
+        callbackAnswered = true;
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '📊 Generating chart... Please wait.',
+        }, env);
+        await snapshotChart(env);
+        return textResponse('Snapshot generated');
+      }
+
+      if (callbackData === CallbackDataPrefix.CHART_ETF) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang phân tích ETF...');
+        callbackAnswered = true;
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '📊 Analyzing ETF data... Please wait.',
+        }, env);
+        await fetchAndNotifyEtf(env);
+        return textResponse('ETF data analyzed');
+      }
+
       // Handle HARSI 8H Bearish confirmation
       if (callbackData === CallbackDataPrefix.HARSI_8H_CONTINUE) {
         const state = await getConversationState(userId, env);
@@ -349,6 +462,12 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       return textResponse('Order menu shown');
     }
 
+    // Handle chart menu command
+    if (text === TelegramCommands.CHARTS) {
+      await showChartMenu(chatId, env);
+      return textResponse('Chart menu shown');
+    }
+
     if (text === TelegramCommands.ORDER_STATS) {
       await showRiskUnitStatistics(userId, chatId, env);
       return textResponse('Order statistics shown');
@@ -401,10 +520,6 @@ async function handleSetWebhookTelegram(env: Env): Promise<Response> {
   return jsonResponse(result);
 }
 
-async function handleBtcPrice(env: Env): Promise<Response> {
-  const price = await getCurrentPriceAndNotify(BinanceSymbol.BTCUSDT, env);
-  return jsonResponse({ price });
-}
 
 async function handleEtf(env: Env): Promise<Response> {
   const message = await fetchAndNotifyEtf(env);
@@ -423,9 +538,6 @@ export async function handleFetch(req: Request, env: Env): Promise<Response> {
   switch (pathname) {
     case ROUTES.SET_WEBHOOK_TELEGRAM:
       return handleSetWebhookTelegram(env);
-    
-    case TelegramCommands.BTC:
-      return handleBtcPrice(env);
     
     case ROUTES.ETF:
       return handleEtf(env);

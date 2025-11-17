@@ -20,18 +20,7 @@ http://localhost:8787/__scheduled
 - Bot Commands Telegram
 
 ```
-btc15m - BTC 15m
-btc - BTC Price
-btc1w3d1d - BTC 1W 3D 1D
-btc4h1h15m - BTC 4h 1h 15
-btc1w - BTC 1W
-btc3d - BTC 3D
-btc1d - BTC 1D
-btc8h - BTC 8h
-btc4h - BTC 4h
-btc1h - BTC 1h
-snapshot - BTC All
-etf - BTC ETF
+charts - Chart Menu
 2candles15m - 2 Candles 15m Bullish
 1candles15m - 1 Candles 15m Bullish
 schedule2candles15m - Schedule 2 Candles 15m Bullish
@@ -53,7 +42,7 @@ schedule1candles1hbearish - Schedule 1 Candles 1h Bearish
 disable2candles1hbearish - Disable 2 Candles 1h Bearish
 disable1candles1hbearish - Disable 1 Candles 1h Bearish
 enabled_events - Enabled Events
-orders - Order Management Menu
+orders - Order Menu
 orderstats - Order Statistics
 orderstatsmonth - Monthly Order Statistics
 ```

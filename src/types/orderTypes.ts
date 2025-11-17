@@ -45,6 +45,16 @@ export enum CallbackDataPrefix {
   NOTE_CLEAR = 'note_clear',
   NOTE_DONE = 'note_done',
   NOTE_SKIP = 'note_skip',
+  CHART_BTC_PRICE = 'chart_btc_price',
+  CHART_BTC_1W3D1D = 'chart_btc_1w3d1d',
+  CHART_BTC_4H1H15M = 'chart_btc_4h1h15m',
+  CHART_BTC_1D = 'chart_btc_1d',
+  CHART_BTC_8H = 'chart_btc_8h',
+  CHART_BTC_4H = 'chart_btc_4h',
+  CHART_BTC_1H = 'chart_btc_1h',
+  CHART_BTC_15M = 'chart_btc_15m',
+  CHART_SNAPSHOT = 'chart_snapshot',
+  CHART_ETF = 'chart_etf',
 }
 
 export interface OrderData {

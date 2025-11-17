@@ -5,7 +5,7 @@
 import { BinanceSymbol, BinanceInterval } from '../services/binanceService';
 import { KVKeys } from '../services/cloudflareService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
-import { TelegramCommandIntervals, TelegramCommands } from '../services/telegramService';
+import { TelegramCommands } from '../services/telegramService';
 import { TradingviewInterval } from '../services/tradingviewService';
 import { Env } from '../types/env';
 import { getCurrentPriceAndNotify } from '../services/binanceService';
@@ -109,23 +109,6 @@ const CANDLE_CHECK_CONFIGS: Record<string, CandleCheckConfig> = {
   },
 };
 
-// Helper function to handle chart generation with multiple intervals
-async function handleMultiIntervalChart(
-  intervals: Array<{ key: string; value: TradingviewInterval }>,
-  message: string,
-  env: Env
-): Promise<void> {
-  await buildSendMessageToTelegram(message, env);
-  for (const interval of intervals) {
-    await snapshotChartWithSpecificInterval(interval, env);
-  }
-}
-
-// Helper function to handle single interval chart
-async function handleSingleIntervalChart(interval: { key: string; value: TradingviewInterval }, env: Env): Promise<void> {
-  await buildSendMessageToTelegram('📊 Generating chart... Please wait.', env);
-  await snapshotChartWithSpecificInterval(interval, env);
-}
 
 // Helper function to handle candle check commands
 async function handleCandleCheck(config: CandleCheckConfig, env: Env): Promise<void> {
@@ -178,49 +161,8 @@ export async function takeTelegramAction(action: string, env: Env): Promise<obje
 
   // Handle other commands
   switch (action) {
-    case TelegramCommands.BTC:
-      await getCurrentPriceAndNotify(BinanceSymbol.BTCUSDT, env);
-      break;
-
-    case TelegramCommands.BTC1w3d1d:
-      await handleMultiIntervalChart(
-        [
-          TelegramCommandIntervals[TelegramCommands.BTC1w],
-          TelegramCommandIntervals[TelegramCommands.BTC3d],
-          TelegramCommandIntervals[TelegramCommands.BTC1d],
-        ],
-        '📊 Generating chart BTC1w3d1d... Please wait.',
-        env
-      );
-      break;
-
-    case TelegramCommands.BTC4h1h15m:
-      await handleMultiIntervalChart(
-        [
-          TelegramCommandIntervals[TelegramCommands.BTC4h],
-          TelegramCommandIntervals[TelegramCommands.BTC1h],
-          TelegramCommandIntervals[TelegramCommands.BTC15m],
-        ],
-        '📊 Generating chart BTC4h1h15m... Please wait.',
-        env
-      );
-      break;
-
-    case TelegramCommands.BTC1d:
-    case TelegramCommands.BTC4h:
-    case TelegramCommands.BTC1h:
-    case TelegramCommands.BTC15m:
-      await handleSingleIntervalChart(TelegramCommandIntervals[action], env);
-      break;
-
-    case TelegramCommands.SnapshotChart:
-      await buildSendMessageToTelegram('📊 Generating chart... Please wait.', env);
-      await snapshotChart(env);
-      break;
-
-    case TelegramCommands.AnalyzeEtfData:
-      await buildSendMessageToTelegram('📊 Analyzing ETF data... Please wait.', env);
-      await fetchAndNotifyEtf(env);
+    case TelegramCommands.CHARTS:
+      // Chart menu is handled via callback in httpHandlers.ts
       break;
 
     case TelegramCommands.ENABLED_EVENTS:
