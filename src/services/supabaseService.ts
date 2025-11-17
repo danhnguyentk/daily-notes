@@ -95,7 +95,7 @@ export function convertOrderRecordToOrderData(record: OrderRecord): OrderData & 
     potentialProfitPercent: record.potential_profit_percent,
     potentialRiskRewardRatio: record.potential_risk_reward_ratio,
     actualClosePrice: record.actual_close_price,
-    orderResult: record.order_result as OrderResult | undefined,
+    orderResult: (record.order_result as OrderResult | undefined) ?? OrderResult.IN_PROGRESS,
     actualRealizedPnL: record.actual_realized_pnl,
     actualRealizedPnLUsd: record.actual_realized_pnl_usd,
     actualRealizedPnLPercent: record.actual_realized_pnl_percent,
