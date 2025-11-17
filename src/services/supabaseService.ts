@@ -6,10 +6,12 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Env } from '../types/env';
 import { OrderData, OrderDirection, TradingSymbol, MarketState, OrderResult } from '../types/orderTypes';
 import { calculateOrderLoss } from '../utils/orderCalcUtils';
+import { CandleDirection } from '../handlers/candleHandlers';
 
 // Supabase table and column enums
 export enum SupabaseTables {
   ORDERS = 'orders',
+  EVENT_CONFIGS = 'event_configs',
 }
 
 export enum OrderColumns {
@@ -305,5 +307,247 @@ export async function deleteOrderFromSupabase(
   }
 
   return true;
+}
+
+/**
+ * Event Config Types and Functions
+ */
+
+export enum EventStatus {
+  ENABLED = 'enabled',
+  DISABLED = 'disabled',
+}
+
+export enum EventKey {
+  // Bullish
+  EnableNotifyTwoClosed15mCandlesBullish = 'EnableNotifyTwoClosed15mCandlesBullish',
+  EnableNotifyOneClosed15mCandlesBullish = 'EnableNotifyOneClosed15mCandlesBullish',
+  EnableNotifyTwoClosed1hCandlesBullish = 'EnableNotifyTwoClosed1hCandlesBullish',
+  EnableNotifyOneClosed1hCandlesBullish = 'EnableNotifyOneClosed1hCandlesBullish',
+  // Bearish
+  EnableNotifyTwoClosed15mCandlesBearish = 'EnableNotifyTwoClosed15mCandlesBearish',
+  EnableNotifyOneClosed15mCandlesBearish = 'EnableNotifyOneClosed15mCandlesBearish',
+  EnableNotifyTwoClosed1hCandlesBearish = 'EnableNotifyTwoClosed1hCandlesBearish',
+  EnableNotifyOneClosed1hCandlesBearish = 'EnableNotifyOneClosed1hCandlesBearish',
+}
+
+export interface EventConfigRecord {
+  id?: number;
+  event_key: string;
+  interval: string; // '15m' | '1h' | '4h' | '1d'
+  candle_count: number;
+  direction: CandleDirection;
+  is_active: boolean;
+  status: EventStatus;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ScheduleConfig {
+  eventKey: string;
+}
+
+export interface CandleCheckConfig {
+  interval: string; // BinanceInterval
+  limit: number;
+  direction: CandleDirection;
+  eventKey: string;
+}
+
+/**
+ * Get all active event configs from Supabase
+ */
+export async function getEventConfigsFromSupabase(
+  env: Env
+): Promise<EventConfigRecord[]> {
+  const supabase = getSupabaseClient(env);
+
+  const { data, error } = await supabase
+    .from(SupabaseTables.EVENT_CONFIGS)
+    .select('*')
+    .eq('is_active', true)
+    .order('event_key', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching event configs from Supabase:', error);
+    throw new Error(`Failed to fetch event configs: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+/**
+ * Generate description dynamically from config fields
+ */
+export function generateEventDescription(config: { candle_count: number; interval: string; direction: CandleDirection }): string {
+  const candleText = config.candle_count === 1 ? 'candle' : 'candles';
+  const consecutiveText = config.candle_count > 1 ? 'consecutive ' : '';
+  const directionText = config.direction === CandleDirection.BULLISH ? 'bullish' : 'bearish';
+  return `${config.candle_count} ${consecutiveText}closed ${config.interval} ${directionText} ${candleText}`;
+}
+
+/**
+ * Generate enable/disable message dynamically from config
+ */
+export function generateEventMessage(config: EventConfigRecord, isEnable: boolean): string {
+  const action = isEnable ? 'Enabled' : 'Disabled';
+  const description = generateEventDescription(config);
+  return `✅ ${action} scheduled check for ${description}.`;
+}
+
+/**
+ * Build SCHEDULE_CONFIGS map from Supabase data (using event_key as key)
+ * Returns map of event_key -> ScheduleConfig
+ */
+export async function buildScheduleConfigs(
+  env: Env
+): Promise<Record<string, ScheduleConfig>> {
+  const configs = await getEventConfigsFromSupabase(env);
+  const scheduleConfigs: Record<string, ScheduleConfig> = {};
+
+  for (const config of configs) {
+    scheduleConfigs[config.event_key] = {
+      eventKey: config.event_key,
+    };
+  }
+
+  return scheduleConfigs;
+}
+
+/**
+ * Get event configs for scheduled handlers (by interval, only enabled)
+ */
+export async function getEventConfigsForScheduled(
+  interval: string,
+  env: Env
+): Promise<EventConfigRecord[]> {
+  return await getEventConfigsByInterval(interval, env);
+}
+
+/**
+ * Build CANDLE_CHECK_CONFIGS map from Supabase data (using event_key as key)
+ */
+export async function buildCandleCheckConfigs(
+  env: Env
+): Promise<Record<string, CandleCheckConfig>> {
+  const configs = await getEventConfigsFromSupabase(env);
+  const candleCheckConfigs: Record<string, CandleCheckConfig> = {};
+
+  for (const config of configs) {
+    // Map interval from DB format to BinanceInterval format
+    let binanceInterval: string;
+    switch (config.interval) {
+      case '15m':
+        binanceInterval = '15m';
+        break;
+      case '1h':
+        binanceInterval = '1h';
+        break;
+      case '4h':
+        binanceInterval = '4h';
+        break;
+      case '1d':
+        binanceInterval = '1d';
+        break;
+      default:
+        binanceInterval = config.interval;
+    }
+
+    candleCheckConfigs[config.event_key] = {
+      interval: binanceInterval,
+      limit: config.candle_count,
+      direction: config.direction,
+      eventKey: config.event_key,
+    };
+  }
+
+  return candleCheckConfigs;
+}
+
+/**
+ * Get all unique event keys from event configs
+ */
+export async function getAllEventKeysFromSupabase(
+  env: Env
+): Promise<string[]> {
+  const configs = await getEventConfigsFromSupabase(env);
+  return configs.map(config => config.event_key);
+}
+
+/**
+ * Get event configs by interval (for scheduled handlers)
+ */
+export async function getEventConfigsByInterval(
+  interval: string,
+  env: Env
+): Promise<EventConfigRecord[]> {
+  const supabase = getSupabaseClient(env);
+
+  const { data, error } = await supabase
+    .from(SupabaseTables.EVENT_CONFIGS)
+    .select('*')
+    .eq('is_active', true)
+    .eq('interval', interval)
+    .eq('status', EventStatus.ENABLED)
+    .order('event_key', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching event configs by interval from Supabase:', error);
+    throw new Error(`Failed to fetch event configs: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+/**
+ * Update event config status (enable/disable)
+ */
+export async function updateEventConfigStatus(
+  eventKey: string,
+  status: EventStatus,
+  env: Env
+): Promise<EventConfigRecord | null> {
+  const supabase = getSupabaseClient(env);
+
+  const { data, error } = await supabase
+    .from(SupabaseTables.EVENT_CONFIGS)
+    .update({
+      status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('event_key', eventKey)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating event config status in Supabase:', error);
+    throw new Error(`Failed to update event config status: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Get event config by event key
+ */
+export async function getEventConfigByEventKey(
+  eventKey: string,
+  env: Env
+): Promise<EventConfigRecord | null> {
+  const supabase = getSupabaseClient(env);
+
+  const { data, error } = await supabase
+    .from(SupabaseTables.EVENT_CONFIGS)
+    .select('*')
+    .eq('event_key', eventKey)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching event config by event key from Supabase:', error);
+    throw new Error(`Failed to fetch event config: ${error.message}`);
+  }
+
+  return data;
 }
 

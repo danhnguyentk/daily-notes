@@ -3,8 +3,8 @@
  */
 
 import { BinanceSymbol, BinanceInterval, BinanceCandlesRequest } from '../services/binanceService';
-import { KVKeys } from '../services/cloudflareService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
+import { getEventConfigsForScheduled, EventConfigRecord, generateEventDescription, EventStatus } from '../services/supabaseService';
 import { Env } from '../types/env';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
 import { snapshotChart } from './chartHandlers';
@@ -19,77 +19,21 @@ export enum CronSchedule {
   EVERY_HOUR = "0 */1 * * *",
 }
 
-// Candle check configuration type
-type CandleCheckConfig = {
-  kvKey: KVKeys;
-  interval: BinanceInterval;
-  limit: number;
-  direction: CandleDirection;
-  description: string;
-};
-
-// Configuration for candle checks by cron schedule
-const CANDLE_CHECKS_15M: CandleCheckConfig[] = [
-  {
-    kvKey: KVKeys.EnableNotifyOneClosed15mCandlesBullish,
-    interval: BinanceInterval.FIFTEEN_MINUTES,
-    limit: 1,
-    direction: CandleDirection.BULLISH,
-    description: "1 closed 15m bullish candle",
-  },
-  {
-    kvKey: KVKeys.EnableNotifyTwoClosed15mCandlesBullish,
-    interval: BinanceInterval.FIFTEEN_MINUTES,
-    limit: 2,
-    direction: CandleDirection.BULLISH,
-    description: "2 consecutive closed 15m bullish candles",
-  },
-  {
-    kvKey: KVKeys.EnableNotifyOneClosed15mCandlesBearish,
-    interval: BinanceInterval.FIFTEEN_MINUTES,
-    limit: 1,
-    direction: CandleDirection.BEARISH,
-    description: "1 closed 15m bearish candle",
-  },
-  {
-    kvKey: KVKeys.EnableNotifyTwoClosed15mCandlesBearish,
-    interval: BinanceInterval.FIFTEEN_MINUTES,
-    limit: 2,
-    direction: CandleDirection.BEARISH,
-    description: "2 consecutive closed 15m bearish candles",
-  },
-];
-
-const CANDLE_CHECKS_1H: CandleCheckConfig[] = [
-  {
-    kvKey: KVKeys.EnableNotifyOneClosed1hCandlesBullish,
-    interval: BinanceInterval.ONE_HOUR,
-    limit: 1,
-    direction: CandleDirection.BULLISH,
-    description: "1 closed 1h bullish candle",
-  },
-  {
-    kvKey: KVKeys.EnableNotifyTwoClosed1hCandlesBullish,
-    interval: BinanceInterval.ONE_HOUR,
-    limit: 2,
-    direction: CandleDirection.BULLISH,
-    description: "2 consecutive closed 1h bullish candles",
-  },
-  {
-    kvKey: KVKeys.EnableNotifyOneClosed1hCandlesBearish,
-    interval: BinanceInterval.ONE_HOUR,
-    limit: 1,
-    direction: CandleDirection.BEARISH,
-    description: "1 closed 1h bearish candle",
-  },
-  {
-    kvKey: KVKeys.EnableNotifyTwoClosed1hCandlesBearish,
-    interval: BinanceInterval.ONE_HOUR,
-    limit: 2,
-    direction: CandleDirection.BEARISH,
-    description: "2 consecutive closed 1h bearish candles",
-  },
-];
+// Helper function to map interval string to BinanceInterval enum
+function mapIntervalToBinanceInterval(interval: string): BinanceInterval {
+  switch (interval) {
+    case '15m':
+      return BinanceInterval.FIFTEEN_MINUTES;
+    case '1h':
+      return BinanceInterval.ONE_HOUR;
+    case '4h':
+      return BinanceInterval.FOUR_HOURS;
+    case '1d':
+      return BinanceInterval.ONE_DAY;
+    default:
+      return BinanceInterval.FIFTEEN_MINUTES;
+  }
+}
 
 /**
  * Safely execute a task with error handling and notification
@@ -109,40 +53,46 @@ async function safeExecute(
 }
 
 /**
- * Process a single candle check configuration
+ * Process a single candle check configuration from Supabase
  */
 async function processCandleCheck(
-  config: CandleCheckConfig,
+  config: EventConfigRecord,
   env: Env
 ): Promise<void> {
-  const isEnabled = await env.DAILY_NOTES_KV.get(config.kvKey);
-  if (!isEnabled) {
+  // Status is already checked in getEventConfigsForScheduled (only enabled)
+  // But double-check here for safety
+  if (config.status !== EventStatus.ENABLED) {
     return;
   }
 
-  console.log(`🔔 Checking for ${config.description}`);
+  const description = generateEventDescription(config);
+  console.log(`🔔 Checking for ${description}`);
+  
+  const binanceInterval = mapIntervalToBinanceInterval(config.interval);
   
   const request: BinanceCandlesRequest = {
     symbol: BinanceSymbol.BTCUSDT,
-    interval: config.interval,
-    limit: config.limit,
+    interval: binanceInterval,
+    limit: config.candle_count,
   };
 
   if (config.direction === CandleDirection.BULLISH) {
     await notifyNumberClosedCandlesBullish(request, env);
-  } else {
+  } else if (config.direction === CandleDirection.BEARISH) {
     await notifyNumberClosedCandlesBearish(request, env);
   }
 }
 
 /**
- * Process multiple candle checks with error handling
+ * Process multiple candle checks with error handling (from Supabase)
  */
 async function processCandleChecks(
-  configs: CandleCheckConfig[],
+  interval: string,
   env: Env
 ): Promise<void> {
   await safeExecute(async () => {
+    // Fetch configs from Supabase based on interval (only enabled ones)
+    const configs = await getEventConfigsForScheduled(interval, env);
     for (const config of configs) {
       await processCandleCheck(config, env);
     }
@@ -177,11 +127,11 @@ export async function handleScheduled(controller: ScheduledController, env: Env)
       break;
     
     case CronSchedule.EVERY_15_MINUTES:
-      await processCandleChecks(CANDLE_CHECKS_15M, env);
+      await processCandleChecks('15m', env);
       break;
     
     case CronSchedule.EVERY_HOUR:
-      await processCandleChecks(CANDLE_CHECKS_1H, env);
+      await processCandleChecks('1h', env);
       break;
     
     default:

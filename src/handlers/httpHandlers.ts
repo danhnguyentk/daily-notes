@@ -3,7 +3,7 @@
  */
 
 import { BinanceSymbol, BinanceInterval } from '../services/binanceService';
-import { KVKeys } from '../services/cloudflareService';
+import { EventKey } from '../services/supabaseService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
 import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery, setWebhookTelegram } from '../services/telegramService';
 import { Env } from '../types/env';
@@ -70,8 +70,7 @@ function textResponse(text: string, status = 200): Response {
 
 interface CandleNotificationConfig {
   limit: number;
-  kvKey: KVKeys;
-  description: string;
+  eventKey: EventKey;
 }
 
 async function handleCandleNotification(
@@ -87,20 +86,20 @@ async function handleCandleNotification(
 }
 
 async function handleEnableNotification(
-  kvKey: KVKeys,
+  eventKey: EventKey,
   message: string,
   env: Env
 ): Promise<Response> {
-  await env.DAILY_NOTES_KV.put(kvKey, 'true');
+  await env.DAILY_NOTES_KV.put(eventKey, 'true');
   return textResponse(message);
 }
 
 async function handleDisableNotification(
-  kvKey: KVKeys,
+  eventKey: EventKey,
   message: string,
   env: Env
 ): Promise<Response> {
-  await env.DAILY_NOTES_KV.delete(kvKey);
+  await env.DAILY_NOTES_KV.delete(eventKey);
   return textResponse(message);
 }
 
@@ -347,12 +346,12 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('ETF data analyzed');
       }
 
-      // Handle event enable/disable actions
+      // Handle event enable/disable actions (callback_data now contains event_key)
       if (callbackData.startsWith(CallbackDataPrefix.EVENT_ENABLE)) {
         await answerCallbackQuery(callbackQuery.id, env, 'Đang bật event...');
         callbackAnswered = true;
-        const command = callbackData.substring(CallbackDataPrefix.EVENT_ENABLE.length);
-        await takeTelegramAction(command, env);
+        const eventKey = callbackData.substring(CallbackDataPrefix.EVENT_ENABLE.length);
+        await takeTelegramAction(eventKey, env, true); // true = enable
         // Refresh events list
         await handleAllEvents(chatId, env);
         return textResponse('Event enabled');
@@ -361,19 +360,19 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       if (callbackData.startsWith(CallbackDataPrefix.EVENT_DISABLE)) {
         await answerCallbackQuery(callbackQuery.id, env, 'Đang tắt event...');
         callbackAnswered = true;
-        const command = callbackData.substring(CallbackDataPrefix.EVENT_DISABLE.length);
-        await takeTelegramAction(command, env);
+        const eventKey = callbackData.substring(CallbackDataPrefix.EVENT_DISABLE.length);
+        await takeTelegramAction(eventKey, env, false); // false = disable
         // Refresh events list
         await handleAllEvents(chatId, env);
         return textResponse('Event disabled');
       }
 
-      // Handle event verify action (immediate execution)
+      // Handle event verify action (immediate execution, callback_data contains event_key)
       if (callbackData.startsWith(CallbackDataPrefix.EVENT_VERIFY)) {
         await answerCallbackQuery(callbackQuery.id, env, 'Đang verify event...');
         callbackAnswered = true;
-        const command = callbackData.substring(CallbackDataPrefix.EVENT_VERIFY.length);
-        await takeTelegramAction(command, env);
+        const eventKey = callbackData.substring(CallbackDataPrefix.EVENT_VERIFY.length);
+        await takeTelegramAction(eventKey, env);
         return textResponse('Event verified');
       }
 
@@ -592,41 +591,39 @@ export async function handleFetch(req: Request, env: Env): Promise<Response> {
     case ROUTES.NOTIFY_ONE_CLOSED_15M_CANDLES_BULLISH:
       return handleCandleNotification({
         limit: 1,
-        kvKey: KVKeys.EnableNotifyOneClosed15mCandlesBullish,
-        description: 'one closed 15m candles bullish'
+        eventKey: EventKey.EnableNotifyOneClosed15mCandlesBullish,
       }, env);
     
     case ROUTES.NOTIFY_TWO_CLOSED_15M_CANDLES_BULLISH:
       return handleCandleNotification({
         limit: 2,
-        kvKey: KVKeys.EnableNotifyTwoClosed15mCandlesBullish,
-        description: 'two closed 15m candles bullish'
+        eventKey: EventKey.EnableNotifyTwoClosed15mCandlesBullish,
       }, env);
     
     case ROUTES.ENABLE_NOTIFY_TWO_CLOSED_15M_CANDLES_BULLISH:
       return handleEnableNotification(
-        KVKeys.EnableNotifyTwoClosed15mCandlesBullish,
+        EventKey.EnableNotifyTwoClosed15mCandlesBullish,
         'Enabled notify two closed 15m candles bullish',
         env
       );
     
     case ROUTES.ENABLE_NOTIFY_ONE_CLOSED_15M_CANDLES_BULLISH:
       return handleEnableNotification(
-        KVKeys.EnableNotifyOneClosed15mCandlesBullish,
+        EventKey.EnableNotifyOneClosed15mCandlesBullish,
         'Enabled notify one closed 15m candles bullish',
         env
       );
     
     case ROUTES.DISABLE_NOTIFY_TWO_CLOSED_15M_CANDLES_BULLISH:
       return handleDisableNotification(
-        KVKeys.EnableNotifyTwoClosed15mCandlesBullish,
+        EventKey.EnableNotifyTwoClosed15mCandlesBullish,
         'Disabled notify two closed 15m candles bullish',
         env
       );
     
     case ROUTES.DISABLE_NOTIFY_ONE_CLOSED_15M_CANDLES_BULLISH:
       return handleDisableNotification(
-        KVKeys.EnableNotifyOneClosed15mCandlesBullish,
+        EventKey.EnableNotifyOneClosed15mCandlesBullish,
         'Disabled notify one closed 15m candles bullish',
         env
       );
