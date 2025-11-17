@@ -190,7 +190,7 @@ export async function getOpenOrders(
       const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
       return (
         orderWithMeta.orderId &&
-        order.actualRiskRewardRatio === undefined
+        !order.actualRiskRewardRatio
       );
     })
     .sort((a, b) => {
