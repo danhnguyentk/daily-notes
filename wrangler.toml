@@ -8,7 +8,7 @@ enabled = true
 
 # Cron triggers
 [triggers]
-crons = ["5 0 * * *", "*/15 * * * *", "* */1 * * *"]
+crons = ["5 0 * * *", "*/15 * * * *", "0 */1 * * *", "0 */4 * * *"]
 
 # KV Bindings
 [[kv_namespaces]]

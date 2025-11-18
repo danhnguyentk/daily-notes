@@ -4,9 +4,10 @@
 
 import { BinanceSymbol, BinanceInterval, BinanceCandlesRequest } from '../services/binanceService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
-import { getEventConfigsForScheduled, EventConfigRecord, generateEventDescription, EventStatus } from '../services/supabaseService';
+import { getEventConfigsForScheduled, EventConfigRecord, generateEventDescription, EventStatus, getTrends } from '../services/supabaseService';
 import { Env } from '../types/env';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
+import { sendMessageToTelegram } from '../services/telegramService';
 import { snapshotChart } from './chartHandlers';
 import { notifyNumberClosedCandlesBullish, notifyNumberClosedCandlesBearish, CandleDirection } from './candleHandlers';
 
@@ -17,6 +18,7 @@ export enum CronSchedule {
   DAILY_00_05 = "5 0 * * *",
   EVERY_15_MINUTES = "*/15 * * * *",
   EVERY_HOUR = "0 */1 * * *",
+  EVERY_4_HOURS = "0 */4 * * *",
 }
 
 // Helper function to map interval string to BinanceInterval enum
@@ -115,6 +117,35 @@ async function handleDailyTasks(env: Env): Promise<void> {
 }
 
 /**
+ * Send trend recommendation every 4 hours
+ */
+async function handleTrendRecommendation(env: Env): Promise<void> {
+  await safeExecute(async () => {
+    console.log("📊 Sending trend recommendation for 4h schedule");
+    const trends = await getTrends(1, env);
+    
+    if (trends.length === 0) {
+      console.log("No trends found, skipping recommendation");
+      return;
+    }
+
+    const latestTrend = trends[0];
+    
+    if (!latestTrend.recommendation) {
+      console.log("Latest trend has no recommendation, skipping");
+      return;
+    }
+
+    const message = `📊 Khuyến nghị mới nhất:\n\n${latestTrend.recommendation}`;
+    
+    await sendMessageToTelegram({
+      chat_id: env.TELEGRAM_CHAT_ID,
+      text: message,
+    }, env);
+  }, "trendRecommendation", env);
+}
+
+/**
  * Main scheduled handler
  */
 export async function handleScheduled(controller: ScheduledController, env: Env): Promise<void> {
@@ -132,6 +163,10 @@ export async function handleScheduled(controller: ScheduledController, env: Env)
     
     case CronSchedule.EVERY_HOUR:
       await processCandleChecks('1h', env);
+      break;
+    
+    case CronSchedule.EVERY_4_HOURS:
+      await handleTrendRecommendation(env);
       break;
     
     default:
