@@ -170,6 +170,27 @@ export async function saveOrderToSupabase(
 }
 
 /**
+ * Get all orders from Supabase (no user filter)
+ */
+export async function getAllOrdersFromSupabase(
+  env: Env
+): Promise<OrderRecord[]> {
+  const supabase = getSupabaseClient(env);
+
+  const { data, error } = await supabase
+    .from(SupabaseTables.ORDERS)
+    .select('*')
+    .order(OrderColumns.CREATED_AT, { ascending: false });
+
+  if (error) {
+    console.error('Error fetching all orders from Supabase:', error);
+    throw new Error(`Failed to fetch orders: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+/**
  * Get all orders for a user from Supabase
  */
 export async function getUserOrdersFromSupabase(

@@ -9,5 +9,7 @@ export interface Env {
   DAILY_NOTES_KV: KVNamespace;
   SUPABASE_URL: string;
   SUPABASE_SECRET_KEY: string;
+  OPENAI_API_KEY: string;
+  ZAI_API_KEY?: string;
 }
 

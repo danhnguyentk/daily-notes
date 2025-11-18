@@ -5,7 +5,7 @@
 import { BinanceSymbol, BinanceInterval } from '../services/binanceService';
 import { EventKey } from '../services/supabaseService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
-import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery, setWebhookTelegram } from '../services/telegramService';
+import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery, setWebhookTelegram, TelegramParseMode, formatMarkdownLog } from '../services/telegramService';
 import { Env } from '../types/env';
 import { getCurrentPriceAndNotify } from '../services/binanceService';
 import { snapshotChart, snapshotChartWithSpecificInterval } from './chartHandlers';
@@ -42,9 +42,11 @@ import {
 import { showChartMenu } from './chartMenuHandler';
 import { handleAllEvents } from './telegramHandlers';
 import { startHarsiCheck, handleHarsiCheckSelection, showLatestTrend } from './harsiCheckHandler';
+import { analyzeOrdersWithAI, analyzeOrdersForAPI } from './orderAnalysisHandler';
 
 // Route constants
 const ROUTES = {
+  ORDER_ANALYSIS: '/analyze',
   SET_WEBHOOK_TELEGRAM: '/setWebhookTelegram',
   ETF: '/etf',
   SNAPSHOT_CHART: '/snapshotChart',
@@ -220,6 +222,13 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         callbackAnswered = true;
         await showOrderListForView(userId, chatId, env);
         return textResponse('Order list shown');
+      }
+
+      if (callbackData === CallbackDataPrefix.ORDER_ANALYZE) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang phân tích...');
+        callbackAnswered = true;
+        await analyzeOrdersWithAI(userId, chatId, env);
+        return textResponse('Order analysis started');
       }
 
       // Handle separator (do nothing, just answer the callback)
@@ -621,11 +630,79 @@ async function handleSnapshotChart(env: Env): Promise<Response> {
   return textResponse('Snapshot chart successfully');
 }
 
+async function handleOrderAnalysis(req: Request, env: Env): Promise<Response> {
+  try {
+    // Log start of analysis to Telegram
+    await sendMessageToTelegram({
+      chat_id: env.TELEGRAM_CHAT_ID,
+      text: `🔍 Starting Order Analysis...`,
+    }, env);
+
+    const result = await analyzeOrdersForAPI(env);
+    
+    // Log result to Telegram
+    if (result.success) {
+      const stats = result.statistics;
+      
+      // Send statistics message
+      const statsMessage = `✅ Order Analysis Completed\n\n` +
+        `📊 Statistics:\n` +
+        `  • Total Orders: ${stats?.totalOrders || 0}\n` +
+        `  • Wins: ${stats?.winCount || 0}\n` +
+        `  • Losses: ${stats?.lossCount || 0}\n` +
+        `  • Breakeven: ${stats?.breakevenCount || 0}\n` +
+        `  • Win Rate: ${stats?.winRate || '0'}%\n` +
+        `  • Total P&L: $${stats?.totalPnL || '0'}\n` +
+        `  • Avg P&L: $${stats?.avgPnL || '0'}`;
+      
+      await sendMessageToTelegram({
+        chat_id: env.TELEGRAM_CHAT_ID,
+        text: statsMessage,
+      }, env);
+      // Send analysis message separately
+      if (result.analysis) {
+        await sendMessageToTelegram({
+          chat_id: env.TELEGRAM_CHAT_ID,
+          text: `${formatMarkdownLog(TelegramMessageTitle.Analysis,   result.analysis)}`,
+          parse_mode: TelegramParseMode.MarkdownV2,
+        }, env);
+      }
+    } else {
+      await sendMessageToTelegram({
+        chat_id: env.TELEGRAM_CHAT_ID,
+        text: `❌ Order Analysis Failed\n\n❌ Error: ${result.error || 'Unknown error'}`,
+      }, env);
+    }
+    
+    if (result.success) {
+      return jsonResponse(result, 200);
+    } else {
+      return jsonResponse(result, 400);
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Log exception
+    await sendMessageToTelegram({
+      chat_id: env.TELEGRAM_CHAT_ID,
+      text: `🚨 Order Analysis Exception\n\n❌ Error: ${errorMessage}`,
+    }, env);
+    
+    return jsonResponse(
+      { success: false, error: errorMessage },
+      500
+    );
+  }
+}
+
 export async function handleFetch(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const pathname = url.pathname;
 
   switch (pathname) {
+    case ROUTES.ORDER_ANALYSIS:
+      return handleOrderAnalysis(req, env);
+    
     case ROUTES.SET_WEBHOOK_TELEGRAM:
       return handleSetWebhookTelegram(env);
     

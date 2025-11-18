@@ -7,6 +7,7 @@ export type TelegramImageRequest = {
 };
 
 export enum TelegramMessageTitle {
+  Analysis = '📝 Analysis',
   ErrorDetected = '🚨 Error detected',
   Warning = '⚠️ Warning',
   Info = 'ℹ️ Info',

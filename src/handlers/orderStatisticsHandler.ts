@@ -285,6 +285,12 @@ export async function showOrderMenu(
         callback_data: CallbackDataPrefix.ORDER_CANCEL,
       },
     ],
+    [
+      {
+        text: '🤖 Phân tích AI',
+        callback_data: CallbackDataPrefix.ORDER_ANALYZE,
+      },
+    ],
   ];
 
   // Get orders list

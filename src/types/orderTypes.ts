@@ -61,6 +61,7 @@ export enum CallbackDataPrefix {
   HARSI_CHECK = 'harsi_check_',
   HARSI_CHECK_SKIP = 'harsi_check_skip',
   TREND_SURVEY = 'trend_survey',
+  ORDER_ANALYZE = 'order_analyze',
 }
 
 export interface OrderData {
