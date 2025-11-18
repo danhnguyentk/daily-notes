@@ -1,7 +1,6 @@
 /**
  * Time utility functions
  */
-
 export function formatVietnamTime(date: Date = new Date()): string {
   return date.toLocaleString('en-GB', {
     timeZone: 'Asia/Ho_Chi_Minh',

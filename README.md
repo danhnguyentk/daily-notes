@@ -20,6 +20,7 @@ http://localhost:8787/__scheduled
 - Bot Commands Telegram
 
 ```
+trend - Trend Check
 charts - Chart Menu
 orders - Order Menu
 events - All Events (Enabled, Disabled) 

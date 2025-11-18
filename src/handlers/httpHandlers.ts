@@ -41,6 +41,7 @@ import {
 } from './orderStatisticsHandler';
 import { showChartMenu } from './chartMenuHandler';
 import { handleAllEvents } from './telegramHandlers';
+import { startHarsiCheck, handleHarsiCheckSelection } from './harsiCheckHandler';
 
 // Route constants
 const ROUTES = {
@@ -407,8 +408,40 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Order cancelled');
       }
 
-      // Handle HARSI market state selection
-      if (callbackData.startsWith(CallbackDataPrefix.HARSI)) {
+      // Handle HARSI check selection (for /harsi command)
+      if (callbackData && typeof callbackData === 'string') {
+        const harsiCheckPrefix = 'harsi_check_';
+        const harsiCheckSkip = 'harsi_check_skip';
+        
+        if (callbackData.startsWith(harsiCheckPrefix)) {
+          const conversationState = await getConversationState(userId, env);
+          const isHarsiCheckFlow = conversationState && (
+            conversationState.step === OrderConversationStep.WAITING_HARSI_CHECK_1W ||
+            conversationState.step === OrderConversationStep.WAITING_HARSI_CHECK_3D ||
+            conversationState.step === OrderConversationStep.WAITING_HARSI_CHECK_2D ||
+            conversationState.step === OrderConversationStep.WAITING_HARSI_CHECK_1D ||
+            conversationState.step === OrderConversationStep.WAITING_HARSI_CHECK_8H ||
+            conversationState.step === OrderConversationStep.WAITING_HARSI_CHECK_4H
+          );
+          
+          if (isHarsiCheckFlow) {
+            if (callbackData === harsiCheckSkip) {
+              await handleHarsiCheckSelection(userId, chatId, 'skip', env);
+            } else {
+              const prefixLength = harsiCheckPrefix.length;
+              const marketStateValue = callbackData.substring(prefixLength);
+              const marketState = Object.values(MarketState).find(c => c === marketStateValue);
+              if (marketState) {
+                await handleHarsiCheckSelection(userId, chatId, marketState, env);
+              }
+            }
+            return textResponse('HARSI check selection handled');
+          }
+        }
+      }
+
+      // Handle HARSI market state selection (for order flow)
+      if (callbackData && callbackData.startsWith(CallbackDataPrefix.HARSI)) {
         if (callbackData === CallbackDataPrefix.HARSI_SKIP) {
           await handleHarsiSelection(userId, chatId, 'skip', env);
         } else {
@@ -509,6 +542,12 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
     if (text === TelegramCommands.EVENTS) {
       await handleAllEvents(chatId, env);
       return textResponse('Events menu shown');
+    }
+
+    // Handle trend command (asks for HARSI values and automatically calculates trend)
+    if (text === TelegramCommands.TREND_CHECK) {
+      await startHarsiCheck(userId, chatId, env);
+      return textResponse('Trend check started');
     }
 
     if (text === TelegramCommands.ORDER_STATS) {

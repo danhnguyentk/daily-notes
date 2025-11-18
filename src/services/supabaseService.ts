@@ -12,6 +12,7 @@ import { CandleDirection } from '../handlers/candleHandlers';
 export enum SupabaseTables {
   ORDERS = 'orders',
   EVENT_CONFIGS = 'event_configs',
+  TREND = 'trend',
 }
 
 export enum OrderColumns {
@@ -549,5 +550,118 @@ export async function getEventConfigByEventKey(
   }
 
   return data;
+}
+
+export interface TrendRecord {
+  id?: number;
+  harsi1w?: string; // 'bullish' | 'bearish' | 'neutral'
+  harsi3d?: string; // 'bullish' | 'bearish' | 'neutral'
+  harsi2d?: string; // 'bullish' | 'bearish' | 'neutral'
+  harsi1d?: string; // 'bullish' | 'bearish' | 'neutral'
+  harsi12h?: string; // 'bullish' | 'bearish' | 'neutral'
+  harsi8h?: string; // 'bullish' | 'bearish' | 'neutral'
+  harsi4h?: string; // 'bullish' | 'bearish' | 'neutral'
+  trend?: string; // 'bullish' | 'bearish'
+  recommendation?: string;
+  surveyed_at?: string; // Timestamp when the survey/trend check was completed
+}
+
+export interface TrendData {
+  harsi1w?: MarketState;
+  harsi3d?: MarketState;
+  harsi2d?: MarketState;
+  harsi1d?: MarketState;
+  harsi12h?: MarketState;
+  harsi8h?: MarketState;
+  harsi4h?: MarketState;
+  trend?: MarketState; // 'bullish' | 'bearish' (no neutral for trend)
+}
+
+/**
+ * Save trend record to database
+ */
+export async function saveTrend(
+  trendData: TrendData,
+  recommendation: string,
+  env: Env
+): Promise<TrendRecord> {
+  const supabase = getSupabaseClient(env);
+  
+  const record: Partial<TrendRecord> = {
+    harsi1w: trendData.harsi1w,
+    harsi3d: trendData.harsi3d,
+    harsi2d: trendData.harsi2d,
+    harsi1d: trendData.harsi1d,
+    harsi12h: trendData.harsi12h,
+    harsi8h: trendData.harsi8h,
+    harsi4h: trendData.harsi4h,
+    trend: trendData.trend,
+    recommendation,
+    surveyed_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from(SupabaseTables.TREND)
+    .insert(record)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error saving trend to Supabase:', error);
+    throw new Error(`Failed to save trend: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Get recent trend records
+ */
+export async function getTrends(
+  limit: number = 10,
+  env: Env
+): Promise<TrendRecord[]> {
+  const supabase = getSupabaseClient(env);
+  
+  const { data, error } = await supabase
+    .from(SupabaseTables.TREND)
+    .select('*')
+    .order('surveyed_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Error fetching trends from Supabase:', error);
+    throw new Error(`Failed to fetch trends: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+/**
+ * Save HARSI check to database (includes calculated trend)
+ */
+export async function saveHarsiCheck(
+  userId: number,
+  trendData: TrendData,
+  recommendation: string,
+  env: Env
+): Promise<TrendRecord> {
+  return saveTrend(trendData, recommendation, env);
+}
+
+/**
+ * Save trend check to database (convenience wrapper)
+ */
+export async function saveTrendCheck(
+  userId: number,
+  trendData: { trend?: MarketState },
+  recommendation: string,
+  env: Env
+): Promise<TrendRecord> {
+  const data: TrendData = {
+    trend: trendData.trend,
+  };
+  
+  return saveTrend(data, recommendation, env);
 }
 

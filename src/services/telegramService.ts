@@ -112,6 +112,7 @@ export type TelegramWebhookRequest = {
 
 // Define the Telegram commands
 export const TelegramCommands = {
+  TREND_CHECK: '/trend',
   CHARTS: '/charts',
   ORDERS: '/orders',
   EVENTS: '/events',

@@ -58,11 +58,16 @@ export enum CallbackDataPrefix {
   EVENT_ENABLE = 'event_enable_',
   EVENT_DISABLE = 'event_disable_',
   EVENT_VERIFY = 'event_verify_',
+  HARSI_CHECK = 'harsi_check_',
+  HARSI_CHECK_SKIP = 'harsi_check_skip',
 }
 
 export interface OrderData {
   symbol?: TradingSymbol;
   direction?: OrderDirection;
+  harsi1w?: MarketState;
+  harsi3d?: MarketState;
+  harsi2d?: MarketState;
   harsi1d?: MarketState;
   harsi12h?: MarketState;
   harsi8h?: MarketState;
@@ -178,6 +183,13 @@ export enum OrderConversationStep {
   // Update order flow
   WAITING_ORDER_SELECTION = 'waiting_order_selection',
   WAITING_CLOSE_PRICE = 'waiting_close_price',
+  // HARSI check flow (used by /trend command)
+  WAITING_HARSI_CHECK_1W = 'waiting_harsi_check_1w',
+  WAITING_HARSI_CHECK_3D = 'waiting_harsi_check_3d',
+  WAITING_HARSI_CHECK_2D = 'waiting_harsi_check_2d',
+  WAITING_HARSI_CHECK_1D = 'waiting_harsi_check_1d',
+  WAITING_HARSI_CHECK_8H = 'waiting_harsi_check_8h',
+  WAITING_HARSI_CHECK_4H = 'waiting_harsi_check_4h',
 }
 
 export interface OrderConversationState {
