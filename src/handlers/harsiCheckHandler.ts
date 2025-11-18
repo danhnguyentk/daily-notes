@@ -7,7 +7,8 @@ import { Env } from '../types/env';
 import { MarketState, OrderConversationStep, CallbackDataPrefix } from '../types/orderTypes';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../services/telegramService';
 import { formatHarsiValue } from '../utils/formatUtils';
-import { saveHarsiCheck, TrendData } from '../services/supabaseService';
+import { formatVietnamTime } from '../utils/timeUtils';
+import { saveHarsiCheck, TrendData, getTrends, TrendRecord } from '../services/supabaseService';
 import { getConversationState, saveConversationState, clearConversationState } from '../services/orderConversationService';
 
 interface HarsiValues {
@@ -158,6 +159,74 @@ function generateRecommendation(harsiValues: HarsiValues): string {
   }
   
   return recommendations.join('\n');
+}
+
+/**
+ * Format trend record for display
+ */
+function formatTrendRecord(trend: TrendRecord): string {
+  const formatValue = (value?: string): string => {
+    if (!value) return 'N/A';
+    switch (value) {
+      case 'bullish':
+        return '🟢 Bullish';
+      case 'bearish':
+        return '🔴 Bearish';
+      case 'neutral':
+        return '⚪ Neutral';
+      default:
+        return value;
+    }
+  };
+
+  const surveyedDate = trend.surveyed_at 
+    ? formatVietnamTime(new Date(trend.surveyed_at))
+    : 'N/A';
+
+  return `
+📊 Kết quả kiểm tra HARSI:
+📅 Thời gian: ${surveyedDate}
+
+• HARSI 1W: ${formatValue(trend.harsi1w)}
+• HARSI 3D: ${formatValue(trend.harsi3d)}
+• HARSI 2D: ${formatValue(trend.harsi2d)}
+• HARSI 1D: ${formatValue(trend.harsi1d)}
+• HARSI 8H: ${formatValue(trend.harsi8h)}
+• HARSI 4H: ${formatValue(trend.harsi4h)}
+• Xu hướng: ${trend.trend ? formatValue(trend.trend) : 'Không rõ ràng'}
+
+${trend.recommendation || ''}
+  `.trim();
+}
+
+/**
+ * Show latest trend survey
+ */
+export async function showLatestTrend(chatId: string, env: Env): Promise<void> {
+  const trends = await getTrends(1, env);
+  
+  if (trends.length === 0) {
+    // No trends found, start new survey
+    await startHarsiCheck(0, chatId, env); // userId 0 for common trend
+    return;
+  }
+
+  const latestTrend = trends[0];
+  const message = formatTrendRecord(latestTrend);
+
+  const keyboard: TelegramInlineKeyboardMarkup = {
+    inline_keyboard: [
+      [
+        { text: '🔄 Khảo Sát Mới', callback_data: CallbackDataPrefix.TREND_SURVEY },
+      ],
+    ],
+  };
+
+  await sendMessageToTelegram({
+    chat_id: chatId,
+    text: message,
+    reply_markup: keyboard,
+  }, env);
 }
 
 /**

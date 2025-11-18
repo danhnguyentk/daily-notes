@@ -60,6 +60,7 @@ export enum CallbackDataPrefix {
   EVENT_VERIFY = 'event_verify_',
   HARSI_CHECK = 'harsi_check_',
   HARSI_CHECK_SKIP = 'harsi_check_skip',
+  TREND_SURVEY = 'trend_survey',
 }
 
 export interface OrderData {

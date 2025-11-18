@@ -41,7 +41,7 @@ import {
 } from './orderStatisticsHandler';
 import { showChartMenu } from './chartMenuHandler';
 import { handleAllEvents } from './telegramHandlers';
-import { startHarsiCheck, handleHarsiCheckSelection } from './harsiCheckHandler';
+import { startHarsiCheck, handleHarsiCheckSelection, showLatestTrend } from './harsiCheckHandler';
 
 // Route constants
 const ROUTES = {
@@ -408,7 +408,15 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Order cancelled');
       }
 
-      // Handle HARSI check selection (for /harsi command)
+      // Handle trend survey again button
+      if (callbackData === CallbackDataPrefix.TREND_SURVEY) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang bắt đầu survey mới...');
+        callbackAnswered = true;
+        await startHarsiCheck(userId, chatId, env);
+        return textResponse('Trend survey started');
+      }
+
+      // Handle HARSI check selection (for /trend command)
       if (callbackData && typeof callbackData === 'string') {
         const harsiCheckPrefix = 'harsi_check_';
         const harsiCheckSkip = 'harsi_check_skip';
@@ -546,8 +554,8 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
 
     // Handle trend command (asks for HARSI values and automatically calculates trend)
     if (text === TelegramCommands.TREND_CHECK) {
-      await startHarsiCheck(userId, chatId, env);
-      return textResponse('Trend check started');
+      await showLatestTrend(chatId, env);
+      return textResponse('Latest trend shown');
     }
 
     if (text === TelegramCommands.ORDER_STATS) {
