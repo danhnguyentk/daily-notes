@@ -37,7 +37,7 @@ orderstatsmonth - Monthly Order Statistics
 ### ACTION TODO 
 - Support alert when indiator splot -20 , later green 8h
 - Format message log telegram
-
+- Update git local to push to danhnguyentk@gmail.com
 
 Example markdown logs
 ### content

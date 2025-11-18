@@ -260,7 +260,7 @@ Hãy trả lời bằng tiếng Việt, ngắn gọn và cụ thể.`;
     await sendMessageToTelegram({
       chat_id: chatId,
       text: message,
-      parse_mode: TelegramParseMode.MarkdownV2,
+      parse_mode: TelegramParseMode.Markdown,
     }, env);
 
   } catch (error) {

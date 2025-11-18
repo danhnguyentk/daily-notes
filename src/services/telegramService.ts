@@ -124,6 +124,7 @@ export const TelegramCommands = {
 
 export enum TelegramParseMode {
   MarkdownV2 = 'MarkdownV2',
+  Markdown = 'Markdown',
   HTML = 'HTML',
 }
 

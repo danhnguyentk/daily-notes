@@ -663,8 +663,8 @@ async function handleOrderAnalysis(req: Request, env: Env): Promise<Response> {
       if (result.analysis) {
         await sendMessageToTelegram({
           chat_id: env.TELEGRAM_CHAT_ID,
-          text: `${formatMarkdownLog(TelegramMessageTitle.Analysis,   result.analysis)}`,
-          parse_mode: TelegramParseMode.MarkdownV2,
+          text: `${TelegramMessageTitle.Analysis}\n\n${result.analysis}`,
+          parse_mode: TelegramParseMode.Markdown,
         }, env);
       }
     } else {
