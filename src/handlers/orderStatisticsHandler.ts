@@ -511,10 +511,11 @@ export async function showOrderDetails(
 📊 Thông tin cơ bản:
    • Symbol: ${order.symbol || 'N/A'}
    • Direction: ${order.direction || 'N/A'}
+   • HARSI 1W: ${formatHarsiValue(order.harsi1w)}
+   • HARSI 3D: ${formatHarsiValue(order.harsi3d)}
+   • HARSI 2D: ${formatHarsiValue(order.harsi2d)}
    • HARSI 1D: ${formatHarsiValue(order.harsi1d)}
-   • HARSI 12H: ${formatHarsiValue(order.harsi12h)}
    • HARSI 8H: ${formatHarsiValue(order.harsi8h)}
-   • HARSI 6H: ${formatHarsiValue(order.harsi6h)}
    • HARSI 4H: ${formatHarsiValue(order.harsi4h)}
    • Entry: ${order.entry || 'N/A'}
    • Stop Loss: ${order.stopLoss || 'N/A'}

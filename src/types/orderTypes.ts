@@ -69,9 +69,7 @@ export interface OrderData {
   harsi3d?: MarketState;
   harsi2d?: MarketState;
   harsi1d?: MarketState;
-  harsi12h?: MarketState;
   harsi8h?: MarketState;
-  harsi6h?: MarketState;
   harsi4h?: MarketState;
   entry?: number;
   stopLoss?: number;
@@ -168,11 +166,12 @@ export enum OrderConversationStep {
   IDLE = 'idle',
   WAITING_SYMBOL = 'waiting_symbol',
   WAITING_DIRECTION = 'waiting_direction',
+  WAITING_HARSI_1W = 'waiting_harsi_1w',
+  WAITING_HARSI_3D = 'waiting_harsi_3d',
+  WAITING_HARSI_2D = 'waiting_harsi_2d',
   WAITING_HARSI_1D = 'waiting_harsi_1d',
-  WAITING_HARSI_12H = 'waiting_harsi_12h',
   WAITING_HARSI_8H = 'waiting_harsi_8h',
   WAITING_HARSI_8H_CONFIRMATION = 'waiting_harsi_8h_confirmation',
-  WAITING_HARSI_6H = 'waiting_harsi_6h',
   WAITING_HARSI_4H = 'waiting_harsi_4h',
   WAITING_ENTRY = 'waiting_entry',
   WAITING_STOP_LOSS = 'waiting_stop_loss',

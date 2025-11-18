@@ -381,10 +381,10 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       if (callbackData === CallbackDataPrefix.HARSI_8H_CONTINUE) {
         const state = await getConversationState(userId, env);
         if (state && state.step === OrderConversationStep.WAITING_HARSI_8H_CONFIRMATION) {
-          state.step = OrderConversationStep.WAITING_HARSI_6H;
+          state.step = OrderConversationStep.WAITING_HARSI_4H;
           await saveConversationState(state, env);
           
-          const message = `✅ HARSI 8H: ${state.data.harsi8h || 'N/A'}\n\nVui lòng chọn HARSI 6H:`;
+          const message = `✅ HARSI 8H: ${state.data.harsi8h || 'N/A'}\n\nVui lòng chọn HARSI 4H:`;
           await sendMessageToTelegram({ 
             chat_id: chatId, 
             text: message,

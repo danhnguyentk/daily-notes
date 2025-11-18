@@ -29,10 +29,11 @@ export interface OrderRecord {
   user_id: number;
   symbol?: string;
   direction?: string; // Stored as lowercase in DB: 'long' | 'short'
+  harsi1w?: string;
+  harsi3d?: string;
+  harsi2d?: string;
   harsi1d?: string;
-  harsi12h?: string;
   harsi8h?: string;
-  harsi6h?: string;
   harsi4h?: string;
   entry?: number;
   stop_loss?: number;
@@ -80,10 +81,11 @@ export function convertOrderRecordToOrderData(record: OrderRecord): OrderData & 
   return {
     symbol: record.symbol as TradingSymbol | undefined,
     direction: record.direction as OrderDirection | undefined,
+    harsi1w: record.harsi1w as MarketState | undefined,
+    harsi3d: record.harsi3d as MarketState | undefined,
+    harsi2d: record.harsi2d as MarketState | undefined,
     harsi1d: record.harsi1d as MarketState | undefined,
-    harsi12h: record.harsi12h as MarketState | undefined,
     harsi8h: record.harsi8h as MarketState | undefined,
-    harsi6h: record.harsi6h as MarketState | undefined,
     harsi4h: record.harsi4h as MarketState | undefined,
     entry: record.entry,
     stopLoss: record.stop_loss,
@@ -126,10 +128,11 @@ export async function saveOrderToSupabase(
     user_id: userId,
     symbol: orderData.symbol,
     direction: orderData.direction,
+    harsi1w: orderData.harsi1w,
+    harsi3d: orderData.harsi3d,
+    harsi2d: orderData.harsi2d,
     harsi1d: orderData.harsi1d,
-    harsi12h: orderData.harsi12h,
     harsi8h: orderData.harsi8h,
-    harsi6h: orderData.harsi6h,
     harsi4h: orderData.harsi4h,
     entry: orderData.entry,
     stop_loss: orderData.stopLoss,
@@ -558,7 +561,6 @@ export interface TrendRecord {
   harsi3d?: string; // 'bullish' | 'bearish' | 'neutral'
   harsi2d?: string; // 'bullish' | 'bearish' | 'neutral'
   harsi1d?: string; // 'bullish' | 'bearish' | 'neutral'
-  harsi12h?: string; // 'bullish' | 'bearish' | 'neutral'
   harsi8h?: string; // 'bullish' | 'bearish' | 'neutral'
   harsi4h?: string; // 'bullish' | 'bearish' | 'neutral'
   trend?: string; // 'bullish' | 'bearish'
@@ -571,7 +573,6 @@ export interface TrendData {
   harsi3d?: MarketState;
   harsi2d?: MarketState;
   harsi1d?: MarketState;
-  harsi12h?: MarketState;
   harsi8h?: MarketState;
   harsi4h?: MarketState;
   trend?: MarketState; // 'bullish' | 'bearish' (no neutral for trend)
@@ -592,7 +593,6 @@ export async function saveTrend(
     harsi3d: trendData.harsi3d,
     harsi2d: trendData.harsi2d,
     harsi1d: trendData.harsi1d,
-    harsi12h: trendData.harsi12h,
     harsi8h: trendData.harsi8h,
     harsi4h: trendData.harsi4h,
     trend: trendData.trend,
