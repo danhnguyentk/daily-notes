@@ -49,6 +49,7 @@ import { showChartMenu } from './chartMenuHandler';
 import { handleAllEvents } from './telegramHandlers';
 import { startHarsiCheck, handleHarsiCheckSelection, showLatestTrend } from './harsiCheckHandler';
 import { analyzeOrdersWithAI, analyzeOrdersForAPI } from './orderAnalysisHandler';
+import { saveOrderAnalysis } from '../services/supabaseService';
 
 // Route constants
 const ROUTES = {
@@ -681,6 +682,26 @@ async function handleOrderAnalysis(req: Request, env: Env): Promise<Response> {
     // Log result to Telegram
     if (result.success) {
       const stats = result.statistics;
+      
+      // Save analysis result to database
+      if (result.analysis && stats) {
+        try {
+          await saveOrderAnalysis({
+            analysis: result.analysis,
+            totalOrders: stats.totalOrders,
+            winCount: stats.winCount,
+            lossCount: stats.lossCount,
+            breakevenCount: stats.breakevenCount,
+            winRate: stats.winRate,
+            totalPnL: stats.totalPnL,
+            avgPnL: stats.avgPnL,
+          }, env);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error('Error saving order analysis to database:', errorMessage);
+          // Continue even if save fails
+        }
+      }
       
       // Send statistics message
       const statsMessage = `✅ Order Analysis Completed\n\n` +

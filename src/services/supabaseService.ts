@@ -13,6 +13,7 @@ export enum SupabaseTables {
   ORDERS = 'orders',
   EVENT_CONFIGS = 'event_configs',
   TREND = 'trend',
+  ORDER_ANALYSIS = 'order_analysis',
 }
 
 export enum OrderColumns {
@@ -684,5 +685,63 @@ export async function saveTrendCheck(
   };
   
   return saveTrend(data, recommendation, env);
+}
+
+export interface OrderAnalysisRecord {
+  id?: number;
+  analysis: string;
+  total_orders: number;
+  win_count: number;
+  loss_count: number;
+  breakeven_count: number;
+  win_rate: string;
+  total_pnl: string;
+  avg_pnl: string;
+  analyzed_at?: string;
+}
+
+export interface OrderAnalysisData {
+  analysis: string;
+  totalOrders: number;
+  winCount: number;
+  lossCount: number;
+  breakevenCount: number;
+  winRate: string;
+  totalPnL: string;
+  avgPnL: string;
+}
+
+/**
+ * Save order analysis result to database
+ */
+export async function saveOrderAnalysis(
+  analysisData: OrderAnalysisData,
+  env: Env
+): Promise<OrderAnalysisRecord> {
+  const supabase = getSupabaseClient(env);
+  
+  const record: Partial<OrderAnalysisRecord> = {
+    analysis: analysisData.analysis,
+    total_orders: analysisData.totalOrders,
+    win_count: analysisData.winCount,
+    loss_count: analysisData.lossCount,
+    breakeven_count: analysisData.breakevenCount,
+    win_rate: analysisData.winRate,
+    total_pnl: analysisData.totalPnL,
+    avg_pnl: analysisData.avgPnL,
+  };
+
+  const { data, error } = await supabase
+    .from(SupabaseTables.ORDER_ANALYSIS)
+    .insert(record)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error saving order analysis to Supabase:', error);
+    throw new Error(`Failed to save order analysis: ${error.message}`);
+  }
+
+  return data;
 }
 
