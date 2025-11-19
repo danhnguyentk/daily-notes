@@ -4,12 +4,14 @@
 
 import { BinanceSymbol, BinanceInterval, BinanceCandlesRequest } from '../services/binanceService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
-import { getEventConfigsForScheduled, EventConfigRecord, generateEventDescription, EventStatus, getTrends } from '../services/supabaseService';
+import { getEventConfigsForScheduled, EventConfigRecord, generateEventDescription, EventStatus, getTrends, TrendRecord } from '../services/supabaseService';
 import { Env } from '../types/env';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
-import { sendMessageToTelegram } from '../services/telegramService';
+import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../services/telegramService';
 import { snapshotChart } from './chartHandlers';
 import { notifyNumberClosedCandlesBullish, notifyNumberClosedCandlesBearish, CandleDirection } from './candleHandlers';
+import { CallbackDataPrefix } from '../types/orderTypes';
+import { formatVietnamTime } from '../utils/timeUtils';
 
 /**
  * Cron schedule expressions enum for easy management
@@ -102,7 +104,74 @@ async function processCandleChecks(
 }
 
 /**
- * Handle daily tasks (ETF analysis and chart snapshot)
+ * Format trend record for display
+ */
+function formatTrendRecordForScheduled(trend: TrendRecord): string {
+  const formatValue = (value?: string): string => {
+    if (!value) return 'N/A';
+    switch (value) {
+      case 'bullish':
+        return '🟢 Bullish';
+      case 'bearish':
+        return '🔴 Bearish';
+      case 'neutral':
+        return '⚪ Neutral';
+      default:
+        return value;
+    }
+  };
+
+  const surveyedDate = trend.surveyed_at 
+    ? formatVietnamTime(new Date(trend.surveyed_at))
+    : 'N/A';
+
+  return `
+📊 Kết quả kiểm tra HARSI:
+📅 Thời gian: ${surveyedDate}
+
+• HARSI 1W: ${formatValue(trend.harsi1w)}
+• HARSI 3D: ${formatValue(trend.harsi3d)}
+• HARSI 2D: ${formatValue(trend.harsi2d)}
+• HARSI 1D: ${formatValue(trend.harsi1d)}
+• HARSI 8H: ${formatValue(trend.harsi8h)}
+• HARSI 4H: ${formatValue(trend.harsi4h)}
+• Xu hướng: ${trend.trend ? formatValue(trend.trend) : 'Không rõ ràng'}
+
+${trend.recommendation || ''}
+  `.trim();
+}
+
+/**
+ * Send trend recommendation with Survey buttons
+ */
+async function sendTrendRecommendationWithButton(env: Env): Promise<void> {
+  const trends = await getTrends(1, env);
+  
+  if (trends.length === 0) {
+    console.log("No trends found, skipping recommendation");
+    return;
+  }
+
+  const latestTrend = trends[0];
+  const message = formatTrendRecordForScheduled(latestTrend);
+
+  const keyboard: TelegramInlineKeyboardMarkup = {
+    inline_keyboard: [
+      [
+        { text: '🔄 Khảo Sát Mới', callback_data: CallbackDataPrefix.TREND_SURVEY },
+      ],
+    ],
+  };
+
+  await sendMessageToTelegram({
+    chat_id: env.TELEGRAM_CHAT_ID,
+    text: message,
+    reply_markup: keyboard,
+  }, env);
+}
+
+/**
+ * Handle daily tasks (ETF analysis, chart snapshot, and trend recommendation)
  */
 async function handleDailyTasks(env: Env): Promise<void> {
   await safeExecute(async () => {
@@ -114,6 +183,11 @@ async function handleDailyTasks(env: Env): Promise<void> {
     console.log("📸 Taking chart snapshot for 00:05 schedule");
     await snapshotChart(env);
   }, "snapshotChart", env);
+
+  await safeExecute(async () => {
+    console.log("📊 Sending trend recommendation for 00:05 schedule");
+    await sendTrendRecommendationWithButton(env);
+  }, "trendRecommendation", env);
 }
 
 /**
