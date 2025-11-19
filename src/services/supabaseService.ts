@@ -745,3 +745,26 @@ export async function saveOrderAnalysis(
   return data;
 }
 
+/**
+ * Get latest order analysis from database
+ */
+export async function getLatestOrderAnalysis(
+  env: Env
+): Promise<OrderAnalysisRecord | null> {
+  const supabase = getSupabaseClient(env);
+  
+  const { data, error } = await supabase
+    .from(SupabaseTables.ORDER_ANALYSIS)
+    .select('*')
+    .order('analyzed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching latest order analysis from Supabase:', error);
+    throw new Error(`Failed to fetch latest order analysis: ${error.message}`);
+  }
+
+  return data;
+}
+

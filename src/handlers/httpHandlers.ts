@@ -48,8 +48,8 @@ import {
 import { showChartMenu } from './chartMenuHandler';
 import { handleAllEvents } from './telegramHandlers';
 import { startHarsiCheck, handleHarsiCheckSelection, showLatestTrend } from './harsiCheckHandler';
-import { analyzeOrdersWithAI, analyzeOrdersForAPI } from './orderAnalysisHandler';
-import { saveOrderAnalysis } from '../services/supabaseService';
+import { analyzeOrdersForAPI } from './orderAnalysisHandler';
+import { saveOrderAnalysis, getLatestOrderAnalysis } from '../services/supabaseService';
 
 // Route constants
 const ROUTES = {
@@ -231,11 +231,54 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Order list shown');
       }
 
+      // Handle order analysis button - show latest analysis from database
       if (callbackData === CallbackDataPrefix.ORDER_ANALYZE) {
-        await answerCallbackQuery(callbackQuery.id, env, 'Đang phân tích...');
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải phân tích...');
         callbackAnswered = true;
-        await analyzeOrdersWithAI(userId, chatId, env);
-        return textResponse('Order analysis started');
+        
+        try {
+          const latestAnalysis = await getLatestOrderAnalysis(env);
+          
+          if (!latestAnalysis) {
+            await sendMessageToTelegram({
+              chat_id: chatId,
+              text: '❌ Chưa có phân tích nào. Vui lòng chạy phân tích trước qua API /analyze.',
+            }, env);
+            return textResponse('No analysis found');
+          }
+          
+          // Format and send the latest analysis
+          const analyzedDate = latestAnalysis.analyzed_at 
+            ? new Date(latestAnalysis.analyzed_at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
+            : 'N/A';
+          
+          const statsMessage = `📊 **Phân tích lệnh giao dịch**\n\n` +
+            `📅 Thời gian phân tích: ${analyzedDate}\n\n` +
+            `**Thống kê:**\n` +
+            `• Tổng số lệnh: ${latestAnalysis.total_orders}\n` +
+            `• Thắng: ${latestAnalysis.win_count}\n` +
+            `• Thua: ${latestAnalysis.loss_count}\n` +
+            `• Hòa: ${latestAnalysis.breakeven_count}\n` +
+            `• Tỷ lệ thắng: ${latestAnalysis.win_rate}%\n` +
+            `• Tổng P&L: $${latestAnalysis.total_pnl}\n` +
+            `• P&L trung bình: $${latestAnalysis.avg_pnl}\n\n` +
+            `**Phân tích:**\n${latestAnalysis.analysis}`;
+          
+          await sendMessageToTelegram({
+            chat_id: chatId,
+            text: statsMessage,
+            parse_mode: TelegramParseMode.Markdown,
+          }, env);
+          
+          return textResponse('Latest analysis shown');
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          await sendMessageToTelegram({
+            chat_id: chatId,
+            text: `❌ Lỗi khi tải phân tích: ${errorMessage}`,
+          }, env);
+          return textResponse('Error loading analysis');
+        }
       }
 
       // Handle separator (do nothing, just answer the callback)
