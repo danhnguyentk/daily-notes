@@ -6,7 +6,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Env } from '../types/env';
 import { OrderData, OrderDirection, TradingSymbol, MarketState, OrderResult } from '../types/orderTypes';
 import { calculateOrderLoss } from '../utils/orderCalcUtils';
-import { CandleDirection } from '../handlers/candleHandlers';
+import { CandleDirection } from '../types/candleTypes';
 
 // Supabase table and column enums
 export enum SupabaseTables {

@@ -4,14 +4,10 @@
 
 import { KuCoinCandlesRequest, KuCoinToTradingviewInterval, checkNumberClosedCandlesBullish, checkNumberClosedCandlesBearish } from '../services/kucoinService';
 import { Env } from '../types/env';
+import { CandleDirection } from '../types/candleTypes';
 import { formatVietnamTime } from '../utils/timeUtils';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
 import { snapshotChartWithSpecificInterval } from './chartHandlers';
-
-export const enum CandleDirection {
-  BULLISH = 'bullish',
-  BEARISH = 'bearish'
-}
 
 export async function notifyNumberClosedCandles(
   request: KuCoinCandlesRequest,

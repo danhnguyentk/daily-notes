@@ -17,7 +17,8 @@ import {
 import { Env } from '../types/env';
 import { CallbackDataPrefix } from '../types/orderTypes';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
-import { notifyNumberClosedCandlesBullish, notifyNumberClosedCandlesBearish, CandleDirection } from './candleHandlers';
+import { notifyNumberClosedCandlesBullish, notifyNumberClosedCandlesBearish } from './candleHandlers';
+import { CandleDirection } from '../types/candleTypes';
 
 
 // Helper function to handle candle check commands

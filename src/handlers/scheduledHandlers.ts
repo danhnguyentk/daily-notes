@@ -9,7 +9,8 @@ import { Env } from '../types/env';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../services/telegramService';
 import { snapshotChart } from './chartHandlers';
-import { notifyNumberClosedCandlesBullish, notifyNumberClosedCandlesBearish, CandleDirection } from './candleHandlers';
+import { notifyNumberClosedCandlesBullish, notifyNumberClosedCandlesBearish } from './candleHandlers';
+import { CandleDirection } from '../types/candleTypes';
 import { CallbackDataPrefix } from '../types/orderTypes';
 import { formatVietnamTime } from '../utils/timeUtils';
 
