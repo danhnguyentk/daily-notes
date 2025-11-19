@@ -23,9 +23,8 @@ http://localhost:8787/__scheduled
 trend - Trend Check
 charts - Chart Menu
 orders - Order Menu
-events - All Events (Enabled, Disabled) 
-orderstats - Order Statistics
-orderstatsmonth - Monthly Order Statistics
+events - All Events (Enabled, Disabled)
+statistics - Statistics Menu
 ```
 
 ### OpenAI

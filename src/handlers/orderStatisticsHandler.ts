@@ -146,6 +146,157 @@ export async function showMonthlyStatistics(
 }
 
 /**
+ * Helper functions to calculate date ranges for different periods
+ */
+function getCurrentMonthRange(): { start: Date; end: Date } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  return { start, end };
+}
+
+function getPreviousMonthRange(): { start: Date; end: Date } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+  return { start, end };
+}
+
+function getCurrentWeekRange(): { start: Date; end: Date } {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust to Monday
+  const start = new Date(now.getFullYear(), now.getMonth(), diff);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+function getPreviousWeekRange(): { start: Date; end: Date } {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) - 7; // Previous week
+  const start = new Date(now.getFullYear(), now.getMonth(), diff);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+/**
+ * Hiển thị menu thống kê với các tùy chọn
+ */
+export async function showStatisticsMenu(
+  userId: number,
+  chatId: string,
+  env: Env
+): Promise<void> {
+  const keyboard: TelegramInlineKeyboardMarkup = {
+    inline_keyboard: [
+      [
+        {
+          text: '📊 Tất cả',
+          callback_data: CallbackDataPrefix.STATS_ALL,
+        },
+      ],
+      [
+        {
+          text: '📅 Tháng này',
+          callback_data: CallbackDataPrefix.STATS_CURRENT_MONTH,
+        },
+        {
+          text: '📅 Tháng trước',
+          callback_data: CallbackDataPrefix.STATS_PREVIOUS_MONTH,
+        },
+      ],
+      [
+        {
+          text: '📆 Tuần này',
+          callback_data: CallbackDataPrefix.STATS_CURRENT_WEEK,
+        },
+        {
+          text: '📆 Tuần trước',
+          callback_data: CallbackDataPrefix.STATS_PREVIOUS_WEEK,
+        },
+      ],
+    ],
+  };
+
+  const message = `📊 Menu Thống kê\n\nChọn khoảng thời gian để xem thống kê:`;
+
+  await sendMessageToTelegram(
+    {
+      chat_id: chatId,
+      text: message,
+      reply_markup: keyboard,
+    },
+    env
+  );
+}
+
+/**
+ * Hiển thị thống kê cho tất cả orders
+ */
+export async function showAllStatistics(
+  userId: number,
+  chatId: string,
+  env: Env
+): Promise<void> {
+  await showRiskUnitStatistics(userId, chatId, env);
+}
+
+/**
+ * Hiển thị thống kê cho tháng hiện tại
+ */
+export async function showCurrentMonthStatistics(
+  userId: number,
+  chatId: string,
+  env: Env
+): Promise<void> {
+  const { start, end } = getCurrentMonthRange();
+  await showRiskUnitStatistics(userId, chatId, env, start, end);
+}
+
+/**
+ * Hiển thị thống kê cho tháng trước
+ */
+export async function showPreviousMonthStatistics(
+  userId: number,
+  chatId: string,
+  env: Env
+): Promise<void> {
+  const { start, end } = getPreviousMonthRange();
+  await showRiskUnitStatistics(userId, chatId, env, start, end);
+}
+
+/**
+ * Hiển thị thống kê cho tuần hiện tại
+ */
+export async function showCurrentWeekStatistics(
+  userId: number,
+  chatId: string,
+  env: Env
+): Promise<void> {
+  const { start, end } = getCurrentWeekRange();
+  await showRiskUnitStatistics(userId, chatId, env, start, end);
+}
+
+/**
+ * Hiển thị thống kê cho tuần trước
+ */
+export async function showPreviousWeekStatistics(
+  userId: number,
+  chatId: string,
+  env: Env
+): Promise<void> {
+  const { start, end } = getPreviousWeekRange();
+  await showRiskUnitStatistics(userId, chatId, env, start, end);
+}
+
+/**
  * Lấy order theo orderId từ Supabase
  */
 export async function getOrderById(

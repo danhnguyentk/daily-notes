@@ -38,6 +38,12 @@ import {
   deleteOrder,
   showDeleteOrderConfirmation,
   showOrderMenu,
+  showStatisticsMenu,
+  showAllStatistics,
+  showCurrentMonthStatistics,
+  showPreviousMonthStatistics,
+  showCurrentWeekStatistics,
+  showPreviousWeekStatistics,
 } from './orderStatisticsHandler';
 import { showChartMenu } from './chartMenuHandler';
 import { handleAllEvents } from './telegramHandlers';
@@ -425,6 +431,42 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Trend survey started');
       }
 
+      // Handle statistics menu callbacks
+      if (callbackData === CallbackDataPrefix.STATS_ALL) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải thống kê...');
+        callbackAnswered = true;
+        await showAllStatistics(userId, chatId, env);
+        return textResponse('All statistics shown');
+      }
+
+      if (callbackData === CallbackDataPrefix.STATS_CURRENT_MONTH) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải thống kê...');
+        callbackAnswered = true;
+        await showCurrentMonthStatistics(userId, chatId, env);
+        return textResponse('Current month statistics shown');
+      }
+
+      if (callbackData === CallbackDataPrefix.STATS_PREVIOUS_MONTH) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải thống kê...');
+        callbackAnswered = true;
+        await showPreviousMonthStatistics(userId, chatId, env);
+        return textResponse('Previous month statistics shown');
+      }
+
+      if (callbackData === CallbackDataPrefix.STATS_CURRENT_WEEK) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải thống kê...');
+        callbackAnswered = true;
+        await showCurrentWeekStatistics(userId, chatId, env);
+        return textResponse('Current week statistics shown');
+      }
+
+      if (callbackData === CallbackDataPrefix.STATS_PREVIOUS_WEEK) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải thống kê...');
+        callbackAnswered = true;
+        await showPreviousWeekStatistics(userId, chatId, env);
+        return textResponse('Previous week statistics shown');
+      }
+
       // Handle HARSI check selection (for /trend command)
       if (callbackData && typeof callbackData === 'string') {
         const harsiCheckPrefix = 'harsi_check_';
@@ -567,14 +609,10 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       return textResponse('Latest trend shown');
     }
 
-    if (text === TelegramCommands.ORDER_STATS) {
-      await showRiskUnitStatistics(userId, chatId, env);
-      return textResponse('Order statistics shown');
-    }
-
-    if (text === TelegramCommands.ORDER_STATS_MONTH) {
-      await showMonthlyStatistics(userId, chatId, env);
-      return textResponse('Monthly order statistics shown');
+    // Handle statistics command
+    if (text === TelegramCommands.STATISTICS) {
+      await showStatisticsMenu(userId, chatId, env);
+      return textResponse('Statistics menu shown');
     }
 
     // If user is in conversation, process input

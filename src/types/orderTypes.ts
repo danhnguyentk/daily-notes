@@ -62,6 +62,11 @@ export enum CallbackDataPrefix {
   HARSI_CHECK_SKIP = 'harsi_check_skip',
   TREND_SURVEY = 'trend_survey',
   ORDER_ANALYZE = 'order_analyze',
+  STATS_ALL = 'stats_all',
+  STATS_CURRENT_MONTH = 'stats_current_month',
+  STATS_PREVIOUS_MONTH = 'stats_previous_month',
+  STATS_CURRENT_WEEK = 'stats_current_week',
+  STATS_PREVIOUS_WEEK = 'stats_previous_week',
 }
 
 export interface OrderData {
