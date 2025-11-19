@@ -211,10 +211,9 @@ export async function takeTelegramAction(action: string, env: Env, isEnable?: bo
       // This will be handled in httpHandlers with user context
       return { message: 'Order menu shown' };
 
-    case TelegramCommands.ORDER_STATS:
-    case TelegramCommands.ORDER_STATS_MONTH:
+    case TelegramCommands.STATISTICS:
       // This will be handled in httpHandlers with user context
-      return { message: 'Order statistics shown' };
+      return { message: 'Statistics menu shown' };
 
     default:
       console.log(`No action taken for command: ${action}`);
