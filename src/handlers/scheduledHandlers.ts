@@ -3,7 +3,6 @@
  */
 
 import { KuCoinSymbol, KuCoinInterval, KuCoinCandlesRequest } from '../services/kucoinService';
-import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
 import { getEventConfigsForScheduled, EventConfigRecord, generateEventDescription, EventStatus, getTrends, TrendRecord } from '../services/supabaseService';
 import { Env } from '../types/env';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
@@ -176,9 +175,12 @@ async function sendTrendRecommendationWithButton(env: Env): Promise<void> {
  */
 async function handleDailyTasks(env: Env): Promise<void> {
   await safeExecute(async () => {
-    console.log("📊 Running ETF data analysis for 00:05 schedule");
-    await fetchAndNotifyEtf(env);
-  }, "analyzeEtfData", env);
+    console.log("📊 Sending BTC ETF dashboard link for 00:05 schedule");
+    await sendMessageToTelegram({
+      chat_id: env.TELEGRAM_CHAT_ID,
+      text: "📊 BTC ETF dashboard:\nhttps://farside.co.uk/btc/",
+    }, env);
+  }, "btcEtfLink", env);
 
   await safeExecute(async () => {
     console.log("📸 Taking chart snapshot for 00:05 schedule");
