@@ -1,8 +1,7 @@
-// import { buildScraperApiUrl } from "./scraperApiService";
 import { sendMessageToTelegram } from "./telegramService";
 import { TradingviewInterval } from "./tradingviewService";
 import { Env } from "../types/env";
-import { buildScrapingBeeApiUrl } from "./scrapingbeeApiService";
+import { buildProxyUrl } from "./scraperService";
 
 export type BinanceKline = {
   openTime: number;
@@ -91,7 +90,7 @@ function parseKline(data: any[]): BinanceKline {
 
 async function getBinanceCandles(request: BinanceCandlesRequest, env: Env): Promise<BinanceKline[]> {
   const { symbol, interval, limit = 500 } = request;
-  const url = buildScrapingBeeApiUrl(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, env);
+  const url = buildProxyUrl(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, env);
   
   const response = await fetch(url, {
     headers: {
@@ -145,7 +144,7 @@ export async function checkNumberClosedCandlesBearish(
 
 // Fetch current price for a given symbol from Binance
 export async function getCurrentPrice(symbol: BinanceSymbol, env: Env): Promise<number> {
-  const url = buildScrapingBeeApiUrl(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, env);
+  const url = buildProxyUrl(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, env);
 
   const response = await fetch(url, {
     headers: {

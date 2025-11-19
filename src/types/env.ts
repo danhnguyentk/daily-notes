@@ -1,6 +1,7 @@
 export interface Env {
-  SCRAPER_KEY: string;
-  SCRAPINGBEE_KEY: string;
+  SCRAPER_API_KEY: string;
+  SCRAPINGBEE_API_KEY: string;
+  SCRAPER_PROVIDER?: string; // 'scraper' or 'scrapingbee', defaults to 'scraper'
   TELEGRAM_KEY: string;
   TELEGRAM_CHAT_ID: string;
   TRADINGVIEW_LAYOUT_ID: string;

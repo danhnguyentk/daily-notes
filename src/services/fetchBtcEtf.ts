@@ -1,5 +1,6 @@
 import { TelegramParseMode, sendMessageToTelegram } from "./telegramService";
 import { Env } from "../types/env";
+import { buildProxyUrl } from "./scraperService";
 import * as cheerio from "cheerio";
 
 export type EtfRow = {
@@ -85,7 +86,7 @@ function extractTable(htmlEncoded: string): EtfRow[] {
 export async function fetchBtcEtf(env: Env): Promise<EtfRow[]> {
   console.log("Fetching BTC ETF data...");
   const targetUrl = "https://farside.co.uk/wp-json/wp/v2/pages?slug=btc";
-  const proxyUrl = `https://api.scraperapi.com?api_key=${env.SCRAPER_KEY}&url=${encodeURIComponent(targetUrl)}`;
+  const proxyUrl = buildProxyUrl(targetUrl, env);
   const res = await fetch(proxyUrl);
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
