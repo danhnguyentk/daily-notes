@@ -30,3 +30,42 @@ export function formatHarsiValue(value: MarketState | undefined): string {
   }
 }
 
+/**
+ * Check if a numeric value is defined and not NaN
+ */
+export function hasNumericValue(value: number | undefined | null): value is number {
+  return typeof value === 'number' && !Number.isNaN(value);
+}
+
+/**
+ * Safely format numeric values using toFixed with fallback text
+ */
+export function safeToFixed(
+  value: number | undefined | null,
+  decimals: number,
+  fallback = 'N/A',
+): string {
+  if (!hasNumericValue(value)) {
+    return fallback;
+  }
+  return value.toFixed(decimals);
+}
+
+/**
+ * Format ratio result into risk units (R)
+ */
+export function formatRiskUnit(ratio: number | undefined | null): string {
+  if (!hasNumericValue(ratio)) {
+    return 'N/A';
+  }
+
+  const formatted = ratio.toFixed(2);
+  if (ratio > 0) {
+    return `+${formatted}R`;
+  }
+  if (ratio < 0) {
+    return `${formatted}R`;
+  }
+  return '0R';
+}
+

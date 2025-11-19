@@ -6,7 +6,7 @@ import { Env } from '../types/env';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeyboardMarkup, TelegramReplyKeyboardRemove } from './telegramService';
 import { OrderConversationState, OrderConversationStep, OrderData, MarketState, OrderDirection, TradingSymbol, CallbackDataPrefix } from '../types/orderTypes';
 import { updateOrderWithClosePrice } from '../handlers/orderStatisticsHandler';
-import { formatHarsiValue } from '../utils/formatUtils';
+import { formatHarsiValue, formatRiskUnit, safeToFixed } from '../utils/formatUtils';
 
 const CONVERSATION_STATE_KEY_PREFIX = 'order_conversation_';
 
@@ -591,23 +591,6 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
         }, env);
         return { completed: false };
       }
-
-      // Helper function to safely format numbers with toFixed
-      const safeToFixed = (value: number | undefined | null, decimals: number, fallback: string = 'N/A'): string => {
-        if (value === undefined || value === null || isNaN(value)) return fallback;
-        return value.toFixed(decimals);
-      };
-
-      // Hiển thị kết quả
-      const formatRiskUnit = (ratio: number | undefined | null): string => {
-        if (ratio === undefined || ratio === null || isNaN(ratio)) return 'N/A';
-        if (ratio > 0) {
-          return `+${ratio.toFixed(2)}R`;
-        } else if (ratio < 0) {
-          return `${ratio.toFixed(2)}R`;
-        }
-        return '0R';
-      };
 
       const resultMessage = `
 ✅ Đã cập nhật lệnh với Close Price!

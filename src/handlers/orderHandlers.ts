@@ -8,8 +8,127 @@ import { sendMessageToTelegram, TelegramReplyKeyboardRemove } from '../services/
 import { formatVietnamTime } from '../utils/timeUtils';
 import { formatNotes } from '../services/orderConversationService';
 import { calculateOrderLoss } from '../utils/orderCalcUtils';
-import { formatHarsiValue } from '../utils/formatUtils';
+import { formatHarsiValue, formatRiskUnit, hasNumericValue, safeToFixed } from '../utils/formatUtils';
 import { saveOrder } from './orderStatisticsHandler';
+
+const VALUE_NOT_AVAILABLE = 'N/A';
+
+const HARSI_8H_BEARISH_WARNING = `
+⚠️ CẢNH BÁO RỦI RO
+
+HARSI 8H đang ở trạng thái Bearish (Giảm).
+
+📌 Lưu ý:
+   • Thị trường có xu hướng giảm trên khung thời gian 8 giờ
+   • Dễ dàng chạm Stop Loss nếu xu hướng giảm tiếp tục
+   • Nên cân nhắc kỹ trước khi vào lệnh
+   • Đảm bảo Stop Loss được đặt hợp lý và quản lý rủi ro tốt
+
+💡 Gợi ý:
+   • Kiểm tra lại các khung thời gian khác (1D, 12H, 6H, 4H)
+   • Xem xét các tín hiệu phân tích kỹ thuật khác
+   • Quản lý vốn cẩn thận, không nên risk quá nhiều
+`.trim();
+
+function withFallback<T>(value: T | undefined | null, fallback = VALUE_NOT_AVAILABLE): T | string {
+  return value ?? fallback;
+}
+
+function buildLossInfo(orderData: OrderData): string | undefined {
+  if (!hasNumericValue(orderData.potentialStopLoss)) {
+    return undefined;
+  }
+
+  return [
+    '📉 Thông tin rủi ro (nếu chạm Stop Loss):',
+    `   • Mức thua lỗ: ${safeToFixed(orderData.potentialStopLoss, 4)} (${safeToFixed(orderData.potentialStopLossPercent, 2)}%)`,
+    `   • Thua lỗ USD: $${safeToFixed(orderData.potentialStopLossUsd, 2)}`,
+  ].join('\n');
+}
+
+function buildProfitInfo(orderData: OrderData): string | undefined {
+  if (!hasNumericValue(orderData.potentialProfit)) {
+    return undefined;
+  }
+
+  return [
+    '📈 Thông tin lợi nhuận (nếu chạm Take Profit):',
+    `   • Mức tăng giá: ${safeToFixed(orderData.potentialProfit, 4)} (${safeToFixed(orderData.potentialProfitPercent, 2)}%)`,
+    `   • Lợi nhuận USD: $${safeToFixed(orderData.potentialProfitUsd, 2)}`,
+  ].join('\n');
+}
+
+function buildPotentialRiskRewardInfo(orderData: OrderData): string | undefined {
+  if (!hasNumericValue(orderData.potentialRiskRewardRatio)) {
+    return undefined;
+  }
+
+  return `⚖️ Tỷ lệ Risk/Reward (tiềm năng): 1:${safeToFixed(orderData.potentialRiskRewardRatio, 2)}`;
+}
+
+function buildActualRiskRewardInfo(orderData: OrderData): string | undefined {
+  if (!hasNumericValue(orderData.actualRiskRewardRatio)) {
+    return undefined;
+  }
+
+  const ratio = orderData.actualRiskRewardRatio;
+  const directionText =
+    ratio > 0
+      ? `(Lợi nhuận ${safeToFixed(ratio * 100, 1)}% rủi ro)`
+      : `(Thua lỗ ${safeToFixed(Math.abs(ratio * 100), 1)}% rủi ro)`;
+
+  return [
+    `📊 Kết quả thực tế: ${formatRiskUnit(ratio)}`,
+    `   ${directionText}`,
+    `   • 1R = ${safeToFixed(orderData.potentialStopLoss, 4)} (rủi ro tiềm năng)`,
+  ].join('\n');
+}
+
+function buildOrderSummary(orderData: OrderData, formattedNotes: string): string {
+  const summarySections = [
+    buildLossInfo(orderData),
+    buildProfitInfo(orderData),
+    buildPotentialRiskRewardInfo(orderData),
+    buildActualRiskRewardInfo(orderData),
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  const summaryLines = [
+    '✅ Lệnh đã được xử lý thành công!',
+    '',
+    '📋 Thông tin lệnh:',
+    `Symbol: ${withFallback(orderData.symbol)}`,
+    `Direction: ${withFallback(orderData.direction)}`,
+    `HARSI 1W: ${formatHarsiValue(orderData.harsi1w)}`,
+    `HARSI 3D: ${formatHarsiValue(orderData.harsi3d)}`,
+    `HARSI 2D: ${formatHarsiValue(orderData.harsi2d)}`,
+    `HARSI 1D: ${formatHarsiValue(orderData.harsi1d)}`,
+    `HARSI 8H: ${formatHarsiValue(orderData.harsi8h)}`,
+    `HARSI 4H: ${formatHarsiValue(orderData.harsi4h)}`,
+    `Entry: ${withFallback(orderData.entry)}`,
+    `Stop Loss: ${withFallback(orderData.stopLoss)}`,
+    `Take Profit: ${withFallback(orderData.takeProfit)}`,
+    `Quantity: ${withFallback(orderData.quantity)}`,
+  ];
+
+  if (hasNumericValue(orderData.actualClosePrice)) {
+    summaryLines.push(`Close Price: ${safeToFixed(orderData.actualClosePrice, 2)}`);
+  }
+
+  if (summarySections) {
+    summaryLines.push('');
+    summaryLines.push(summarySections);
+  }
+
+  summaryLines.push('');
+  summaryLines.push('Notes:');
+  summaryLines.push(formattedNotes);
+  summaryLines.push('');
+  summaryLines.push(`⏰ Thời gian: ${formatVietnamTime()}`);
+
+  return summaryLines.join('\n').trim();
+}
 
 /**
  * Process completed order data
@@ -54,83 +173,7 @@ export async function processOrderData(
 
   // Format order summary
   const formattedNotes = formatNotes(orderData.notes);
-  
-  // Helper function to safely format numbers with toFixed
-  const safeToFixed = (value: number | undefined | null, decimals: number, fallback: string = 'N/A'): string => {
-    if (value === undefined || value === null || isNaN(value)) return fallback;
-    return value.toFixed(decimals);
-  };
-
-  // Format loss information
-  const lossInfo = orderData.potentialStopLoss !== undefined && orderData.potentialStopLoss !== null ? `
-📉 Thông tin rủi ro (nếu chạm Stop Loss):
-   • Mức thua lỗ: ${safeToFixed(orderData.potentialStopLoss, 4)} (${safeToFixed(orderData.potentialStopLossPercent, 2)}%)
-   • Thua lỗ USD: $${safeToFixed(orderData.potentialStopLossUsd, 2)}
-  `.trim() : '';
-
-  // Format profit information
-  const profitInfo = orderData.potentialProfit !== undefined && orderData.potentialProfit !== null ? `
-📈 Thông tin lợi nhuận (nếu chạm Take Profit):
-   • Mức tăng giá: ${safeToFixed(orderData.potentialProfit, 4)} (${safeToFixed(orderData.potentialProfitPercent, 2)}%)
-   • Lợi nhuận USD: $${safeToFixed(orderData.potentialProfitUsd, 2)}
-  `.trim() : '';
-
-  // Format potential risk/reward ratio
-  const potentialRiskRewardInfo = orderData.potentialRiskRewardRatio !== undefined && orderData.potentialRiskRewardRatio !== null ? `
-⚖️ Tỷ lệ Risk/Reward (tiềm năng): 1:${safeToFixed(orderData.potentialRiskRewardRatio, 2)}
-  `.trim() : '';
-
-  // Format actual risk/reward ratio theo đơn vị R (if order was closed early)
-  // Dương = lợi nhuận, Âm = thua lỗ
-  const formatRiskUnit = (ratio: number | undefined | null): string => {
-    if (ratio === undefined || ratio === null || isNaN(ratio)) return 'N/A';
-    const absRatio = Math.abs(ratio);
-    const formatted = absRatio.toFixed(2);
-    
-    if (ratio > 0) {
-      // Lợi nhuận: hiển thị +0.5R, +1R, +2R
-      return `+${formatted}R`;
-    } else if (ratio < 0) {
-      // Thua lỗ: hiển thị -0.5R, -1R, -1.5R
-      return `${ratio.toFixed(2)}R`;
-    }
-    return '0R';
-  };
-
-  const actualRiskRewardInfo = orderData.actualRiskRewardRatio !== undefined && orderData.actualRiskRewardRatio !== null ? `
-📊 Kết quả thực tế: ${formatRiskUnit(orderData.actualRiskRewardRatio)}
-   ${orderData.actualRiskRewardRatio > 0 
-     ? `(Lợi nhuận ${safeToFixed(orderData.actualRiskRewardRatio * 100, 1)}% rủi ro)`
-     : `(Thua lỗ ${safeToFixed(Math.abs(orderData.actualRiskRewardRatio * 100), 1)}% rủi ro)`}
-   • 1R = ${safeToFixed(orderData.potentialStopLoss, 4)} (rủi ro tiềm năng)
-  `.trim() : '';
-
-  const summary = `
-✅ Lệnh đã được xử lý thành công!
-
-📋 Thông tin lệnh:
-Symbol: ${orderData.symbol}
-Direction: ${orderData.direction}
-HARSI 1W: ${formatHarsiValue(orderData.harsi1w)}
-HARSI 3D: ${formatHarsiValue(orderData.harsi3d)}
-HARSI 2D: ${formatHarsiValue(orderData.harsi2d)}
-HARSI 1D: ${formatHarsiValue(orderData.harsi1d)}
-HARSI 8H: ${formatHarsiValue(orderData.harsi8h)}
-HARSI 4H: ${formatHarsiValue(orderData.harsi4h)}
-Entry: ${orderData.entry}
-Stop Loss: ${orderData.stopLoss}
-Take Profit: ${orderData.takeProfit || 'N/A'}
-Quantity: ${orderData.quantity || 'N/A'}
-${!orderData?.actualClosePrice ? '' : `Close Price: ${safeToFixed(orderData.actualClosePrice, 2)}`}
-${lossInfo ? '\n' + lossInfo : ''}
-${profitInfo ? '\n' + profitInfo : ''}
-${potentialRiskRewardInfo ? '\n' + potentialRiskRewardInfo : ''}
-${actualRiskRewardInfo ? '\n' + actualRiskRewardInfo : ''}
-Notes:
-${formattedNotes}
-
-⏰ Thời gian: ${formatVietnamTime()}
-  `.trim();
+  const summary = buildOrderSummary(orderData, formattedNotes);
 
   // Remove any remaining keyboards khi hoàn thành order
   const removeKeyboard: TelegramReplyKeyboardRemove = { remove_keyboard: true };
@@ -142,26 +185,9 @@ ${formattedNotes}
 
   // Warning alert if HARSI 8h is Bearish
   if (orderData.harsi8h === MarketState.Bearish) {
-    const warningMessage = `
-⚠️ CẢNH BÁO RỦI RO
-
-HARSI 8H đang ở trạng thái Bearish (Giảm).
-
-📌 Lưu ý:
-   • Thị trường có xu hướng giảm trên khung thời gian 8 giờ
-   • Dễ dàng chạm Stop Loss nếu xu hướng giảm tiếp tục
-   • Nên cân nhắc kỹ trước khi vào lệnh
-   • Đảm bảo Stop Loss được đặt hợp lý và quản lý rủi ro tốt
-
-💡 Gợi ý:
-   • Kiểm tra lại các khung thời gian khác (1D, 12H, 6H, 4H)
-   • Xem xét các tín hiệu phân tích kỹ thuật khác
-   • Quản lý vốn cẩn thận, không nên risk quá nhiều
-    `.trim();
-
     await sendMessageToTelegram({
       chat_id: chatId,
-      text: warningMessage,
+      text: HARSI_8H_BEARISH_WARNING,
     }, env);
   }
 
