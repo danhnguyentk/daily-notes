@@ -12,5 +12,6 @@ export interface Env {
   SUPABASE_SECRET_KEY: string;
   OPENAI_API_KEY: string;
   ZAI_API_KEY?: string;
+  AI_PROVIDER?: string; // 'openai' or 'zai', defaults to 'zai'
 }
 

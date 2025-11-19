@@ -6,7 +6,7 @@ import { Env } from '../types/env';
 import { OrderResult } from '../types/orderTypes';
 import { sendMessageToTelegram, TelegramParseMode } from '../services/telegramService';
 import { getAllOrdersFromSupabase, getUserOrdersFromSupabase, convertOrderRecordToOrderData } from '../services/supabaseService';
-import { analyzeWithZai, ZaiModel } from '../services/zaiService';
+import { analyzeWithAIProvider } from '../services/aiService';
 
 /**
  * Analyze orders and return analysis result as JSON (for API)
@@ -111,12 +111,11 @@ Hãy trả lời bằng tiếng Việt, ngắn gọn và cụ thể.`;
     // System prompt for trading analysis
     const systemPrompt = 'Bạn là một chuyên gia phân tích giao dịch cryptocurrency với nhiều năm kinh nghiệm. Hãy phân tích dữ liệu và đưa ra insights thực tế, hữu ích.';
 
-    // Call Zai API using the service
-    const analysisResult = await analyzeWithZai(
+    // Call AI API using the unified service
+    const analysisResult = await analyzeWithAIProvider(
       env,
       prompt,
       systemPrompt,
-      ZaiModel.GLM_4_5_FLASH,
       0.7,
       2000
     );
@@ -243,12 +242,11 @@ Hãy trả lời bằng tiếng Việt, ngắn gọn và cụ thể.`;
     // System prompt for trading analysis
     const systemPrompt = 'Bạn là một chuyên gia phân tích giao dịch cryptocurrency với nhiều năm kinh nghiệm. Hãy phân tích dữ liệu và đưa ra insights thực tế, hữu ích.';
 
-    // Call Zai API using the service
-    const analysisResult = await analyzeWithZai(
+    // Call AI API using the unified service
+    const analysisResult = await analyzeWithAIProvider(
       env,
       prompt,
       systemPrompt,
-      ZaiModel.GLM_4_5_FLASH,
       0.7,
       2000
     );
@@ -265,7 +263,6 @@ Hãy trả lời bằng tiếng Việt, ngắn gọn và cụ thể.`;
 
   } catch (error) {
     const errorLogs = {
-      model: ZaiModel.GLM_4_5_FLASH,
       error: error instanceof Error ? error.message : String(error),
     };
     console.error('Error analyzing orders with AI:', JSON.stringify(errorLogs, null, 2));
