@@ -67,6 +67,8 @@ export enum CallbackDataPrefix {
   STATS_PREVIOUS_MONTH = 'stats_previous_month',
   STATS_CURRENT_WEEK = 'stats_current_week',
   STATS_PREVIOUS_WEEK = 'stats_previous_week',
+  EXPERIENCE_MENU = 'experience_menu',
+  EXIT_GUIDE = 'exit_guide',
 }
 
 export interface OrderData {

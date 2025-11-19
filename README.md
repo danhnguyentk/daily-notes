@@ -28,6 +28,7 @@ charts - Chart Menu
 orders - Order Menu
 events - All Events (Enabled, Disabled)
 statistics - Statistics Menu
+experience - Experience Menu
 ```
 
 ### OpenAI

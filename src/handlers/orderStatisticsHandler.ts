@@ -4,7 +4,7 @@
 
 import { Env } from '../types/env';
 import { OrderData, CallbackDataPrefix, OrderResult } from '../types/orderTypes';
-import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../services/telegramService';
+import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramParseMode } from '../services/telegramService';
 import { formatVietnamTime, formatVietnamTimeShort } from '../utils/timeUtils';
 import { formatHarsiValue, OrderResultIcon } from '../utils/formatUtils';
 import {
@@ -434,12 +434,6 @@ export async function showOrderMenu(
       {
         text: '❌ Hủy lệnh',
         callback_data: CallbackDataPrefix.ORDER_CANCEL,
-      },
-    ],
-    [
-      {
-        text: '🤖 Phân tích AI',
-        callback_data: CallbackDataPrefix.ORDER_ANALYZE,
       },
     ],
   ];
@@ -904,5 +898,83 @@ export async function deleteOrder(
       env
     );
   }
+}
+
+/**
+ * Hiển thị menu kinh nghiệm với các tùy chọn
+ */
+export async function showExperienceMenu(
+  chatId: string,
+  env: Env
+): Promise<void> {
+  const keyboard: TelegramInlineKeyboardMarkup = {
+    inline_keyboard: [
+      [
+        {
+          text: '🤖 Phân tích AI',
+          callback_data: CallbackDataPrefix.ORDER_ANALYZE,
+        },
+      ],
+      [
+        {
+          text: '📖 Cách thoát hàng',
+          callback_data: CallbackDataPrefix.EXIT_GUIDE,
+        },
+      ],
+    ],
+  };
+
+  const message = '📚 **Menu Kinh nghiệm**\n\nChọn một tùy chọn:';
+
+  await sendMessageToTelegram(
+    {
+      chat_id: chatId,
+      text: message,
+      reply_markup: keyboard,
+      parse_mode: TelegramParseMode.Markdown,
+    },
+    env
+  );
+}
+
+/**
+ * Hiển thị hướng dẫn cách thoát hàng
+ */
+export async function showExitGuide(
+  chatId: string,
+  env: Env
+): Promise<void> {
+  const guideMessage = `📖 **Cách thoát hàng**
+
+**1. Thoát hàng theo Stop Loss:**
+• Khi giá chạm Stop Loss → Tự động đóng lệnh
+• Đây là cách bảo vệ vốn khi thị trường đi ngược
+
+**2. Thoát hàng theo Take Profit:**
+• Khi giá chạm Take Profit → Tự động đóng lệnh
+• Đây là cách chốt lời khi đạt mục tiêu
+
+**3. Thoát hàng thủ công:**
+• Sử dụng lệnh "Cập nhật lệnh" → Nhập giá đóng thực tế
+• Áp dụng khi muốn đóng sớm hoặc muốn điều chỉnh
+
+**4. Quy tắc Risk/Reward:**
+• Luôn đặt Stop Loss và Take Profit
+• Tỷ lệ R:R tối thiểu nên là 1:2 (rủi ro 1, lợi nhuận 2)
+• Không bao giờ để lệnh không có Stop Loss
+
+**5. Quản lý tâm lý:**
+• Tuân thủ kế hoạch đã đặt ra
+• Không FOMO (Fear Of Missing Out)
+• Không để cảm xúc chi phối quyết định`;
+
+  await sendMessageToTelegram(
+    {
+      chat_id: chatId,
+      text: guideMessage,
+      parse_mode: TelegramParseMode.Markdown,
+    },
+    env
+  );
 }
 

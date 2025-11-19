@@ -44,6 +44,8 @@ import {
   showPreviousMonthStatistics,
   showCurrentWeekStatistics,
   showPreviousWeekStatistics,
+  showExperienceMenu,
+  showExitGuide,
 } from './orderStatisticsHandler';
 import { showChartMenu } from './chartMenuHandler';
 import { handleAllEvents } from './telegramHandlers';
@@ -475,6 +477,22 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Trend survey started');
       }
 
+      // Handle experience menu
+      if (callbackData === CallbackDataPrefix.EXPERIENCE_MENU) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải menu...');
+        callbackAnswered = true;
+        await showExperienceMenu(chatId, env);
+        return textResponse('Experience menu shown');
+      }
+
+      // Handle exit guide
+      if (callbackData === CallbackDataPrefix.EXIT_GUIDE) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải hướng dẫn...');
+        callbackAnswered = true;
+        await showExitGuide(chatId, env);
+        return textResponse('Exit guide shown');
+      }
+
       // Handle statistics menu callbacks
       if (callbackData === CallbackDataPrefix.STATS_ALL) {
         await answerCallbackQuery(callbackQuery.id, env, 'Đang tải thống kê...');
@@ -657,6 +675,12 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
     if (text === TelegramCommands.STATISTICS) {
       await showStatisticsMenu(userId, chatId, env);
       return textResponse('Statistics menu shown');
+    }
+
+    // Handle experience command
+    if (text === TelegramCommands.EXPERIENCE) {
+      await showExperienceMenu(chatId, env);
+      return textResponse('Experience menu shown');
     }
 
     // If user is in conversation, process input
