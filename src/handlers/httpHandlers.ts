@@ -7,7 +7,7 @@ import { EventKey } from '../services/supabaseService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
 import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery, setWebhookTelegram, TelegramParseMode, formatMarkdownLog } from '../services/telegramService';
 import { Env } from '../types/env';
-import { getCurrentPriceAndNotify } from '../services/binanceService';
+import { getCurrentPriceAndNotify, KuCoinSymbol } from '../services/kucoinService';
 import { snapshotChart, snapshotChartWithSpecificInterval } from './chartHandlers';
 import { TradingviewInterval } from '../services/tradingviewService';
 import { notifyNumberClosedCandlesBullish } from './candleHandlers';
@@ -295,7 +295,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         await answerCallbackQuery(callbackQuery.id, env, 'Đang lấy giá BTC...');
         callbackAnswered = true;
         try {
-          await getCurrentPriceAndNotify(BinanceSymbol.BTCUSDT, chatId, env);
+          await getCurrentPriceAndNotify(KuCoinSymbol.BTCUSDT, chatId, env);
         } catch (error) {
           await sendMessageToTelegram({
             chat_id: chatId,
