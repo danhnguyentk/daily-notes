@@ -914,8 +914,6 @@ export async function showExperienceMenu(
           text: '🤖 Phân tích AI',
           callback_data: CallbackDataPrefix.ORDER_ANALYZE,
         },
-      ],
-      [
         {
           text: '📖 Cách thoát hàng',
           callback_data: CallbackDataPrefix.EXIT_GUIDE,

@@ -679,8 +679,18 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
 
     // Handle experience command
     if (text === TelegramCommands.EXPERIENCE) {
-      await showExperienceMenu(chatId, env);
-      return textResponse('Experience menu shown');
+      try {
+        await showExperienceMenu(chatId, env);
+        return textResponse('Experience menu shown');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error showing experience menu:', errorMessage);
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: `❌ Lỗi khi hiển thị menu kinh nghiệm: ${errorMessage}`,
+        }, env);
+        return textResponse('Error showing experience menu');
+      }
     }
 
     // If user is in conversation, process input
