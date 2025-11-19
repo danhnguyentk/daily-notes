@@ -1,7 +1,7 @@
 import { sendMessageToTelegram } from "./telegramService";
 import { TradingviewInterval } from "./tradingviewService";
 import { Env } from "../types/env";
-import { buildProxyUrl } from "./scraperService";
+import { buildProxyUrl } from "./scraper/scraperService";
 
 export type BinanceKline = {
   openTime: number;

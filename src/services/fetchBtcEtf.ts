@@ -1,6 +1,6 @@
 import { TelegramParseMode, sendMessageToTelegram } from "./telegramService";
 import { Env } from "../types/env";
-import { buildProxyUrl } from "./scraperService";
+import { buildProxyUrl } from "./scraper/scraperService";
 import * as cheerio from "cheerio";
 
 export type EtfRow = {

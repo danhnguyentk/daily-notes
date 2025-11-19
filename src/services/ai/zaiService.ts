@@ -2,7 +2,7 @@
  * Zai service for AI-powered analysis
  */
 
-import { Env } from '../types/env';
+import { Env } from '../../types/env';
 
 /**
  * Zai model enum for type safety

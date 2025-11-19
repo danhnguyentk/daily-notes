@@ -6,7 +6,7 @@ import { Env } from '../types/env';
 import { OrderResult } from '../types/orderTypes';
 import { sendMessageToTelegram, TelegramParseMode } from '../services/telegramService';
 import { getAllOrdersFromSupabase, getUserOrdersFromSupabase, convertOrderRecordToOrderData } from '../services/supabaseService';
-import { analyzeWithAIProvider } from '../services/aiService';
+import { analyzeWithAIProvider } from '../services/ai/aiService';
 
 /**
  * Analyze orders and return analysis result as JSON (for API)

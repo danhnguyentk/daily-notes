@@ -1,4 +1,4 @@
-import { Env } from "../types/env";
+import { Env } from "../../types/env";
 
 /**
  * Generate a ScraperAPI URL for a target endpoint

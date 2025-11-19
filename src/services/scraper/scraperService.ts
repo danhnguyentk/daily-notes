@@ -1,4 +1,4 @@
-import { Env } from '../types/env';
+import { Env } from '../../types/env';
 import { buildScraperApiUrl } from './scraperApiService';
 import { buildScrapingBeeApiUrl } from './scrapingbeeApiService';
 

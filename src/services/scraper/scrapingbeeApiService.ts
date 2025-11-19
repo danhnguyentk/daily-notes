@@ -1,4 +1,4 @@
-import { Env } from "../types/env";
+import { Env } from "../../types/env";
 
 /**
  * Generate a ScrapingBee API URL for a target endpoint

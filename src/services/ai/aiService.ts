@@ -1,4 +1,4 @@
-import { Env } from '../types/env';
+import { Env } from '../../types/env';
 import { analyzeWithAI, OpenAIModel } from './openAiService';
 import { analyzeWithZai, ZaiModel } from './zaiService';
 

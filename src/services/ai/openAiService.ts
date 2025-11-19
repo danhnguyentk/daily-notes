@@ -3,7 +3,7 @@
  */
 
 import OpenAI from 'openai';
-import { Env } from '../types/env';
+import { Env } from '../../types/env';
 
 /**
  * OpenAI model enum for type safety
