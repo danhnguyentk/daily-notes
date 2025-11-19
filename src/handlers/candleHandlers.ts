@@ -2,7 +2,7 @@
  * Candle analysis handlers
  */
 
-import { BinanceCandlesRequest, BinanceToTradingviewInterval, checkNumberClosedCandlesBullish, checkNumberClosedCandlesBearish } from '../services/binanceService';
+import { KuCoinCandlesRequest, KuCoinToTradingviewInterval, checkNumberClosedCandlesBullish, checkNumberClosedCandlesBearish } from '../services/kucoinService';
 import { Env } from '../types/env';
 import { formatVietnamTime } from '../utils/timeUtils';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
@@ -14,7 +14,7 @@ export const enum CandleDirection {
 }
 
 export async function notifyNumberClosedCandles(
-  request: BinanceCandlesRequest,
+  request: KuCoinCandlesRequest,
   direction: CandleDirection,
   env: Env
 ): Promise<object> {
@@ -33,7 +33,7 @@ export async function notifyNumberClosedCandles(
 
     // Optionally, send a chart snapshot for this interval
     await snapshotChartWithSpecificInterval(
-      { key: request.interval, value: BinanceToTradingviewInterval[request.interval] },
+      { key: request.interval, value: KuCoinToTradingviewInterval[request.interval] },
       env,
     );
 
@@ -46,14 +46,14 @@ export async function notifyNumberClosedCandles(
 }
 
 export async function notifyNumberClosedCandlesBullish(
-  request: BinanceCandlesRequest,
+  request: KuCoinCandlesRequest,
   env: Env
 ): Promise<object> {
   return notifyNumberClosedCandles(request, CandleDirection.BULLISH, env);
 }
 
 export async function notifyNumberClosedCandlesBearish(
-  request: BinanceCandlesRequest,
+  request: KuCoinCandlesRequest,
   env: Env
 ): Promise<object> {
   return notifyNumberClosedCandles(request, CandleDirection.BEARISH, env);

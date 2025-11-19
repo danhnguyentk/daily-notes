@@ -2,12 +2,11 @@
  * HTTP request handlers
  */
 
-import { BinanceSymbol, BinanceInterval } from '../services/binanceService';
 import { EventKey } from '../services/supabaseService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
 import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery, setWebhookTelegram, TelegramParseMode, formatMarkdownLog } from '../services/telegramService';
 import { Env } from '../types/env';
-import { getCurrentPriceAndNotify, KuCoinSymbol } from '../services/kucoinService';
+import { getCurrentPriceAndNotify, KuCoinSymbol, KuCoinInterval } from '../services/kucoinService';
 import { snapshotChart, snapshotChartWithSpecificInterval } from './chartHandlers';
 import { TradingviewInterval } from '../services/tradingviewService';
 import { notifyNumberClosedCandlesBullish } from './candleHandlers';
@@ -90,8 +89,8 @@ async function handleCandleNotification(
   env: Env
 ): Promise<Response> {
   const result = await notifyNumberClosedCandlesBullish({
-    symbol: BinanceSymbol.BTCUSDT,
-    interval: BinanceInterval.FIFTEEN_MINUTES,
+    symbol: KuCoinSymbol.BTCUSDT,
+    interval: KuCoinInterval.FIFTEEN_MINUTES,
     limit: config.limit,
   }, env);
   return jsonResponse(result);

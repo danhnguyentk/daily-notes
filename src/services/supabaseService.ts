@@ -374,7 +374,7 @@ export interface ScheduleConfig {
 }
 
 export interface CandleCheckConfig {
-  interval: string; // BinanceInterval
+  interval: string; // KuCoinInterval
   limit: number;
   direction: CandleDirection;
   eventKey: string;
@@ -460,27 +460,27 @@ export async function buildCandleCheckConfigs(
   const candleCheckConfigs: Record<string, CandleCheckConfig> = {};
 
   for (const config of configs) {
-    // Map interval from DB format to BinanceInterval format
-    let binanceInterval: string;
+    // Map interval from DB format to KuCoinInterval format
+    let kucoinInterval: string;
     switch (config.interval) {
       case '15m':
-        binanceInterval = '15m';
+        kucoinInterval = '15m';
         break;
       case '1h':
-        binanceInterval = '1h';
+        kucoinInterval = '1h';
         break;
       case '4h':
-        binanceInterval = '4h';
+        kucoinInterval = '4h';
         break;
       case '1d':
-        binanceInterval = '1d';
+        kucoinInterval = '1d';
         break;
       default:
-        binanceInterval = config.interval;
+        kucoinInterval = config.interval;
     }
 
     candleCheckConfigs[config.event_key] = {
-      interval: binanceInterval,
+      interval: kucoinInterval,
       limit: config.candle_count,
       direction: config.direction,
       eventKey: config.event_key,

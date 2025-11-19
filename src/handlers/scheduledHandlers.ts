@@ -2,7 +2,7 @@
  * Scheduled job handlers
  */
 
-import { BinanceSymbol, BinanceInterval, BinanceCandlesRequest } from '../services/binanceService';
+import { KuCoinSymbol, KuCoinInterval, KuCoinCandlesRequest } from '../services/kucoinService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
 import { getEventConfigsForScheduled, EventConfigRecord, generateEventDescription, EventStatus, getTrends, TrendRecord } from '../services/supabaseService';
 import { Env } from '../types/env';
@@ -23,19 +23,19 @@ export enum CronSchedule {
   EVERY_4_HOURS = "0 */4 * * *",
 }
 
-// Helper function to map interval string to BinanceInterval enum
-function mapIntervalToBinanceInterval(interval: string): BinanceInterval {
+// Helper function to map interval string to KuCoinInterval enum
+function mapIntervalToKuCoinInterval(interval: string): KuCoinInterval {
   switch (interval) {
     case '15m':
-      return BinanceInterval.FIFTEEN_MINUTES;
+      return KuCoinInterval.FIFTEEN_MINUTES;
     case '1h':
-      return BinanceInterval.ONE_HOUR;
+      return KuCoinInterval.ONE_HOUR;
     case '4h':
-      return BinanceInterval.FOUR_HOURS;
+      return KuCoinInterval.FOUR_HOURS;
     case '1d':
-      return BinanceInterval.ONE_DAY;
+      return KuCoinInterval.ONE_DAY;
     default:
-      return BinanceInterval.FIFTEEN_MINUTES;
+      return KuCoinInterval.FIFTEEN_MINUTES;
   }
 }
 
@@ -72,11 +72,11 @@ async function processCandleCheck(
   const description = generateEventDescription(config);
   console.log(`🔔 Checking for ${description}`);
   
-  const binanceInterval = mapIntervalToBinanceInterval(config.interval);
+  const kucoinInterval = mapIntervalToKuCoinInterval(config.interval);
   
-  const request: BinanceCandlesRequest = {
-    symbol: BinanceSymbol.BTCUSDT,
-    interval: binanceInterval,
+  const request: KuCoinCandlesRequest = {
+    symbol: KuCoinSymbol.BTCUSDT,
+    interval: kucoinInterval,
     limit: config.candle_count,
   };
 

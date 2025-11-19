@@ -2,7 +2,7 @@
  * Telegram command handlers
  */
 
-import { BinanceSymbol, BinanceInterval } from '../services/binanceService';
+import { KuCoinSymbol, KuCoinInterval } from '../services/kucoinService';
 import { TelegramCommands, TelegramInlineKeyboardMarkup, sendMessageToTelegram } from '../services/telegramService';
 import {
   buildScheduleConfigs,
@@ -30,28 +30,28 @@ async function handleCandleCheck(config: CandleCheckConfig, env: Env): Promise<v
   const message = direction === CandleDirection.BULLISH ? '📊 Verify bullish... Please wait.' : '📊 Verify bearish... Please wait.';
   await buildSendMessageToTelegram(message, env);
   
-  // Map string interval to BinanceInterval enum
-  let binanceInterval: BinanceInterval;
+  // Map string interval to KuCoinInterval enum
+  let kucoinInterval: KuCoinInterval;
   switch (config.interval) {
     case '15m':
-      binanceInterval = BinanceInterval.FIFTEEN_MINUTES;
+      kucoinInterval = KuCoinInterval.FIFTEEN_MINUTES;
       break;
     case '1h':
-      binanceInterval = BinanceInterval.ONE_HOUR;
+      kucoinInterval = KuCoinInterval.ONE_HOUR;
       break;
     case '4h':
-      binanceInterval = BinanceInterval.FOUR_HOURS;
+      kucoinInterval = KuCoinInterval.FOUR_HOURS;
       break;
     case '1d':
-      binanceInterval = BinanceInterval.ONE_DAY;
+      kucoinInterval = KuCoinInterval.ONE_DAY;
       break;
     default:
-      binanceInterval = BinanceInterval.FIFTEEN_MINUTES;
+      kucoinInterval = KuCoinInterval.FIFTEEN_MINUTES;
   }
   
   const request = {
-    symbol: BinanceSymbol.BTCUSDT,
-    interval: binanceInterval,
+    symbol: KuCoinSymbol.BTCUSDT,
+    interval: kucoinInterval,
     limit: config.limit,
   };
   
