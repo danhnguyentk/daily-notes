@@ -222,6 +222,13 @@ export async function processOrderInput(
     return { completed: false };
   }
 
+  // Check for cancel command
+  const normalizedInput = input.trim().toLowerCase().replace('/', '');
+  if (normalizedInput === 'cancelorder' || normalizedInput === 'cancel') {
+    await cancelOrderConversation(userId, chatId, env);
+    return { completed: false };
+  }
+
   const updatedState = { ...state };
   let message = '';
 
