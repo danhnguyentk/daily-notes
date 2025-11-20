@@ -8,6 +8,7 @@ import { OrderConversationState, OrderConversationStep, OrderData, MarketState, 
 import { updateOrderWithClosePrice } from '../handlers/orderStatisticsHandler';
 import { formatHarsiValue, formatRiskUnit, safeToFixed } from '../utils/formatUtils';
 import { getCurrentPrice, KuCoinSymbol } from '../services/kucoinService';
+import { getXAUPrice } from '../services/goldService';
 
 const CONVERSATION_STATE_KEY_PREFIX = 'order_conversation_';
 const ENTRY_PROMPT_BASE = 'Vui lòng nhập Entry price:';
@@ -17,7 +18,30 @@ const TRADING_SYMBOL_TO_KUCOIN: Partial<Record<TradingSymbol, KuCoinSymbol>> = {
 };
 
 async function getEntryPrompt(symbol: TradingSymbol | undefined, env: Env): Promise<string> {
-  const kuCoinSymbol = symbol ? TRADING_SYMBOL_TO_KUCOIN[symbol] : undefined;
+  if (!symbol) {
+    return ENTRY_PROMPT_BASE;
+  }
+
+  // Handle XAUUSD separately using gold service
+  if (symbol === TradingSymbol.XAUUSD) {
+    try {
+      const price = await getXAUPrice(env);
+      if (!Number.isFinite(price)) {
+        return ENTRY_PROMPT_BASE;
+      }
+      const normalizedPrice = price >= 1000 ? Math.round(price) : parseFloat(price.toFixed(2));
+      return `${ENTRY_PROMPT_BASE} (Current price /${normalizedPrice})`;
+    } catch (error) {
+      console.error('Failed to fetch XAU price for entry prompt', {
+        symbol,
+        error,
+      });
+      return ENTRY_PROMPT_BASE;
+    }
+  }
+
+  // Handle KuCoin symbols (BTCUSDT, ETHUSDT)
+  const kuCoinSymbol = TRADING_SYMBOL_TO_KUCOIN[symbol];
   if (!kuCoinSymbol) {
     return ENTRY_PROMPT_BASE;
   }
