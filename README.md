@@ -54,6 +54,11 @@ experience - Experience Menu
 - curl --location 'https://www.goldapi.io/api/XAU/USD' \
 --header 'x-access-token: goldapi-'
 
+## Notification
+### Pushover
+- https://pushover.net/
+- https://pushover.net/api
+- Only 5$ for life time, 30 trial first
+
 ### ACTION TODO 
 - Support alert when indiator splot -20 , later green 8h
-- Find service free support notification App 
