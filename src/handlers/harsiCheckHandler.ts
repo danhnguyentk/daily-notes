@@ -215,10 +215,29 @@ export async function showLatestTrend(chatId: string, env: Env, symbol?: Trading
   const latestTrend = trends[0];
   const message = formatTrendRecord(latestTrend);
 
+  // Determine callback data and symbol name based on symbol
+  let surveyCallbackData = CallbackDataPrefix.TREND_SURVEY;
+  let symbolName = '';
+  const currentSymbol = symbol || latestTrend.symbol;
+  const symbolStr = currentSymbol?.toString() || '';
+  
+  if (symbolStr === TradingSymbol.BTCUSDT.toString()) {
+    surveyCallbackData = CallbackDataPrefix.TREND_SURVEY_BTC;
+    symbolName = 'BTC';
+  } else if (symbolStr === TradingSymbol.ETHUSDT.toString()) {
+    surveyCallbackData = CallbackDataPrefix.TREND_SURVEY_ETH;
+    symbolName = 'ETH';
+  } else if (symbolStr === TradingSymbol.XAUUSD.toString()) {
+    surveyCallbackData = CallbackDataPrefix.TREND_SURVEY_XAU;
+    symbolName = 'XAU';
+  }
+
+  const buttonText = symbolName ? `🔄 Khảo Sát Mới ${symbolName}` : '🔄 Khảo Sát Mới';
+
   const keyboard: TelegramInlineKeyboardMarkup = {
     inline_keyboard: [
       [
-        { text: '🔄 Khảo Sát Mới', callback_data: CallbackDataPrefix.TREND_SURVEY },
+        { text: buttonText, callback_data: surveyCallbackData },
       ],
     ],
   };

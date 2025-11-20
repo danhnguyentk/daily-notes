@@ -156,10 +156,28 @@ async function sendTrendRecommendationWithButton(env: Env): Promise<void> {
   const latestTrend = trends[0];
   const message = formatTrendRecordForScheduled(latestTrend);
 
+  // Determine callback data and symbol name based on symbol
+  let surveyCallbackData = CallbackDataPrefix.TREND_SURVEY;
+  let symbolName = '';
+  const symbolStr = latestTrend.symbol?.toString() || '';
+  
+  if (symbolStr === 'BTCUSDT') {
+    surveyCallbackData = CallbackDataPrefix.TREND_SURVEY_BTC;
+    symbolName = 'BTC';
+  } else if (symbolStr === 'ETHUSDT') {
+    surveyCallbackData = CallbackDataPrefix.TREND_SURVEY_ETH;
+    symbolName = 'ETH';
+  } else if (symbolStr === 'XAUUSD') {
+    surveyCallbackData = CallbackDataPrefix.TREND_SURVEY_XAU;
+    symbolName = 'XAU';
+  }
+
+  const buttonText = symbolName ? `🔄 Khảo Sát Mới ${symbolName}` : '🔄 Khảo Sát Mới';
+
   const keyboard: TelegramInlineKeyboardMarkup = {
     inline_keyboard: [
       [
-        { text: '🔄 Khảo Sát Mới', callback_data: CallbackDataPrefix.TREND_SURVEY },
+        { text: buttonText, callback_data: surveyCallbackData },
       ],
     ],
   };
