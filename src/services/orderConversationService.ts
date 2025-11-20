@@ -468,7 +468,7 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
       break;
 
     case OrderConversationStep.WAITING_ENTRY:
-      const entry = parseFloat(input.trim());
+      const entry = parseFloat(input.trim().replace('/', ''));
       if (isNaN(entry) || entry <= 0) {
         await sendMessageToTelegram({
           chat_id: chatId,
@@ -482,7 +482,7 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
       break;
 
     case OrderConversationStep.WAITING_STOP_LOSS:
-      const stopLoss = parseFloat(input.trim());
+      const stopLoss = parseFloat(input.trim().replace('/', ''));
       if (isNaN(stopLoss) || stopLoss <= 0) {
         await sendMessageToTelegram({
           chat_id: chatId,
@@ -499,7 +499,7 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
       if (input.trim().toUpperCase() === '/SKIP' || input.trim() === '') {
         updatedState.data.takeProfit = undefined;
       } else {
-        const takeProfit = parseFloat(input.trim());
+        const takeProfit = parseFloat(input.trim().replace('/', ''));
         if (isNaN(takeProfit) || takeProfit <= 0) {
           await sendMessageToTelegram({
             chat_id: chatId,
@@ -528,7 +528,7 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
       if (input.trim().toUpperCase() === '/SKIP' || input.trim() === '') {
         updatedState.data.quantity = undefined;
       } else {
-        const quantity = parseFloat(input.trim());
+        const quantity = parseFloat(input.trim().replace('/', ''));
         if (isNaN(quantity) || quantity <= 0) {
           await sendMessageToTelegram({
             chat_id: chatId,
@@ -588,7 +588,7 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
       return { completed: true, orderData: updatedState.data };
 
     case OrderConversationStep.WAITING_CLOSE_PRICE:
-      const closePrice = parseFloat(input.trim());
+      const closePrice = parseFloat(input.trim().replace('/', ''));
       if (isNaN(closePrice) || closePrice <= 0) {
         await sendMessageToTelegram({
           chat_id: chatId,
