@@ -14,5 +14,7 @@ export interface Env {
   ZAI_API_KEY?: string;
   AI_PROVIDER?: string; // 'openai' or 'zai', defaults to 'zai'
   GOLD_APISED_API_KEY: string;
+  PUSHOVER_TOKEN?: string;
+  PUSHOVER_USER?: string;
 }
 

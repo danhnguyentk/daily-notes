@@ -8,6 +8,7 @@ import { CandleDirection } from '../types/candleTypes';
 import { formatVietnamTime } from '../utils/timeUtils';
 import { buildSendMessageToTelegram } from '../utils/telegramUtils';
 import { snapshotChartWithSpecificInterval } from './chartHandlers';
+import { sendPushoverAlert } from '../services/pushoverService';
 
 export async function notifyNumberClosedCandles(
   request: KuCoinCandlesRequest,
@@ -26,6 +27,11 @@ export async function notifyNumberClosedCandles(
     const message = `${emoji} Alert: ${request.limit} Consecutive closed ${request.interval} candles are ${direction} for ${request.symbol}! Time: ${formatVietnamTime()}`;
     console.log(message);
     await buildSendMessageToTelegram(message, env);
+
+    // TODO: Update later
+    // Send Pushover alert for strong notification
+    const alertTitle = `${emoji} Alert - ${request.symbol}`;
+    await sendPushoverAlert(alertTitle, message, env);
 
     // Optionally, send a chart snapshot for this interval
     await snapshotChartWithSpecificInterval(
