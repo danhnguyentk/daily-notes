@@ -13,5 +13,6 @@ export interface Env {
   OPENAI_API_KEY: string;
   ZAI_API_KEY?: string;
   AI_PROVIDER?: string; // 'openai' or 'zai', defaults to 'zai'
+  GOLD_APISED_API_KEY: string;
 }
 

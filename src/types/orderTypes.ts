@@ -46,6 +46,7 @@ export enum CallbackDataPrefix {
   NOTE_DONE = 'note_done',
   NOTE_SKIP = 'note_skip',
   CHART_BTC_PRICE = 'chart_btc_price',
+  CHART_XAU_PRICE = 'chart_xau_price',
   CHART_BTC_1W3D1D = 'chart_btc_1w3d1d',
   CHART_BTC_4H1H15M = 'chart_btc_4h1h15m',
   CHART_BTC_1D = 'chart_btc_1d',

@@ -7,6 +7,7 @@ import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
 import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery, setWebhookTelegram, TelegramParseMode, formatMarkdownLog } from '../services/telegramService';
 import { Env } from '../types/env';
 import { getCurrentPriceAndNotify, KuCoinSymbol, KuCoinInterval } from '../services/kucoinService';
+import { getXAUPriceAndNotify } from '../services/goldService';
 import { snapshotChart, snapshotChartWithSpecificInterval } from './chartHandlers';
 import { TradingviewInterval } from '../services/tradingviewService';
 import { notifyNumberClosedCandlesBullish } from './candleHandlers';
@@ -302,6 +303,20 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
           }, env);
         }
         return textResponse('BTC price fetched');
+      }
+
+      if (callbackData === CallbackDataPrefix.CHART_XAU_PRICE) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang lấy giá XAU...');
+        callbackAnswered = true;
+        try {
+          await getXAUPriceAndNotify(chatId, env);
+        } catch (error) {
+          await sendMessageToTelegram({
+            chat_id: chatId,
+            text: `❌ Lỗi khi lấy giá XAU: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          }, env);
+        }
+        return textResponse('XAU price fetched');
       }
 
       if (callbackData === CallbackDataPrefix.CHART_BTC_1W3D1D) {

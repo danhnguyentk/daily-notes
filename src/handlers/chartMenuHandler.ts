@@ -16,6 +16,10 @@ export async function showChartMenu(chatId: string, env: Env): Promise<void> {
         text: '💰 BTC Price',
         callback_data: CallbackDataPrefix.CHART_BTC_PRICE,
       },
+      {
+        text: '🥇 XAU Price',
+        callback_data: CallbackDataPrefix.CHART_XAU_PRICE,
+      },
     ],
     [
       {
