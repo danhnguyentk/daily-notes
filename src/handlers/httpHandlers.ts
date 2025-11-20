@@ -192,7 +192,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
 
         await sendMessageToTelegram({
           chat_id: chatId,
-          text: `✅ Đã chọn lệnh:\n\nSymbol: ${order.symbol}\nDirection: ${order.direction}\nEntry: ${order.entry}\nStop Loss: ${order.stopLoss}\n\nVui lòng nhập Close Price:`,
+          text: `✅ Đã chọn lệnh:\n\nSymbol: ${order.symbol}\nDirection: ${order.direction}\nEntry: ${order.entry}\nStop Loss: ${order.stopLoss}\n\nVui lòng nhập Close Price:\n(Stop Loss: /${order.stopLoss})`,
         }, env);
         return textResponse('Order selected for update');
       }
