@@ -50,6 +50,11 @@ export interface PushoverRequest {
   retry?: number;
   expire?: number;
   ttl?: number;
+  sound?: string;
+  vibration?: string;
+  html?: number;
+  url?: string;
+  url_title?: string;
 }
 
 interface PushoverResponse {
@@ -87,6 +92,8 @@ export async function sendPushoverAlert(
     retry: 30, // Retry every 30 seconds
     expire: 900, // Expire after 15 minutes (900 seconds)
     ttl: 28800, // Time to live: 8 hours (28800 seconds)
+    url_title: 'View on Telegram',
+    url: 'https://t.me/daily_notes_investing',
   };
 
   try {
