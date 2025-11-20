@@ -4,7 +4,7 @@
 
 import { EventKey } from '../services/supabaseService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
-import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery, setWebhookTelegram, TelegramParseMode, formatMarkdownLog } from '../services/telegramService';
+import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery, setWebhookTelegram, TelegramParseMode, TelegramInlineKeyboardMarkup } from '../services/telegramService';
 import { Env } from '../types/env';
 import { getCurrentPriceAndNotify, KuCoinSymbol, KuCoinInterval } from '../services/kucoinService';
 import { getXAUPriceAndNotify } from '../services/goldService';
@@ -27,7 +27,7 @@ import {
   handleHarsiSelection,
 } from '../services/orderConversationService';
 import { processOrderData } from './orderHandlers';
-import { OrderConversationStep, MarketState, CallbackDataPrefix } from '../types/orderTypes';
+import { OrderConversationStep, MarketState, CallbackDataPrefix, TradingSymbol } from '../types/orderTypes';
 import {
   showRiskUnitStatistics,
   showMonthlyStatistics,
@@ -483,12 +483,51 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Order cancelled');
       }
 
-      // Handle trend survey again button
+      // Handle trend survey again button - show symbol selection
       if (callbackData === CallbackDataPrefix.TREND_SURVEY) {
-        await answerCallbackQuery(callbackQuery.id, env, 'Đang bắt đầu survey mới...');
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải menu...');
         callbackAnswered = true;
-        await startHarsiCheck(userId, chatId, env);
-        return textResponse('Trend survey started');
+        const symbolKeyboard: TelegramInlineKeyboardMarkup = {
+          inline_keyboard: [
+            [
+              { text: '🟡 BTC', callback_data: CallbackDataPrefix.TREND_SURVEY_BTC },
+              { text: 'Ξ ETH', callback_data: CallbackDataPrefix.TREND_SURVEY_ETH },
+            ],
+            [
+              { text: '🥇 XAU', callback_data: CallbackDataPrefix.TREND_SURVEY_XAU },
+            ],
+          ],
+        };
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: '📊 Chọn symbol để khảo sát:',
+          reply_markup: symbolKeyboard,
+        }, env);
+        return textResponse('Trend survey symbol selection shown');
+      }
+
+      // Handle BTC survey
+      if (callbackData === CallbackDataPrefix.TREND_SURVEY_BTC) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang bắt đầu survey BTC...');
+        callbackAnswered = true;
+        await startHarsiCheck(userId, chatId, env, TradingSymbol.BTCUSDT);
+        return textResponse('BTC trend survey started');
+      }
+
+      // Handle ETH survey
+      if (callbackData === CallbackDataPrefix.TREND_SURVEY_ETH) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang bắt đầu survey ETH...');
+        callbackAnswered = true;
+        await startHarsiCheck(userId, chatId, env, TradingSymbol.ETHUSDT);
+        return textResponse('ETH trend survey started');
+      }
+
+      // Handle XAU survey
+      if (callbackData === CallbackDataPrefix.TREND_SURVEY_XAU) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang bắt đầu survey XAU...');
+        callbackAnswered = true;
+        await startHarsiCheck(userId, chatId, env, TradingSymbol.XAUUSD);
+        return textResponse('XAU trend survey started');
       }
 
       // Handle experience menu

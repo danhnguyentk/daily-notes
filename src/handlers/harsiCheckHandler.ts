@@ -4,7 +4,7 @@
  */
 
 import { Env } from '../types/env';
-import { MarketState, OrderConversationStep, CallbackDataPrefix } from '../types/orderTypes';
+import { MarketState, OrderConversationStep, CallbackDataPrefix, TradingSymbol } from '../types/orderTypes';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup } from '../services/telegramService';
 import { formatHarsiValue } from '../utils/formatUtils';
 import { formatVietnamTime } from '../utils/timeUtils';
@@ -183,8 +183,9 @@ function formatTrendRecord(trend: TrendRecord): string {
     ? formatVietnamTime(new Date(trend.surveyed_at))
     : 'N/A';
 
+  const symbolText = trend.symbol ? `\n• Symbol: ${trend.symbol}` : '';
   return `
-📊 Kết quả kiểm tra HARSI:
+📊 Kết quả kiểm tra HARSI:${symbolText}
 📅 Thời gian: ${surveyedDate}
 
 • HARSI 1W: ${formatValue(trend.harsi1w)}
@@ -232,18 +233,19 @@ export async function showLatestTrend(chatId: string, env: Env): Promise<void> {
 /**
  * Start HARSI check conversation
  */
-export async function startHarsiCheck(userId: number, chatId: string, env: Env): Promise<void> {
+export async function startHarsiCheck(userId: number, chatId: string, env: Env, symbol?: TradingSymbol): Promise<void> {
   // Initialize conversation state
   const state = {
     userId,
     step: OrderConversationStep.WAITING_HARSI_CHECK_1W,
-    data: {} as TrendData,
+    data: { symbol } as TrendData & { symbol?: TradingSymbol },
     createdAt: Date.now(),
   };
   
   await saveConversationState(state, env);
   
-  const message = `📊 Kiểm tra HARSI\n\nVui lòng chọn HARSI 1W:`;
+  const symbolText = symbol ? ` (${symbol})` : '';
+  const message = `📊 Kiểm tra HARSI${symbolText}\n\nVui lòng chọn HARSI 1W:`;
   
   await sendMessageToTelegram({
     chat_id: chatId,
@@ -367,8 +369,10 @@ export async function handleHarsiCheckSelection(
     const recommendation = generateRecommendation(harsiValues);
     
     // Save to database with calculated trend
-    const trendDataWithTrend = {
+    const symbol = (state.data as TrendData & { symbol?: TradingSymbol }).symbol;
+    const trendDataWithTrend: TrendData = {
       ...state.data,
+      symbol,
       trend: calculatedTrend,
     };
     await saveHarsiCheck(userId, trendDataWithTrend, recommendation, env);
@@ -377,8 +381,9 @@ export async function handleHarsiCheckSelection(
     await clearConversationState(userId, env);
     
     // Show summary and recommendation
+    const symbolText = symbol ? `\n• Symbol: ${symbol}` : '';
     const summary = `
-📊 Kết quả kiểm tra HARSI:
+📊 Kết quả kiểm tra HARSI:${symbolText}
 
 • HARSI 1W: ${formatHarsiValue(state.data.harsi1w)}
 • HARSI 3D: ${formatHarsiValue(state.data.harsi3d)}

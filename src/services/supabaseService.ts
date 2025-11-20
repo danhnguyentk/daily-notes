@@ -579,6 +579,7 @@ export async function getEventConfigByEventKey(
 
 export interface TrendRecord {
   id?: number;
+  symbol?: string; // 'BTCUSDT' | 'ETHUSDT' | 'XAUUSD'
   harsi1w?: string; // 'bullish' | 'bearish' | 'neutral'
   harsi3d?: string; // 'bullish' | 'bearish' | 'neutral'
   harsi2d?: string; // 'bullish' | 'bearish' | 'neutral'
@@ -591,6 +592,7 @@ export interface TrendRecord {
 }
 
 export interface TrendData {
+  symbol?: TradingSymbol; // 'BTCUSDT' | 'ETHUSDT' | 'XAUUSD'
   harsi1w?: MarketState;
   harsi3d?: MarketState;
   harsi2d?: MarketState;
@@ -611,6 +613,7 @@ export async function saveTrend(
   const supabase = getSupabaseClient(env);
   
   const record: Partial<TrendRecord> = {
+    symbol: trendData.symbol,
     harsi1w: trendData.harsi1w,
     harsi3d: trendData.harsi3d,
     harsi2d: trendData.harsi2d,

@@ -125,8 +125,9 @@ function formatTrendRecordForScheduled(trend: TrendRecord): string {
     ? formatVietnamTime(new Date(trend.surveyed_at))
     : 'N/A';
 
+  const symbolText = trend.symbol ? `\n• Symbol: ${trend.symbol}` : '';
   return `
-📊 Kết quả kiểm tra HARSI:
+📊 Kết quả kiểm tra HARSI:${symbolText}
 📅 Thời gian: ${surveyedDate}
 
 • HARSI 1W: ${formatValue(trend.harsi1w)}
