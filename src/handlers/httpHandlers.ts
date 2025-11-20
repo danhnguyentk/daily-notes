@@ -530,6 +530,30 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('XAU trend survey started');
       }
 
+      // Handle BTC trend view
+      if (callbackData === CallbackDataPrefix.TREND_VIEW_BTC) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải trend BTC...');
+        callbackAnswered = true;
+        await showLatestTrend(chatId, env, TradingSymbol.BTCUSDT);
+        return textResponse('BTC trend shown');
+      }
+
+      // Handle ETH trend view
+      if (callbackData === CallbackDataPrefix.TREND_VIEW_ETH) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải trend ETH...');
+        callbackAnswered = true;
+        await showLatestTrend(chatId, env, TradingSymbol.ETHUSDT);
+        return textResponse('ETH trend shown');
+      }
+
+      // Handle XAU trend view
+      if (callbackData === CallbackDataPrefix.TREND_VIEW_XAU) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đang tải trend XAU...');
+        callbackAnswered = true;
+        await showLatestTrend(chatId, env, TradingSymbol.XAUUSD);
+        return textResponse('XAU trend shown');
+      }
+
       // Handle experience menu
       if (callbackData === CallbackDataPrefix.EXPERIENCE_MENU) {
         await answerCallbackQuery(callbackQuery.id, env, 'Đang tải menu...');
@@ -718,10 +742,23 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       return textResponse('Events menu shown');
     }
 
-    // Handle trend command (asks for HARSI values and automatically calculates trend)
+    // Handle trend command - show symbol selection menu
     if (text === TelegramCommands.TREND_CHECK) {
-      await showLatestTrend(chatId, env);
-      return textResponse('Latest trend shown');
+      const symbolKeyboard: TelegramInlineKeyboardMarkup = {
+        inline_keyboard: [
+          [
+            { text: '🟡 BTC', callback_data: CallbackDataPrefix.TREND_VIEW_BTC },
+            { text: 'Ξ ETH', callback_data: CallbackDataPrefix.TREND_VIEW_ETH },
+            { text: '🥇 XAU', callback_data: CallbackDataPrefix.TREND_VIEW_XAU },
+          ],
+        ],
+      };
+      await sendMessageToTelegram({
+        chat_id: chatId,
+        text: '📊 Chọn symbol để xem trend:',
+        reply_markup: symbolKeyboard,
+      }, env);
+      return textResponse('Trend symbol selection shown');
     }
 
     // Handle statistics command

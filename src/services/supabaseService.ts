@@ -644,15 +644,22 @@ export async function saveTrend(
  */
 export async function getTrends(
   limit: number = 10,
-  env: Env
+  env: Env,
+  symbol?: TradingSymbol
 ): Promise<TrendRecord[]> {
   const supabase = getSupabaseClient(env);
   
-  const { data, error } = await supabase
+  let query = supabase
     .from(SupabaseTables.TREND)
     .select('*')
     .order('surveyed_at', { ascending: false })
     .limit(limit);
+
+  if (symbol) {
+    query = query.eq('symbol', symbol);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching trends from Supabase:', error);

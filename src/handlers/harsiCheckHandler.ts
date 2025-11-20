@@ -203,12 +203,12 @@ ${trend.recommendation || ''}
 /**
  * Show latest trend survey
  */
-export async function showLatestTrend(chatId: string, env: Env): Promise<void> {
-  const trends = await getTrends(1, env);
+export async function showLatestTrend(chatId: string, env: Env, symbol?: TradingSymbol): Promise<void> {
+  const trends = await getTrends(1, env, symbol);
   
   if (trends.length === 0) {
     // No trends found, start new survey
-    await startHarsiCheck(0, chatId, env); // userId 0 for common trend
+    await startHarsiCheck(0, chatId, env, symbol); // userId 0 for common trend
     return;
   }
 
