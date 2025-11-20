@@ -7,8 +7,36 @@ import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeybo
 import { OrderConversationState, OrderConversationStep, OrderData, MarketState, OrderDirection, TradingSymbol, CallbackDataPrefix } from '../types/orderTypes';
 import { updateOrderWithClosePrice } from '../handlers/orderStatisticsHandler';
 import { formatHarsiValue, formatRiskUnit, safeToFixed } from '../utils/formatUtils';
+import { getCurrentPrice, KuCoinSymbol } from '../services/kucoinService';
 
 const CONVERSATION_STATE_KEY_PREFIX = 'order_conversation_';
+const ENTRY_PROMPT_BASE = 'Vui lòng nhập Entry price:';
+const TRADING_SYMBOL_TO_KUCOIN: Partial<Record<TradingSymbol, KuCoinSymbol>> = {
+  [TradingSymbol.BTCUSDT]: KuCoinSymbol.BTCUSDT,
+  [TradingSymbol.ETHUSDT]: KuCoinSymbol.ETHUSDT,
+};
+
+async function getEntryPrompt(symbol: TradingSymbol | undefined, env: Env): Promise<string> {
+  const kuCoinSymbol = symbol ? TRADING_SYMBOL_TO_KUCOIN[symbol] : undefined;
+  if (!kuCoinSymbol) {
+    return ENTRY_PROMPT_BASE;
+  }
+
+  try {
+    const price = await getCurrentPrice(kuCoinSymbol, env);
+    if (!Number.isFinite(price)) {
+      return ENTRY_PROMPT_BASE;
+    }
+    const normalizedPrice = price >= 1000 ? Math.round(price) : parseFloat(price.toFixed(2));
+    return `${ENTRY_PROMPT_BASE} (Current price /${normalizedPrice})`;
+  } catch (error) {
+    console.error('Failed to fetch current price for entry prompt', {
+      symbol,
+      error,
+    });
+    return ENTRY_PROMPT_BASE;
+  }
+}
 
 function getConversationKey(userId: number): string {
   return `${CONVERSATION_STATE_KEY_PREFIX}${userId}`;
@@ -436,7 +464,7 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
         updatedState.data.harsi4h = harsi4hValue;
       }
       updatedState.step = OrderConversationStep.WAITING_ENTRY;
-      message = `✅ HARSI 4H: ${updatedState.data.harsi4h || 'N/A'}\n\nVui lòng nhập Entry price:`;
+      message = `✅ HARSI 4H: ${updatedState.data.harsi4h || 'N/A'}\n\n${await getEntryPrompt(updatedState.data.symbol, env)}`;
       break;
 
     case OrderConversationStep.WAITING_ENTRY:
@@ -874,7 +902,7 @@ HARSI 8H đang ở trạng thái Bearish (Giảm).
     state.step = OrderConversationStep.WAITING_ENTRY;
     await saveConversationState(state, env);
     
-    const message = `✅ HARSI 4H: ${state.data.harsi4h || 'N/A'}\n\nVui lòng nhập Entry price:`;
+    const message = `✅ HARSI 4H: ${state.data.harsi4h || 'N/A'}\n\n${await getEntryPrompt(state.data.symbol, env)}`;
     await sendMessageToTelegram({ 
       chat_id: chatId, 
       text: message,
