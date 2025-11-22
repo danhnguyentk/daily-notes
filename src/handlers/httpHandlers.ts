@@ -52,6 +52,7 @@ import { handleAllEvents } from './telegramHandlers';
 import { startHarsiCheck, handleHarsiCheckSelection, showLatestTrend } from './harsiCheckHandler';
 import { analyzeOrdersForAPI } from './orderAnalysisHandler';
 import { saveOrderAnalysis, getLatestOrderAnalysis } from '../services/supabaseService';
+import { sendPushoverAlert } from '../services/pushoverService';
 
 // Route constants
 const ROUTES = {
@@ -60,6 +61,7 @@ const ROUTES = {
   ETF: '/etf',
   SNAPSHOT_CHART: '/snapshotChart',
   WEBHOOK: '/webhook',
+  TRADINGVIEW_WEBHOOK: '/tradingview-webhook',
   NOTIFY_ONE_CLOSED_15M_CANDLES_BULLISH: '/notifyOneClosed15mCandlesBullish',
   NOTIFY_TWO_CLOSED_15M_CANDLES_BULLISH: '/notifyTwoClosed15mCandlesBullish',
   ENABLE_NOTIFY_TWO_CLOSED_15M_CANDLES_BULLISH: '/enableNotifyTwoClosed15mCandlesBullish',
@@ -836,6 +838,77 @@ async function handleSnapshotChart(env: Env): Promise<Response> {
   return textResponse('Snapshot chart successfully');
 }
 
+/**
+ * Handle TradingView webhook alerts
+ * TradingView sends plain text alerts, not JSON
+ */
+async function handleTradingViewWebhook(req: Request, env: Env): Promise<Response> {
+  let rawBody = '';
+  try {
+    // Read raw body (TradingView sends plain text)
+    rawBody = await req.text();
+    const message = rawBody.trim();
+    
+    console.log('TradingView webhook received:', message);
+    
+    // Format log message
+    const logMessage = `📊 TradingView Alert\n\n${message}`;
+    
+    // Send notification to Telegram
+    try {
+      await sendMessageToTelegram({
+        chat_id: env.TELEGRAM_CHAT_ID,
+        text: logMessage,
+        parse_mode: TelegramParseMode.Markdown,
+      }, env);
+    } catch (error) {
+      console.error('Error sending Telegram notification:', error);
+      // Continue even if Telegram fails
+    }
+    
+    // Send Pushover alert for important notifications
+    try {
+      await sendPushoverAlert(
+        'TradingView Alert',
+        message,
+        env
+      );
+    } catch (error) {
+      console.error('Error sending Pushover alert:', error);
+      // Continue even if Pushover fails
+    }
+    
+    // Return success response
+    return jsonResponse({
+      success: true,
+      message: 'TradingView alert received and processed',
+      alert: {
+        message,
+        time: new Date().toISOString(),
+      },
+    }, 200);
+    
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error handling TradingView webhook:', errorMessage);
+    
+    // Log error to Telegram
+    try {
+      await sendMessageToTelegram({
+        chat_id: env.TELEGRAM_CHAT_ID,
+        text: `❌ TradingView Webhook Error\n\n${errorMessage}\n\nPayload: ${rawBody || 'Unable to read payload'}`,
+      }, env);
+    } catch (telegramError) {
+      console.error('Error sending error notification to Telegram:', telegramError);
+    }
+    
+    return jsonResponse({
+      success: false,
+      error: errorMessage,
+    }, 400);
+  }
+}
+
 async function handleOrderAnalysis(req: Request, env: Env): Promise<Response> {
   try {
     // Log start of analysis to Telegram
@@ -980,6 +1053,9 @@ export async function handleFetch(req: Request, env: Env): Promise<Response> {
     
     case ROUTES.WEBHOOK:
       return handleWebhook(req, env);
+    
+    case ROUTES.TRADINGVIEW_WEBHOOK:
+      return handleTradingViewWebhook(req, env);
     
     default:
       return textResponse('OK. No do anything.');
