@@ -84,80 +84,58 @@ function generateRecommendation(harsiValues: HarsiValues): string {
   const bearishCount = allValues.filter(h => h === MarketState.Bearish).length;
   const bullishCount = allValues.filter(h => h === MarketState.Bullish).length;
   const neutralCount = allValues.filter(h => h === MarketState.Neutral).length;
-  
-  // Warning for multiple bearish signals
-  if (bearishCount >= 2) {
-    recommendations.push(`⚠️ CẢNH BÁO RỦI RO`);
-    recommendations.push(``);
-    recommendations.push(`Có ${bearishCount} khung thời gian đang ở trạng thái Bearish (Giảm).`);
-    recommendations.push(``);
-    recommendations.push(`📌 Lưu ý:`);
-    recommendations.push(`   • Thị trường có xu hướng giảm trên nhiều khung thời gian`);
-    recommendations.push(`   • Dễ dàng chạm Stop Loss nếu xu hướng giảm tiếp tục`);
-    recommendations.push(`   • Nên cân nhắc kỹ trước khi vào lệnh`);
-    recommendations.push(`   • Đảm bảo Stop Loss được đặt hợp lý và quản lý rủi ro tốt`);
-    recommendations.push(``);
-    recommendations.push(`💡 Gợi ý:`);
-    recommendations.push(`   • Xem xét các tín hiệu phân tích kỹ thuật khác`);
-    recommendations.push(`   • Quản lý vốn cẩn thận, không nên risk quá nhiều`);
-    recommendations.push(`   • Có thể chờ đợi tín hiệu tốt hơn trước khi vào lệnh`);
-  } else if (harsiValues.harsi8h === MarketState.Bearish) {
-    // Specific warning for 8H bearish (similar to order flow)
-    recommendations.push(`⚠️ CẢNH BÁO RỦI RO`);
-    recommendations.push(``);
-    recommendations.push(`HARSI 8H đang ở trạng thái Bearish (Giảm).`);
-    recommendations.push(``);
-    recommendations.push(`📌 Lưu ý:`);
-    recommendations.push(`   • Thị trường có xu hướng giảm trên khung thời gian 8 giờ`);
-    recommendations.push(`   • Dễ dàng chạm Stop Loss nếu xu hướng giảm tiếp tục`);
-    recommendations.push(`   • Nên cân nhắc kỹ trước khi vào lệnh`);
-    recommendations.push(`   • Đảm bảo Stop Loss được đặt hợp lý và quản lý rủi ro tốt`);
-    recommendations.push(``);
-    recommendations.push(`💡 Gợi ý:`);
-    recommendations.push(`   • Kiểm tra lại các khung thời gian khác (1D, 4H)`);
-    recommendations.push(`   • Xem xét các tín hiệu phân tích kỹ thuật khác`);
-    recommendations.push(`   • Quản lý vốn cẩn thận, không nên risk quá nhiều`);
-  } else if (bullishCount >= 2) {
-    // Positive signal for multiple bullish
-    recommendations.push(`✅ TÍN HIỆU TÍCH CỰC`);
-    recommendations.push(``);
-    recommendations.push(`Có ${bullishCount} khung thời gian đang ở trạng thái Bullish (Tăng).`);
-    recommendations.push(``);
-    recommendations.push(`📌 Lưu ý:`);
-    recommendations.push(`   • Thị trường có xu hướng tăng trên nhiều khung thời gian`);
-    recommendations.push(`   • Có thể cân nhắc vào lệnh LONG nếu có tín hiệu xác nhận`);
-    recommendations.push(`   • Vẫn cần quản lý rủi ro và đặt Stop Loss hợp lý`);
-    recommendations.push(``);
-    recommendations.push(`💡 Gợi ý:`);
-    recommendations.push(`   • Tìm điểm vào lệnh tốt với Risk/Reward ratio hợp lý`);
-    recommendations.push(`   • Xem xét các tín hiệu phân tích kỹ thuật khác để xác nhận`);
-    recommendations.push(`   • Quản lý vốn cẩn thận`);
-  } else if (neutralCount >= 2) {
-    // Neutral/mixed signals
-    recommendations.push(`⚪ TÍN HIỆU HỖN HỢP`);
-    recommendations.push(``);
-    recommendations.push(`Có ${neutralCount} khung thời gian ở trạng thái Neutral.`);
-    recommendations.push(``);
-    recommendations.push(`📌 Lưu ý:`);
-    recommendations.push(`   • Thị trường đang trong trạng thái không rõ ràng`);
-    recommendations.push(`   • Cần thêm tín hiệu xác nhận trước khi vào lệnh`);
-    recommendations.push(``);
-    recommendations.push(`💡 Gợi ý:`);
-    recommendations.push(`   • Chờ đợi tín hiệu rõ ràng hơn`);
-    recommendations.push(`   • Xem xét các khung thời gian khác và các chỉ báo kỹ thuật`);
-    recommendations.push(`   • Quản lý rủi ro cẩn thận`);
-  } else {
-    // Default neutral recommendation
-    recommendations.push(`📊 PHÂN TÍCH HARSI`);
-    recommendations.push(``);
-    recommendations.push(`Đã ghi nhận các giá trị HARSI.`);
-    recommendations.push(``);
-    recommendations.push(`💡 Gợi ý:`);
-    recommendations.push(`   • Xem xét các tín hiệu phân tích kỹ thuật khác`);
-    recommendations.push(`   • Quản lý rủi ro cẩn thận`);
-    recommendations.push(`   • Đảm bảo Stop Loss được đặt hợp lý`);
-  }
-  
+
+  const is1DBearish = harsiValues.harsi1d === MarketState.Bearish;
+  const is1DBullish = harsiValues.harsi1d === MarketState.Bullish;
+  const is8hBearish = harsiValues.harsi8h === MarketState.Bearish;
+  const is8hBullish = harsiValues.harsi8h === MarketState.Bullish;
+
+  const comboMessages: Array<{ condition: boolean; message: string }> = [
+    {
+      condition: is1DBearish && is8hBearish,
+      message: `🚨 CẢNH BÁO CỰC KỲ QUAN TRỌNG
+
+HARSI 1D & 8H đều 🔴 Bearish.
+
+❗ Tuyệt đối không vào lệnh ngược trend trong giai đoạn này.`,
+    },
+    {
+      condition: is1DBearish && is8hBullish,
+      message: `🚨 CẢNH BÁO CỰC KỲ QUAN TRỌNG
+
+HARSI 1D 🔴 Bearish nhưng HARSI 8H 🟢 Bullish (ngược chiều).
+
+❗ Xu hướng khung lớn vẫn giảm, khung nhỏ đang bật tăng → rất dễ đảo chiều lại.
+❗ Chỉ được mở TỐI ĐA 1 lệnh. Sau khi vào lệnh, KHÔNG DCA thêm.
+❗ Chỉ được xem xét DCA khi cả HARSI 1D và HARSI 8H cùng chuyển sang trạng thái tăng (Bullish).
+❗ Hoặc chờ các khung lớn xác nhận đảo chiều rõ ràng rồi mới cân nhắc giao dịch.`,
+    },
+    {
+      condition: is1DBullish && is8hBearish,
+      message: `🚨 CẢNH BÁO CỰC KỲ QUAN TRỌNG
+
+HARSI 1D 🟢 Bullish nhưng HARSI 8H 🔴 Bearish (ngược chiều).
+
+❗ Xu hướng khung lớn đang tăng nhưng khung nhỏ lại giảm mạnh → dễ bị quét ngược.
+❗ Chỉ được mở TỐI ĐA 1 lệnh. Sau khi vào lệnh, KHÔNG DCA thêm.
+❗ Chỉ nên DCA khi cả HARSI 1D và 8H cùng chuyển sang Bullish đồng pha.
+❗ Ưu tiên chờ khung nhỏ xác nhận cùng xu hướng trước khi gia tăng vị thế.`,
+    },
+    {
+      condition: is1DBullish && is8hBullish,
+      message: `✅ CƠ HỘI TÍCH CỰC
+
+HARSI 1D và 8H cùng 🟢 Bullish → xu hướng tăng đồng pha.
+
+👍 Có thể cân nhắc vào lệnh LONG, ưu tiên theo xu hướng.
+🔹 Nếu vào lệnh, có thể DCA khi giá điều chỉnh hợp lý nhưng vẫn giữ quản trị rủi ro.
+🔹 Theo dõi thêm các khung nhỏ để tìm điểm vào đẹp, đặt Stop Loss rõ ràng.`,
+    },
+  ];
+
+  comboMessages
+    .filter(({ condition }) => condition)
+    .forEach(({ message }) => recommendations.push(message));
   return recommendations.join('\n');
 }
 
