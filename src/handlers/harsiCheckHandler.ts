@@ -205,22 +205,13 @@ ${trend.recommendation || ''}
  */
 export async function showLatestTrend(chatId: string, env: Env, symbol?: TradingSymbol): Promise<void> {
   const trends = await getTrends(1, env, symbol);
-  
-  if (trends.length === 0) {
-    // No trends found, start new survey
-    await startHarsiCheck(0, chatId, env, symbol); // userId 0 for common trend
-    return;
-  }
-
   const latestTrend = trends[0];
-  const message = formatTrendRecord(latestTrend);
+  const currentSymbol = symbol || latestTrend?.symbol;
+  const symbolStr = currentSymbol?.toString() || '';
 
   // Determine callback data and symbol name based on symbol
   let surveyCallbackData = CallbackDataPrefix.TREND_SURVEY;
   let symbolName = '';
-  const currentSymbol = symbol || latestTrend.symbol;
-  const symbolStr = currentSymbol?.toString() || '';
-  
   if (symbolStr === TradingSymbol.BTCUSDT.toString()) {
     surveyCallbackData = CallbackDataPrefix.TREND_SURVEY_BTC;
     symbolName = 'BTC';
@@ -230,6 +221,14 @@ export async function showLatestTrend(chatId: string, env: Env, symbol?: Trading
   } else if (symbolStr === TradingSymbol.XAUUSD.toString()) {
     surveyCallbackData = CallbackDataPrefix.TREND_SURVEY_XAU;
     symbolName = 'XAU';
+  }
+
+  let message: string;
+  if (trends.length === 0) {
+    const symbolLabel = symbolStr || 'symbol này';
+    message = `📊 Not trends now for ${symbolLabel}.\n\nVui lòng bắt đầu khảo sát mới.`;
+  } else {
+    message = formatTrendRecord(latestTrend);
   }
 
   const buttonText = symbolName ? `🔄 Khảo Sát Mới ${symbolName}` : '🔄 Khảo Sát Mới';
