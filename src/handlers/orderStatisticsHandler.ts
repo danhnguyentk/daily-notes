@@ -465,14 +465,6 @@ export async function showOrderMenu(
       })
       .slice(0, 20); // Limit to 20 orders
 
-    // Add separator row (non-clickable visual separator)
-    orderButtons.push([
-      {
-        text: '━━━━━━━━━━━━━━━━',
-        callback_data: 'order_separator',
-      },
-    ]);
-
     // Add order buttons
     sortedOrders.forEach((order) => {
       const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
@@ -503,6 +495,14 @@ export async function showOrderMenu(
     });
   }
 
+  // Add separator row (non-clickable visual separator)
+  orderButtons.push([
+    {
+      text: '━━━━━━━━━━━━━━━━',
+      callback_data: 'order_separator',
+    },
+  ]);
+  
   // Combine menu and order buttons
   const keyboard: TelegramInlineKeyboardMarkup = {
     inline_keyboard: [...orderButtons, ...menuButtons],
