@@ -19,6 +19,7 @@ import {
   updateOrderWithClosePriceInSupabase,
   convertOrderRecordToOrderData,
   deleteOrderFromSupabase,
+  getOpenOrdersForUser,
 } from '../services/supabaseService';
 
 /**
@@ -42,6 +43,7 @@ export async function getUserOrders(
   const records = await getUserOrdersFromSupabase(userId, env);
   return records.map(convertOrderRecordToOrderData);
 }
+
 
 /**
  * Lấy orders trong khoảng thời gian từ Supabase
@@ -333,7 +335,8 @@ export async function getOpenOrders(
   env: Env,
   limit: number = 10
 ): Promise<(OrderData & { orderId: string; timestamp: number })[]> {
-  const allOrders = await getUserOrders(userId, env);
+  const records = await getOpenOrdersForUser(userId, env);
+  const allOrders = records.map(convertOrderRecordToOrderData);
   
   // Lọc các orders chưa có actualRiskRewardRatio (chưa đóng)
   const openOrders = allOrders
@@ -436,10 +439,16 @@ export async function showOrderMenu(
         callback_data: CallbackDataPrefix.ORDER_CANCEL,
       },
     ],
+    [
+      {
+        text: '📜 Xem tất cả lệnh',
+        callback_data: CallbackDataPrefix.ORDER_VIEW,
+      },
+    ],
   ];
 
   // Get orders list
-  const allOrders = await getUserOrders(userId, env);
+  const allOrders = await getOpenOrders(userId, env);
   
   // Build order list buttons
   const orderButtons: TelegramInlineKeyboardMarkup['inline_keyboard'] = [];

@@ -22,6 +22,7 @@ export enum OrderColumns {
   CREATED_AT = 'created_at',
   UPDATED_AT = 'updated_at',
   ID = 'id',
+  ORDER_RESULT = 'order_result',
 }
 
 export interface OrderRecord {
@@ -753,6 +754,30 @@ export async function saveOrderAnalysis(
   }
 
   return data;
+}
+
+/**
+ * Get open (in-progress) orders for a user
+ */
+export async function getOpenOrdersForUser(
+  userId: number,
+  env: Env
+): Promise<OrderRecord[]> {
+  const supabase = getSupabaseClient(env);
+
+  const { data, error } = await supabase
+    .from(SupabaseTables.ORDERS)
+    .select('*')
+    .eq(OrderColumns.USER_ID, userId)
+    .or(`${OrderColumns.ORDER_RESULT}.is.null,${OrderColumns.ORDER_RESULT}.eq.${OrderResult.IN_PROGRESS}`)
+    .order(OrderColumns.CREATED_AT, { ascending: false });
+
+  if (error) {
+    console.error('Error fetching open orders from Supabase:', error);
+    throw new Error(`Failed to fetch open orders: ${error.message}`);
+  }
+
+  return data || [];
 }
 
 /**
