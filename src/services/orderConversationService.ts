@@ -9,6 +9,8 @@ import { updateOrderWithClosePrice } from '../handlers/orderStatisticsHandler';
 import { formatHarsiValue, formatRiskUnit, safeToFixed } from '../utils/formatUtils';
 import { getCurrentPrice, KuCoinSymbol } from '../services/kucoinService';
 import { getXAUPrice } from '../services/goldService';
+import { getTrends, TrendRecord } from '../services/supabaseService';
+import { formatVietnamTime } from '../utils/timeUtils';
 
 const CONVERSATION_STATE_KEY_PREFIX = 'order_conversation_';
 const ENTRY_PROMPT_BASE = 'Vui lòng nhập Entry price:';
@@ -16,6 +18,72 @@ const TRADING_SYMBOL_TO_KUCOIN: Partial<Record<TradingSymbol, KuCoinSymbol>> = {
   [TradingSymbol.BTCUSDT]: KuCoinSymbol.BTCUSDT,
   [TradingSymbol.ETHUSDT]: KuCoinSymbol.ETHUSDT,
 };
+
+function getSurveyButtonConfig(symbol: TradingSymbol): {
+  callbackData: CallbackDataPrefix;
+  buttonText: string;
+} {
+  switch (symbol) {
+    case TradingSymbol.BTCUSDT:
+      return {
+        callbackData: CallbackDataPrefix.TREND_SURVEY_BTC,
+        buttonText: '🔄 Khảo Sát Mới BTC',
+      };
+    case TradingSymbol.ETHUSDT:
+      return {
+        callbackData: CallbackDataPrefix.TREND_SURVEY_ETH,
+        buttonText: '🔄 Khảo Sát Mới ETH',
+      };
+    case TradingSymbol.XAUUSD:
+      return {
+        callbackData: CallbackDataPrefix.TREND_SURVEY_XAU,
+        buttonText: '🔄 Khảo Sát Mới XAU',
+      };
+    default:
+      return {
+        callbackData: CallbackDataPrefix.TREND_SURVEY,
+        buttonText: '🔄 Khảo Sát Mới',
+      };
+  }
+}
+
+function formatTrendSummaryForOrder(trend?: TrendRecord): string {
+  if (!trend) {
+    return '📊 Khảo sát gần nhất:\n• Chưa có dữ liệu.\nNhấn "Khảo Sát Mới" để cập nhật.';
+  }
+
+  const surveyedAt = trend.surveyed_at
+    ? formatVietnamTime(new Date(trend.surveyed_at))
+    : 'N/A';
+
+  const formatValue = (value?: string | MarketState): string =>
+    value ? formatHarsiValue(value as MarketState) : 'N/A';
+
+  return [
+    '📊 Khảo sát gần nhất:',
+    `• Symbol: ${trend.symbol || 'N/A'}`,
+    `• Thời gian: ${surveyedAt}`,
+    `• Xu hướng: ${trend.trend ? formatHarsiValue(trend.trend as MarketState) : 'Không rõ'}`,
+    `• HARSI 1W: ${formatValue(trend.harsi1w)}`,
+    `• HARSI 3D: ${formatValue(trend.harsi3d)}`,
+    `• HARSI 2D: ${formatValue(trend.harsi2d)}`,
+    `• HARSI 1D: ${formatValue(trend.harsi1d)}`,
+    `• HARSI 8H: ${formatValue(trend.harsi8h)}`,
+    `• HARSI 4H: ${formatValue(trend.harsi4h)}`,
+    trend.recommendation ? `\n📝 Khuyến nghị:\n${trend.recommendation}` : '',
+  ].filter(Boolean).join('\n');
+}
+
+export async function buildTrendSummaryMessage(symbol: TradingSymbol, env: Env): Promise<string> {
+  try {
+    const [latestTrend] = await getTrends(1, env, symbol);
+    return formatTrendSummaryForOrder(latestTrend);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Failed to fetch latest trend for order conversation', { symbol, error: errorMessage });
+    return '📊 Không thể tải trend gần nhất. Nhấn "Khảo Sát Mới" để cập nhật.';
+  }
+}
 
 async function getEntryPrompt(symbol: TradingSymbol | undefined, env: Env): Promise<string> {
   if (!symbol) {
@@ -231,6 +299,11 @@ export async function processOrderInput(
 
   const updatedState = { ...state };
   let message = '';
+  let replyMarkup:
+    | TelegramInlineKeyboardMarkup
+    | TelegramReplyKeyboardMarkup
+    | TelegramReplyKeyboardRemove
+    | undefined;
 
   switch (state.step) {
     case OrderConversationStep.WAITING_SYMBOL:
@@ -245,7 +318,14 @@ export async function processOrderInput(
       }
       updatedState.data.symbol = symbolValue;
       updatedState.step = OrderConversationStep.WAITING_DIRECTION;
-      message = `✅ Symbol: ${updatedState.data.symbol}\n\nVui lòng chọn hướng:\n/LONG - Long\n/SHORT - Short`;
+      const trendSummary = await buildTrendSummaryMessage(symbolValue, env);
+      const { callbackData: surveyCallbackData, buttonText } = getSurveyButtonConfig(symbolValue);
+      replyMarkup = {
+        inline_keyboard: [
+          [{ text: buttonText, callback_data: surveyCallbackData }],
+        ],
+      };
+      message = `✅ Symbol: ${updatedState.data.symbol}\n\n${trendSummary}\n\nVui lòng chọn hướng:\n/LONG - Long\n/SHORT - Short`;
       break;
 
     case OrderConversationStep.WAITING_DIRECTION:
@@ -699,7 +779,11 @@ ${updatedOrder.actualRiskRewardRatio !== undefined && updatedOrder.actualRiskRew
   // Chỉ gửi message nếu chưa được gửi ở trên (tránh duplicate)
   // Các case đã return sớm (WAITING_QUANTITY, WAITING_NOTES, WAITING_CLOSE_PRICE) sẽ không đến đây
   if (message) {
-    await sendMessageToTelegram({ chat_id: chatId, text: message }, env);
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: message,
+      reply_markup: replyMarkup,
+    }, env);
   }
 
   return { completed: false };

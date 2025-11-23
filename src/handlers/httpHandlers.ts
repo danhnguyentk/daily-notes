@@ -214,6 +214,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Order conversation cancelled');
       }
 
+
       if (callbackData === CallbackDataPrefix.ORDER_PREVIEW) {
         await answerCallbackQuery(callbackQuery.id, env, 'Đang hiển thị preview...');
         callbackAnswered = true;

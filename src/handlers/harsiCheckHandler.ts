@@ -162,6 +162,9 @@ function formatTrendRecord(trend: TrendRecord): string {
     : 'N/A';
 
   const symbolText = trend.symbol ? `\n• Symbol: ${trend.symbol}` : '';
+  const recommendationBlock = trend.recommendation
+    ? `\n📝 Khuyến nghị:\n${trend.recommendation}`
+    : '';
   return `
 📊 Kết quả kiểm tra HARSI:${symbolText}
 📅 Thời gian: ${surveyedDate}
@@ -174,7 +177,7 @@ function formatTrendRecord(trend: TrendRecord): string {
 • HARSI 4H: ${formatValue(trend.harsi4h)}
 • Xu hướng: ${trend.trend ? formatValue(trend.trend) : 'Không rõ ràng'}
 
-${trend.recommendation || ''}
+${recommendationBlock}
   `.trim();
 }
 
