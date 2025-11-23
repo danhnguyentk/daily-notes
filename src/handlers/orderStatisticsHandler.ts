@@ -511,18 +511,13 @@ export async function showOrderMenu(
   };
 
   // Build message
-  let message = '📋 Menu quản lý lệnh\n\nChọn một hành động:';
+  let message = '📋 Menu quản lý lệnh mở\n\nChọn một hành động:';
   
   if (allOrders.length > 0) {
-    const closedCount = allOrders.filter(order => order.orderResult && order.orderResult !== OrderResult.IN_PROGRESS).length;
-    const openCount = allOrders.length - closedCount;
-    
-    message += `\n\n📊 Tổng số: ${allOrders.length} lệnh\n` +
-      `✅ Đã đóng: ${closedCount}\n` +
-      `⏳ Chưa đóng: ${openCount}\n\n` +
-      `👉 Chọn lệnh bên dưới để xem chi tiết:`;
+    message += `\n\n⏳ Đang mở: ${allOrders.length} lệnh\n\n` +
+      `👉 Chọn lệnh bên dưới để xem chi tiết hoặc cập nhật:`;
   } else {
-    message += `\n\n📋 Không có lệnh nào.`;
+    message += `\n\n📋 Hiện không có lệnh mở nào.`;
   }
 
   await sendMessageToTelegram(
