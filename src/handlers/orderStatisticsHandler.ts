@@ -428,6 +428,10 @@ export async function showOrderMenu(
         text: '➕ Tạo lệnh mới',
         callback_data: CallbackDataPrefix.ORDER_NEW,
       },
+      {
+        text: '📜 Xem tất cả lệnh',
+        callback_data: CallbackDataPrefix.ORDER_VIEW,
+      },
     ],
     [
       {
@@ -437,12 +441,6 @@ export async function showOrderMenu(
       {
         text: '❌ Hủy lệnh',
         callback_data: CallbackDataPrefix.ORDER_CANCEL,
-      },
-    ],
-    [
-      {
-        text: '📜 Xem tất cả lệnh',
-        callback_data: CallbackDataPrefix.ORDER_VIEW,
       },
     ],
   ];
@@ -507,14 +505,14 @@ export async function showOrderMenu(
 
   // Combine menu and order buttons
   const keyboard: TelegramInlineKeyboardMarkup = {
-    inline_keyboard: [...menuButtons, ...orderButtons],
+    inline_keyboard: [...orderButtons, ...menuButtons],
   };
 
   // Build message
-  let message = '📋 Menu quản lý lệnh mở\n\nChọn một hành động:';
+  let message = '📋 Menu quản lý lệnh mở\nChọn một hành động:';
   
   if (allOrders.length > 0) {
-    message += `\n\n⏳ Đang mở: ${allOrders.length} lệnh\n\n` +
+    message += `\n⏳ Đang mở: ${allOrders.length} lệnh\n` +
       `👉 Chọn lệnh bên dưới để xem chi tiết hoặc cập nhật:`;
   } else {
     message += `\n\n📋 Hiện không có lệnh mở nào.`;
