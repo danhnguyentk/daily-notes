@@ -23,8 +23,6 @@ import {
   finishNotesSelection,
   clearConversationState,
   saveConversationState,
-  createHarsiMarketStateKeyboard,
-  handleHarsiSelection,
 } from '../services/orderConversationService';
 import { processOrderData } from './orderHandlers';
 import { OrderConversationStep, MarketState, CallbackDataPrefix, TradingSymbol } from '../types/orderTypes';
@@ -455,37 +453,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Event verified');
       }
 
-      // Handle HARSI 8H Bearish confirmation
-      if (callbackData === CallbackDataPrefix.HARSI_8H_CONTINUE) {
-        const state = await getConversationState(userId, env);
-        if (state && state.step === OrderConversationStep.WAITING_HARSI_8H_CONFIRMATION) {
-          state.step = OrderConversationStep.WAITING_HARSI_4H;
-          await saveConversationState(state, env);
-          
-          const message = `✅ HARSI 8H: ${state.data.harsi8h || 'N/A'}\n\nVui lòng chọn HARSI 4H:`;
-          await sendMessageToTelegram({ 
-            chat_id: chatId, 
-            text: message,
-            reply_markup: createHarsiMarketStateKeyboard(),
-          }, env);
-        }
-        return textResponse('HARSI 8H confirmation handled');
-      }
-
-      if (callbackData === CallbackDataPrefix.HARSI_8H_CANCEL) {
-        // Cancel the entire order immediately
-        await clearConversationState(userId, env);
-        
-        // Remove any keyboards and send cancellation message
-        await sendMessageToTelegram({ 
-          chat_id: chatId, 
-          text: '❌ Đã hủy nhập lệnh.',
-          reply_markup: { remove_keyboard: true },
-        }, env);
-        
-        return textResponse('Order cancelled');
-      }
-
       // Handle trend survey again button - show symbol selection
       if (callbackData === CallbackDataPrefix.TREND_SURVEY) {
         await answerCallbackQuery(callbackQuery.id, env, 'Đang tải menu...');
@@ -639,20 +606,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
             return textResponse('HARSI check selection handled');
           }
         }
-      }
-
-      // Handle HARSI market state selection (for order flow)
-      if (callbackData && callbackData.startsWith(CallbackDataPrefix.HARSI)) {
-        if (callbackData === CallbackDataPrefix.HARSI_SKIP) {
-          await handleHarsiSelection(userId, chatId, 'skip', env);
-        } else {
-          const marketStateValue = callbackData.substring(CallbackDataPrefix.HARSI.length);
-          const marketState = Object.values(MarketState).find(c => c === marketStateValue);
-          if (marketState) {
-            await handleHarsiSelection(userId, chatId, marketState, env);
-          }
-        }
-        return textResponse('HARSI selection handled');
       }
 
       // Handle note selection from inline keyboard

@@ -6,7 +6,7 @@ import { Env } from '../types/env';
 import { OrderData, MarketState } from '../types/orderTypes';
 import { sendMessageToTelegram, TelegramReplyKeyboardRemove } from '../services/telegramService';
 import { formatVietnamTime } from '../utils/timeUtils';
-import { formatNotes } from '../services/orderConversationService';
+import { formatNotes, attachLatestTrendDataToOrder } from '../services/orderConversationService';
 import { calculateOrderLoss } from '../utils/orderCalcUtils';
 import { formatHarsiValue, formatRiskUnit, hasNumericValue, safeToFixed } from '../utils/formatUtils';
 import { saveOrder } from './orderStatisticsHandler';
@@ -161,6 +161,9 @@ export async function processOrderData(
   chatId: string,
   env: Env
 ): Promise<void> {
+  // Attach latest trend data (HARSI) to order before processing
+  await attachLatestTrendDataToOrder(orderData, env);
+  
   // Calculate loss fields before processing
   orderData = calculateOrderLoss(orderData);
   console.log('Processing order data:', orderData);
