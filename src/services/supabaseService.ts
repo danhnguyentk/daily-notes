@@ -37,6 +37,7 @@ export interface OrderRecord {
   harsi1d?: string;
   harsi8h?: string;
   harsi4h?: string;
+  hasri2h?: string;
   entry?: number;
   stop_loss?: number;
   take_profit?: number;
@@ -89,6 +90,7 @@ export function convertOrderRecordToOrderData(record: OrderRecord): OrderData & 
     harsi1d: record.harsi1d as MarketState | undefined,
     harsi8h: record.harsi8h as MarketState | undefined,
     harsi4h: record.harsi4h as MarketState | undefined,
+    hasri2h: record.hasri2h as MarketState | undefined,
     entry: record.entry,
     stopLoss: record.stop_loss,
     takeProfit: record.take_profit,
@@ -136,6 +138,7 @@ export async function saveOrderToSupabase(
     harsi1d: orderData.harsi1d,
     harsi8h: orderData.harsi8h,
     harsi4h: orderData.harsi4h,
+    hasri2h: orderData.hasri2h,
     entry: orderData.entry,
     stop_loss: orderData.stopLoss,
     take_profit: orderData.takeProfit,
@@ -587,6 +590,7 @@ export interface TrendRecord {
   harsi1d?: string; // 'bullish' | 'bearish' | 'neutral'
   harsi8h?: string; // 'bullish' | 'bearish' | 'neutral'
   harsi4h?: string; // 'bullish' | 'bearish' | 'neutral'
+  hasri2h?: string; // 'bullish' | 'bearish' | 'neutral'
   trend?: string; // 'bullish' | 'bearish'
   recommendation?: string;
   surveyed_at?: string; // Timestamp when the survey/trend check was completed
@@ -600,6 +604,7 @@ export interface TrendData {
   harsi1d?: MarketState;
   harsi8h?: MarketState;
   harsi4h?: MarketState;
+  hasri2h?: MarketState;
   trend?: MarketState; // 'bullish' | 'bearish' (no neutral for trend)
 }
 
@@ -621,6 +626,7 @@ export async function saveTrend(
     harsi1d: trendData.harsi1d,
     harsi8h: trendData.harsi8h,
     harsi4h: trendData.harsi4h,
+    hasri2h: trendData.hasri2h,
     trend: trendData.trend,
     recommendation,
     surveyed_at: new Date().toISOString(),

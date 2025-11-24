@@ -670,6 +670,7 @@ export async function showOrderDetails(
    • HARSI 1D: ${formatHarsiValue(order.harsi1d)}
    • HARSI 8H: ${formatHarsiValue(order.harsi8h)}
    • HARSI 4H: ${formatHarsiValue(order.harsi4h)}
+   • HARSI 2H: ${formatHarsiValue(order.hasri2h)}
    • Entry: ${order.entry || 'N/A'}
    • Stop Loss: ${order.stopLoss || 'N/A'}
    • Take Profit: ${order.takeProfit || 'N/A'}

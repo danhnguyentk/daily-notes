@@ -589,7 +589,8 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
             conversationState.step === OrderConversationStep.WAITING_HARSI_CHECK_2D ||
             conversationState.step === OrderConversationStep.WAITING_HARSI_CHECK_1D ||
             conversationState.step === OrderConversationStep.WAITING_HARSI_CHECK_8H ||
-            conversationState.step === OrderConversationStep.WAITING_HARSI_CHECK_4H
+            conversationState.step === OrderConversationStep.WAITING_HARSI_CHECK_4H ||
+            conversationState.step === OrderConversationStep.WAITING_HARSI_CHECK_2H
           );
           
           if (isHarsiCheckFlow) {

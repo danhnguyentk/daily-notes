@@ -18,6 +18,7 @@ interface HarsiValues {
   harsi1d?: MarketState;
   harsi8h?: MarketState;
   harsi4h?: MarketState;
+  hasri2h?: MarketState;
 }
 
 /**
@@ -50,6 +51,7 @@ function calculateTrendFromHarsi(harsiValues: HarsiValues): MarketState | undefi
     harsiValues.harsi1d,
     harsiValues.harsi8h,
     harsiValues.harsi4h,
+    harsiValues.hasri2h,
   ].filter(v => v !== undefined) as MarketState[];
   if (values.length === 0) return undefined;
   
@@ -80,6 +82,7 @@ function generateRecommendation(harsiValues: HarsiValues): string {
     harsiValues.harsi1d,
     harsiValues.harsi8h,
     harsiValues.harsi4h,
+    harsiValues.hasri2h,
   ];
   const bearishCount = allValues.filter(h => h === MarketState.Bearish).length;
   const bullishCount = allValues.filter(h => h === MarketState.Bullish).length;
@@ -175,6 +178,7 @@ function formatTrendRecord(trend: TrendRecord): string {
 • HARSI 1D: ${formatValue(trend.harsi1d)}
 • HARSI 8H: ${formatValue(trend.harsi8h)}
 • HARSI 4H: ${formatValue(trend.harsi4h)}
+• HARSI 2H: ${formatValue(trend.hasri2h)}
 • Xu hướng: ${trend.trend ? formatValue(trend.trend) : 'Không rõ ràng'}
 
 ${recommendationBlock}
@@ -352,6 +356,21 @@ export async function handleHarsiCheckSelection(
     } else {
       state.data.harsi4h = marketState;
     }
+    state.step = OrderConversationStep.WAITING_HARSI_CHECK_2H;
+    await saveConversationState(state, env);
+    
+    const message = `✅ HARSI 4H: ${formatHarsiValue(state.data.harsi4h)}\n\nVui lòng chọn HARSI 2H:`;
+    await sendMessageToTelegram({ 
+      chat_id: chatId, 
+      text: message,
+      reply_markup: createHarsiCheckMarketStateKeyboard(),
+    }, env);
+  } else if (state.step === OrderConversationStep.WAITING_HARSI_CHECK_2H) {
+    if (marketState === 'skip') {
+      state.data.hasri2h = undefined;
+    } else {
+      state.data.hasri2h = marketState;
+    }
     
     // Calculate trend from HARSI values
     const harsiValues: HarsiValues = {
@@ -361,6 +380,7 @@ export async function handleHarsiCheckSelection(
       harsi1d: state.data.harsi1d,
       harsi8h: state.data.harsi8h,
       harsi4h: state.data.harsi4h,
+      hasri2h: state.data.hasri2h,
     };
     const calculatedTrend = calculateTrendFromHarsi(harsiValues);
     
@@ -390,6 +410,7 @@ export async function handleHarsiCheckSelection(
 • HARSI 1D: ${formatHarsiValue(state.data.harsi1d)}
 • HARSI 8H: ${formatHarsiValue(state.data.harsi8h)}
 • HARSI 4H: ${formatHarsiValue(state.data.harsi4h)}
+• HARSI 2H: ${formatHarsiValue(state.data.hasri2h)}
 • Xu hướng: ${calculatedTrend ? formatHarsiValue(calculatedTrend) : 'Không rõ ràng'}
 
 ${recommendation}

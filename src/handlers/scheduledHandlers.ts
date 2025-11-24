@@ -136,6 +136,7 @@ function formatTrendRecordForScheduled(trend: TrendRecord): string {
 • HARSI 1D: ${formatValue(trend.harsi1d)}
 • HARSI 8H: ${formatValue(trend.harsi8h)}
 • HARSI 4H: ${formatValue(trend.harsi4h)}
+• HARSI 2H: ${formatValue(trend.hasri2h)}
 • Xu hướng: ${trend.trend ? formatValue(trend.trend) : 'Không rõ ràng'}
 
 ${trend.recommendation || ''}

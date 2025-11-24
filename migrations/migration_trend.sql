@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS trend (
   harsi1d TEXT CHECK (harsi1d IN ('bullish', 'bearish', 'neutral')),
   harsi8h TEXT CHECK (harsi8h IN ('bullish', 'bearish', 'neutral')),
   harsi4h TEXT CHECK (harsi4h IN ('bullish', 'bearish', 'neutral')),
+  hasri2h TEXT CHECK (hasri2h IN ('bullish', 'bearish', 'neutral')),
   -- Trend field
   trend TEXT CHECK (trend IN ('bullish', 'bearish')),
   -- Recommendation

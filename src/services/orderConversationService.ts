@@ -70,6 +70,7 @@ function formatTrendSummaryForOrder(trend?: TrendRecord): string {
     `• HARSI 1D: ${formatValue(trend.harsi1d)}`,
     `• HARSI 8H: ${formatValue(trend.harsi8h)}`,
     `• HARSI 4H: ${formatValue(trend.harsi4h)}`,
+    `• HARSI 2H: ${formatValue(trend.hasri2h)}`,
     trend.recommendation ? `\n📝 Khuyến nghị:\n${trend.recommendation}` : '',
   ].filter(Boolean).join('\n');
 }
@@ -103,6 +104,7 @@ export async function attachLatestTrendDataToOrder(
     orderData.harsi1d = latestTrend.harsi1d as MarketState | undefined;
     orderData.harsi8h = latestTrend.harsi8h as MarketState | undefined;
     orderData.harsi4h = latestTrend.harsi4h as MarketState | undefined;
+    orderData.hasri2h = latestTrend.hasri2h as MarketState | undefined;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Failed to attach latest trend data to order', {
@@ -845,6 +847,7 @@ HARSI 2D: ${formatHarsiValue(data.harsi2d)}
 HARSI 1D: ${formatHarsiValue(data.harsi1d)}
 HARSI 8H: ${formatHarsiValue(data.harsi8h)}
 HARSI 4H: ${formatHarsiValue(data.harsi4h)}
+HARSI 2H: ${formatHarsiValue(data.hasri2h)}
 Entry: ${data.entry || 'N/A'}
 Stop Loss: ${data.stopLoss || 'N/A'}
 Take Profit: ${data.takeProfit || 'N/A'}

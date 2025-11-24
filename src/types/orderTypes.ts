@@ -83,6 +83,7 @@ export interface OrderData {
   harsi1d?: MarketState;
   harsi8h?: MarketState;
   harsi4h?: MarketState;
+  hasri2h?: MarketState;
   entry?: number;
   stopLoss?: number;
   takeProfit?: number;
@@ -194,6 +195,7 @@ export enum OrderConversationStep {
   WAITING_HARSI_CHECK_1D = 'waiting_harsi_check_1d',
   WAITING_HARSI_CHECK_8H = 'waiting_harsi_check_8h',
   WAITING_HARSI_CHECK_4H = 'waiting_harsi_check_4h',
+  WAITING_HARSI_CHECK_2H = 'waiting_harsi_check_2h',
 }
 
 export interface OrderConversationState {

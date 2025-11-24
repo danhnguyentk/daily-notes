@@ -106,6 +106,7 @@ function buildOrderSummary(orderData: OrderData, formattedNotes: string): string
     `HARSI 1D: ${formatHarsiValue(orderData.harsi1d)}`,
     `HARSI 8H: ${formatHarsiValue(orderData.harsi8h)}`,
     `HARSI 4H: ${formatHarsiValue(orderData.harsi4h)}`,
+    `HARSI 2H: ${formatHarsiValue(orderData.hasri2h)}`,
     `Entry: ${withFallback(orderData.entry)}`,
     `Stop Loss: ${withFallback(orderData.stopLoss)}`,
     `Take Profit: ${withFallback(orderData.takeProfit)}`,
