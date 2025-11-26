@@ -4,12 +4,13 @@
 
 import { EventKey } from '../services/supabaseService';
 import { fetchAndNotifyEtf } from '../services/fetchBtcEtf';
-import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery, setWebhookTelegram, TelegramParseMode, TelegramInlineKeyboardMarkup } from '../services/telegramService';
+import { TelegramCommands, TelegramMessageTitle, TelegramWebhookRequest, sendMessageToTelegram, answerCallbackQuery, setWebhookTelegram, TelegramParseMode, TelegramInlineKeyboardMarkup, sendImageGroupToTelegram, TelegramImageRequest } from '../services/telegramService';
 import { Env } from '../types/env';
 import { getCurrentPriceAndNotify, KuCoinSymbol, KuCoinInterval } from '../services/kucoinService';
 import { getXAUPriceAndNotify } from '../services/goldService';
 import { snapshotChart, snapshotChartWithSpecificInterval } from './chartHandlers';
-import { TradingviewInterval } from '../services/tradingviewService';
+import { TradingviewInterval, getTradingViewImage } from '../services/tradingviewService';
+import { formatVietnamTime } from '../utils/timeUtils';
 import { notifyNumberClosedCandlesBullish } from './candleHandlers';
 import { takeTelegramAction } from './telegramHandlers';
 import {
@@ -796,8 +797,21 @@ async function handleSnapshotChart(env: Env): Promise<Response> {
 /**
  * TradingView webhook JSON payload interface
  */
+// {
+//   "interval": "15m",
+//   "exchange": "OANDA",
+//   "symbol": "EURUSD",
+//   "side": "BUY",
+//   "level": "STRONG",
+//   "price": 1.08350,
+//   "daily": "===Daily UP",
+//   "H8": "8H DOWN",
+//   "H4": "4H UP",
+//   "H2": "2H UP"
+// }
 interface TradingViewWebhookPayload {
   interval?: string;
+  exchange?: string;
   symbol?: string;
   side?: string;
   level?: string;
@@ -823,11 +837,12 @@ async function handleTradingViewWebhook(req: Request, env: Env): Promise<Respons
     
     let logMessage = '';
     let alertMessage = '';
+    let jsonPayload: TradingViewWebhookPayload | null = null;
     
     // Try to parse as JSON first
     try {
       const parsed = JSON.parse(trimmedBody) as unknown;
-      const jsonPayload = parsed as TradingViewWebhookPayload;
+      jsonPayload = parsed as TradingViewWebhookPayload;
       
       // Check if it's a valid TradingView JSON payload
       if (jsonPayload.symbol || jsonPayload.interval || jsonPayload.side) {
@@ -911,6 +926,83 @@ async function handleTradingViewWebhook(req: Request, env: Env): Promise<Respons
     } catch (error) {
       console.error('Error sending Pushover alert:', error);
       // Continue even if Pushover fails
+    }
+    
+    // Generate and send charts if JSON payload with symbol and interval
+    if (jsonPayload && jsonPayload.symbol && jsonPayload.interval) {
+      try {
+        // Map interval string to TradingviewInterval
+        const mapIntervalToTradingview = (interval: string): TradingviewInterval | null => {
+          const intervalLower = interval.toLowerCase();
+          if (intervalLower === '5m') return TradingviewInterval.Min5;
+          if (intervalLower === '15m') return TradingviewInterval.Min15;
+          if (intervalLower === '30m') return TradingviewInterval.Min30;
+          if (intervalLower === '1h') return TradingviewInterval.H1;
+          if (intervalLower === '2h') return TradingviewInterval.H2;
+          if (intervalLower === '4h') return TradingviewInterval.H4;
+          if (intervalLower === '8h') return TradingviewInterval.H8;
+          return null;
+        };
+        
+        // Format symbol using exchange field if provided
+        const formatSymbol = (symbol: string, exchange?: string): string => {
+          // If already has exchange prefix, use as is
+          if (symbol.includes(':')) return symbol;
+          // Use provided exchange, or default to OANDA for forex pairs
+          const exchangePrefix = exchange || 'OANDA';
+          return `${exchangePrefix}:${symbol}`;
+        };
+        
+        const formattedSymbol = formatSymbol(jsonPayload.symbol, jsonPayload.exchange);
+        const alertInterval = mapIntervalToTradingview(jsonPayload.interval);
+        
+        if (alertInterval) {
+          // Determine which charts to show based on interval
+          const chartIntervals: Array<{ key: string; value: TradingviewInterval }> = [
+            { key: '8h', value: TradingviewInterval.H8 },
+            { key: '4h', value: TradingviewInterval.H4 },
+            { key: '2h', value: TradingviewInterval.H2 },
+            { key: jsonPayload.interval.toLowerCase(), value: alertInterval }
+          ];
+          
+          if (chartIntervals.length > 0) {
+            console.log(`Generating charts for ${formattedSymbol}...`);
+            const images: TelegramImageRequest[] = [];
+            
+            for (const chartInterval of chartIntervals) {
+              try {
+                const arrayBufferImage = await getTradingViewImage(
+                  {
+                    symbol: formattedSymbol,
+                    interval: chartInterval.value,
+                  },
+                  env,
+                );
+                
+                images.push({
+                  chat_id: env.TELEGRAM_CHAT_ID,
+                  caption: `${jsonPayload.symbol} ${chartInterval.key} ${formatVietnamTime()}`,
+                  photo: arrayBufferImage,
+                });
+              } catch (error) {
+                console.error(`Error generating chart for ${chartInterval.key}:`, error);
+                // Continue with other charts even if one fails
+              }
+            }
+            
+            if (images.length > 0) {
+              await sendImageGroupToTelegram({
+                chat_id: env.TELEGRAM_CHAT_ID,
+                images: images,
+              }, env);
+              console.log(`Charts sent to Telegram successfully for ${formattedSymbol}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error generating charts:', error);
+        // Continue even if chart generation fails
+      }
     }
     
     // Return success response
