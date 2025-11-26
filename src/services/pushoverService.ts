@@ -89,7 +89,7 @@ export async function sendPushoverAlert(
     title,
     message,
     priority,
-    retry: 30, // Retry every 30 seconds
+    retry: 300, // Retry every 5 minutes (300 seconds)
     expire: 900, // Expire after 15 minutes (900 seconds)
     ttl: 28800, // Time to live: 8 hours (28800 seconds)
     url_title: 'View on Telegram',
