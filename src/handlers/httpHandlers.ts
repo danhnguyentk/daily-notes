@@ -897,8 +897,15 @@ async function handleTradingViewWebhook(req: Request, env: Env): Promise<Respons
         if (jsonPayload.side) bracketParts.push(jsonPayload.side.toUpperCase());
         if (jsonPayload.interval) bracketParts.push(jsonPayload.interval);
         
+        // Always show bracket part if we have at least side or interval
         if (bracketParts.length > 0) {
           parts.push(`${sideEmoji} [${bracketParts.join(' ')}]`);
+        } else if (jsonPayload.side) {
+          // Fallback: show just side if no level/interval
+          parts.push(`${sideEmoji} [${jsonPayload.side.toUpperCase()}]`);
+        } else {
+          // Fallback: show just emoji if no side
+          parts.push(sideEmoji);
         }
         
         // Symbol @Price
@@ -923,7 +930,7 @@ async function handleTradingViewWebhook(req: Request, env: Env): Promise<Respons
         }
         
         logMessage = parts.join(' ');
-        alertMessage = trimmedBody; // Use raw JSON for Pushover
+        alertMessage = logMessage; // Use formatted message for Pushover too
       } else {
         // JSON but not the expected structure, treat as plain text
         logMessage = `📊 TradingView Alert\n\n${trimmedBody}`;
