@@ -742,6 +742,14 @@ export async function showOrderDetails(
         callback_data: `${CallbackDataPrefix.CLOSE_ORDER}${orderWithMeta.orderId}`,
       },
     ]);
+  } else {
+    // Show "Cập nhật Close Price" button if order is already closed
+    keyboardButtons.push([
+      {
+        text: '✏️ Cập nhật Close Price',
+        callback_data: `${CallbackDataPrefix.UPDATE_CLOSE_PRICE}${orderWithMeta.orderId}`,
+      },
+    ]);
   }
   
   keyboardButtons.push([

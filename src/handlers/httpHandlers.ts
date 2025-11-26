@@ -198,6 +198,37 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         return textResponse('Order selected for update');
       }
 
+      // Handle update close price (for already closed orders)
+      if (callbackData.startsWith(CallbackDataPrefix.UPDATE_CLOSE_PRICE)) {
+        callbackAnswered = true;
+        const orderId = callbackData.substring(CallbackDataPrefix.UPDATE_CLOSE_PRICE.length);
+        const order = await getOrderById(orderId, env);
+        
+        if (!order) {
+          await sendMessageToTelegram({
+            chat_id: chatId,
+            text: '❌ Không tìm thấy lệnh này.',
+          }, env);
+          return textResponse('Order not found');
+        }
+
+        // Tạo conversation state để nhập lại actual close price
+        await saveConversationState({
+          userId,
+          step: OrderConversationStep.WAITING_CLOSE_PRICE,
+          data: order,
+          createdAt: Date.now(),
+          selectedOrderId: orderId,
+        }, env);
+
+        const currentClosePrice = order.actualClosePrice ? `\nClose Price hiện tại: ${order.actualClosePrice}` : '';
+        await sendMessageToTelegram({
+          chat_id: chatId,
+          text: `✅ Đã chọn lệnh để cập nhật Close Price:\n\nSymbol: ${order.symbol}\nDirection: ${order.direction}\nEntry: ${order.entry}\nStop Loss: ${order.stopLoss}${currentClosePrice}\n\nVui lòng nhập Close Price mới:\n(Stop Loss: /${order.stopLoss})`,
+        }, env);
+        return textResponse('Order selected for close price update');
+      }
+
       // Handle order menu actions
       if (callbackData === CallbackDataPrefix.ORDER_NEW) {
         await answerCallbackQuery(callbackQuery.id, env, 'Đang tạo lệnh mới...');
