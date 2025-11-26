@@ -23,7 +23,7 @@ export async function snapshotChart(env: Env): Promise<void> {
 
     const arrayBufferImage = await getTradingViewImage(
       {
-        symbol: TradingviewSymbol.BitgetBtcUsdtPerp,
+        symbol: TradingviewSymbol.BinanceBtcUsdtPerp,
         interval: tf.value,
       },
       env,

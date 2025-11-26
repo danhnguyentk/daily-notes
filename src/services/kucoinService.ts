@@ -55,7 +55,7 @@ export const KuCoinToTradingviewInterval: Record<KuCoinInterval, TradingviewInte
   [KuCoinInterval.SIX_HOURS]: TradingviewInterval.H6,
   [KuCoinInterval.EIGHT_HOURS]: TradingviewInterval.H8,
   [KuCoinInterval.ONE_DAY]: TradingviewInterval.Daily,
-  [KuCoinInterval.THREE_DAYS]: TradingviewInterval.ThreeDay,
+  [KuCoinInterval.THREE_DAYS]: TradingviewInterval.D3,
   [KuCoinInterval.ONE_WEEK]: TradingviewInterval.Weekly,
   [KuCoinInterval.ONE_MONTH]: TradingviewInterval.Monthly,
 }

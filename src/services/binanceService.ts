@@ -59,7 +59,7 @@ export const BinanceToTradingviewInterval: Record<BinanceInterval, TradingviewIn
   [BinanceInterval.SIX_HOURS]: TradingviewInterval.H6,
   [BinanceInterval.EIGHT_HOURS]: TradingviewInterval.H8,
   [BinanceInterval.ONE_DAY]: TradingviewInterval.Daily,
-  [BinanceInterval.THREE_DAYS]: TradingviewInterval.ThreeDay,
+  [BinanceInterval.THREE_DAYS]: TradingviewInterval.D3,
   [BinanceInterval.ONE_WEEK]: TradingviewInterval.Weekly,
   [BinanceInterval.ONE_MONTH]: TradingviewInterval.Monthly,
 };

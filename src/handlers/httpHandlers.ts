@@ -360,7 +360,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
           text: '📊 Generating chart BTC1w3d1d... Please wait.',
         }, env);
         await snapshotChartWithSpecificInterval({ key: '1W', value: TradingviewInterval.Weekly }, env);
-        await snapshotChartWithSpecificInterval({ key: '3D', value: TradingviewInterval.ThreeDay }, env);
+        await snapshotChartWithSpecificInterval({ key: '3D', value: TradingviewInterval.D3 }, env);
         await snapshotChartWithSpecificInterval({ key: '1D', value: TradingviewInterval.Daily }, env);
         return textResponse('Chart generated');
       }
@@ -857,7 +857,7 @@ interface TradingViewWebhookPayload {
  * Handle TradingView webhook alerts
  * Supports both JSON and plain text formats
  */
-async function handleTradingViewWebhook(req: Request, env: Env): Promise<Response> {
+async function handleTradingViewWebhook(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   let rawBody = '';
   try {
     // Read raw body
@@ -892,19 +892,18 @@ async function handleTradingViewWebhook(req: Request, env: Env): Promise<Respons
         const parts: string[] = [];
         
         // Emoji and [LEVEL SIDE INTERVAL]
+        // Only show bracket if we have side (required for meaningful bracket)
         const bracketParts: string[] = [];
         if (jsonPayload.level) bracketParts.push(jsonPayload.level.toUpperCase());
         if (jsonPayload.side) bracketParts.push(jsonPayload.side.toUpperCase());
         if (jsonPayload.interval) bracketParts.push(jsonPayload.interval);
         
-        // Always show bracket part if we have at least side or interval
-        if (bracketParts.length > 0) {
+        // Show bracket only if we have side (required field)
+        if (jsonPayload.side) {
+          // We have side, show bracket with available parts
           parts.push(`${sideEmoji} [${bracketParts.join(' ')}]`);
-        } else if (jsonPayload.side) {
-          // Fallback: show just side if no level/interval
-          parts.push(`${sideEmoji} [${jsonPayload.side.toUpperCase()}]`);
         } else {
-          // Fallback: show just emoji if no side
+          // No side, just show emoji (don't show bracket with only interval)
           parts.push(sideEmoji);
         }
         
@@ -966,85 +965,9 @@ async function handleTradingViewWebhook(req: Request, env: Env): Promise<Respons
       // Continue even if Pushover fails
     }
     
-    // Generate and send charts if JSON payload with symbol and interval
-    if (jsonPayload && jsonPayload.symbol && jsonPayload.interval) {
-      try {
-        // Map interval string to TradingviewInterval
-        const mapIntervalToTradingview = (interval: string): TradingviewInterval | null => {
-          const intervalLower = interval.toLowerCase();
-          if (intervalLower === '5m') return TradingviewInterval.Min5;
-          if (intervalLower === '15m') return TradingviewInterval.Min15;
-          if (intervalLower === '30m') return TradingviewInterval.Min30;
-          if (intervalLower === '1h') return TradingviewInterval.H1;
-          if (intervalLower === '2h') return TradingviewInterval.H2;
-          if (intervalLower === '4h') return TradingviewInterval.H4;
-          if (intervalLower === '8h') return TradingviewInterval.H8;
-          return null;
-        };
-        
-        // Format symbol using exchange field if provided
-        const formatSymbol = (symbol: string, exchange?: string): string => {
-          // If already has exchange prefix, use as is
-          if (symbol.includes(':')) return symbol;
-          // Use provided exchange, or default to OANDA for forex pairs
-          const exchangePrefix = exchange || 'OANDA';
-          return `${exchangePrefix}:${symbol}`;
-        };
-        
-        const formattedSymbol = formatSymbol(jsonPayload.symbol, jsonPayload.exchange);
-        const alertInterval = mapIntervalToTradingview(jsonPayload.interval);
-        
-        if (alertInterval) {
-          // Determine which charts to show based on interval
-          const chartIntervals: Array<{ key: string; value: TradingviewInterval }> = [
-            { key: '8h', value: TradingviewInterval.H8 },
-            { key: '4h', value: TradingviewInterval.H4 },
-            { key: '2h', value: TradingviewInterval.H2 },
-            { key: jsonPayload.interval.toLowerCase(), value: alertInterval }
-          ];
-          
-          if (chartIntervals.length > 0) {
-            console.log(`Generating charts for ${formattedSymbol}...`);
-            const images: TelegramImageRequest[] = [];
-            
-            for (const chartInterval of chartIntervals) {
-              try {
-                const arrayBufferImage = await getTradingViewImage(
-                  {
-                    symbol: formattedSymbol,
-                    interval: chartInterval.value,
-                  },
-                  env,
-                );
-                
-                images.push({
-                  chat_id: env.TELEGRAM_CHAT_ID,
-                  caption: `${jsonPayload.symbol} ${chartInterval.key} ${formatVietnamTime()}`,
-                  photo: arrayBufferImage,
-                });
-              } catch (error) {
-                console.error(`Error generating chart for ${chartInterval.key}:`, error);
-                // Continue with other charts even if one fails
-              }
-            }
-            
-            if (images.length > 0) {
-              await sendImageGroupToTelegram({
-                chat_id: env.TELEGRAM_CHAT_ID,
-                images: images,
-              }, env);
-              console.log(`Charts sent to Telegram successfully for ${formattedSymbol}`);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error generating charts:', error);
-        // Continue even if chart generation fails
-      }
-    }
-    
-    // Return success response
-    return jsonResponse({
+    // Return success response immediately to avoid TradingView webhook timeout
+    // Chart generation will continue in background
+    const response = jsonResponse({
       success: true,
       message: 'TradingView alert received and processed',
       alert: {
@@ -1053,6 +976,26 @@ async function handleTradingViewWebhook(req: Request, env: Env): Promise<Respons
       },
     }, 200);
     
+    // Generate and send charts asynchronously using ctx.waitUntil()
+    // This ensures chart generation runs in background without blocking response
+    // 
+    // WHY USE ctx.waitUntil():
+    // 1. TradingView webhook has a timeout (usually 5-10 seconds)
+    // 2. Chart generation can take 5-15 seconds (4 API calls + Telegram upload)
+    // 3. ctx.waitUntil() allows background task to continue after response is sent
+    // 4. Response is returned immediately (< 1 second) → TradingView sees success
+    // 5. Chart generation completes in background and sends images to Telegram
+    if (jsonPayload && jsonPayload.symbol && jsonPayload.interval) {
+      // Use ctx.waitUntil() to run chart generation in background
+      // This ensures the task continues even after response is sent
+      ctx.waitUntil(
+        generateChartsAsync(jsonPayload, env).catch((error) => {
+          console.error('Error in background chart generation:', error);
+        })
+      );
+    }
+    
+    return response;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error handling TradingView webhook:', errorMessage);
@@ -1071,6 +1014,130 @@ async function handleTradingViewWebhook(req: Request, env: Env): Promise<Respons
       success: false,
       error: errorMessage,
     }, 400);
+  }
+}
+
+/**
+ * Generate charts asynchronously (called after response is sent)
+ */
+async function generateChartsAsync(jsonPayload: TradingViewWebhookPayload, env: Env): Promise<void> {
+  try {
+    console.log('Checking chart generation conditions:', {
+      hasJsonPayload: !!jsonPayload,
+      symbol: jsonPayload?.symbol,
+      interval: jsonPayload?.interval,
+    });
+    
+    if (!jsonPayload.symbol || !jsonPayload.interval) {
+      console.log('Chart generation skipped - missing symbol or interval');
+      return;
+    }
+    
+    // Map interval string to TradingviewInterval
+    const mapIntervalToTradingview = (interval: string): TradingviewInterval | null => {
+      if (!interval) return null;
+      const intervalLower = interval.toLowerCase().trim();
+      console.log('Mapping interval:', interval, 'to lowercase:', intervalLower);
+      if (intervalLower === '1m' || intervalLower === '1m') return TradingviewInterval.Min1;
+      if (intervalLower === '5m' || intervalLower === '5') return TradingviewInterval.Min5;
+      if (intervalLower === '15m' || intervalLower === '15') return TradingviewInterval.Min15;
+      if (intervalLower === '30m' || intervalLower === '30') return TradingviewInterval.Min30;
+      if (intervalLower === '1h' || intervalLower === '1h') return TradingviewInterval.H1;
+      if (intervalLower === '2h' || intervalLower === '2h') return TradingviewInterval.H2;
+      if (intervalLower === '4h' || intervalLower === '4h') return TradingviewInterval.H4;
+      if (intervalLower === '8h' || intervalLower === '8h') return TradingviewInterval.H8;
+      console.log('Interval not mapped:', intervalLower);
+      return null;
+    };
+    
+    // Format symbol using exchange field if provided
+    const formatSymbol = (symbol: string, exchange?: string): string => {
+      // If already has exchange prefix, use as is
+      if (symbol.includes(':')) return symbol;
+      // Use provided exchange, or default to OANDA for forex pairs
+      const exchangePrefix = exchange || 'OANDA';
+      return `${exchangePrefix}:${symbol}`;
+    };
+    
+    const formattedSymbol = formatSymbol(jsonPayload.symbol, jsonPayload.exchange);
+    const alertInterval = mapIntervalToTradingview(jsonPayload.interval);
+    
+    console.log('Chart generation check:', {
+      formattedSymbol,
+      alertInterval,
+      interval: jsonPayload.interval,
+    });
+    
+    if (!alertInterval) {
+      console.log(`Chart generation skipped - alertInterval is null for interval: ${jsonPayload.interval}`);
+      return;
+    }
+    
+    // Determine which charts to show based on interval
+    const chartIntervals: Array<{ key: string; value: TradingviewInterval }> = [
+      { key: '8h', value: TradingviewInterval.H8 },
+      { key: '4h', value: TradingviewInterval.H4 },
+      { key: '2h', value: TradingviewInterval.H2 },
+      { key: jsonPayload.interval.toLowerCase(), value: alertInterval }
+    ];
+    
+    if (chartIntervals.length === 0) {
+      console.log('Chart generation skipped - no chart intervals');
+      return;
+    }
+    
+    console.log(`Generating charts for ${formattedSymbol}...`);
+    // Send message to Telegram to notify generating charts
+    await sendMessageToTelegram({
+      chat_id: env.TELEGRAM_CHAT_ID,
+      text: `📊 Generating charts for ${formattedSymbol} at ${chartIntervals.map((interval) => interval.key).join(', ')}...`,
+    }, env);
+    
+    // Generate charts in parallel to reduce total time
+    const chartPromises = chartIntervals.map(async (chartInterval) => {
+      try {
+        console.log(`Attempting to generate chart for ${formattedSymbol} at ${chartInterval.key} (${chartInterval.value})...`);
+        const arrayBufferImage = await getTradingViewImage(
+          {
+            symbol: formattedSymbol,
+            interval: chartInterval.value,
+          },
+          env,
+        );
+        
+        console.log(`Successfully generated chart for ${chartInterval.key}, size: ${arrayBufferImage.byteLength} bytes`);
+        return {
+          chat_id: env.TELEGRAM_CHAT_ID,
+          caption: `${jsonPayload.symbol} ${chartInterval.key} ${formatVietnamTime()}`,
+          photo: arrayBufferImage,
+        };
+      } catch (error) {
+        console.error(`Error generating chart for ${chartInterval.key} (${chartInterval.value}):`, error);
+        console.error(`Error details:`, error instanceof Error ? error.message : String(error));
+        return null; // Return null on error, will be filtered out
+      }
+    });
+    
+    // Wait for all charts to generate in parallel
+    const chartResults = await Promise.all(chartPromises);
+    
+    // Filter out failed charts (null values)
+    const images = chartResults.filter((img): img is TelegramImageRequest => img !== null);
+    
+    if (images.length > 0) {
+      await sendImageGroupToTelegram({
+        chat_id: env.TELEGRAM_CHAT_ID,
+        images: images,
+      }, env);
+      console.log(`Charts sent to Telegram successfully for ${formattedSymbol}`);
+    } else {
+      console.log(`No charts generated for ${formattedSymbol} - images array is empty`);
+    }
+  } catch (error) {
+    console.error('Error generating charts:', error);
+    console.error('Error details:', error instanceof Error ? error.message : String(error));
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+    // Continue even if chart generation fails
   }
 }
 
@@ -1159,7 +1226,7 @@ async function handleOrderAnalysis(req: Request, env: Env): Promise<Response> {
   }
 }
 
-export async function handleFetch(req: Request, env: Env): Promise<Response> {
+export async function handleFetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(req.url);
   const pathname = url.pathname;
 
@@ -1220,7 +1287,12 @@ export async function handleFetch(req: Request, env: Env): Promise<Response> {
       return handleWebhook(req, env);
     
     case ROUTES.TRADINGVIEW_WEBHOOK:
-      return handleTradingViewWebhook(req, env);
+      await sendMessageToTelegram({
+        chat_id: env.TELEGRAM_CHAT_ID,
+        text: `============= ${formatVietnamTime()}`,
+        parse_mode: TelegramParseMode.Markdown,
+      }, env);
+      return await handleTradingViewWebhook(req, env, ctx);
     
     default:
       return textResponse('OK. No do anything.');

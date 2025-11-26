@@ -57,9 +57,9 @@ async function notifyWorkerError(
 }
 
 export default {
-  async fetch(req: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     try {
-      return await handleFetch(req, env);
+      return await handleFetch(req, env, ctx);
     } catch (error) {
       const logInfo = await notifyWorkerError(
         env,
