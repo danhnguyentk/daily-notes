@@ -794,20 +794,100 @@ async function handleSnapshotChart(env: Env): Promise<Response> {
 }
 
 /**
+ * TradingView webhook JSON payload interface
+ */
+interface TradingViewWebhookPayload {
+  interval?: string;
+  symbol?: string;
+  side?: string;
+  level?: string;
+  price?: number;
+  daily?: string;
+  H8?: string;
+  H4?: string;
+  H2?: string;
+}
+
+/**
  * Handle TradingView webhook alerts
- * TradingView sends plain text alerts, not JSON
+ * Supports both JSON and plain text formats
  */
 async function handleTradingViewWebhook(req: Request, env: Env): Promise<Response> {
   let rawBody = '';
   try {
-    // Read raw body (TradingView sends plain text)
+    // Read raw body
     rawBody = await req.text();
-    const message = rawBody.trim();
+    const trimmedBody = rawBody.trim();
     
-    console.log('TradingView webhook received:', message);
+    console.log('TradingView webhook received:', trimmedBody);
     
-    // Format log message
-    const logMessage = `📊 TradingView Alert\n\n${message}`;
+    let logMessage = '';
+    let alertMessage = '';
+    
+    // Try to parse as JSON first
+    try {
+      const parsed = JSON.parse(trimmedBody) as unknown;
+      const jsonPayload = parsed as TradingViewWebhookPayload;
+      
+      // Check if it's a valid TradingView JSON payload
+      if (jsonPayload.symbol || jsonPayload.interval || jsonPayload.side) {
+        // Format HARSI value as single emoji
+        const formatHarsiEmoji = (value?: string): string => {
+          if (!value) return '';
+          if (value.includes('UP')) return '🟢';
+          if (value.includes('DOWN')) return '🔴';
+          return '';
+        };
+        
+        // Determine emoji based on side
+        const sideEmoji = jsonPayload.side?.toUpperCase() === 'BUY' ? '🚀' : '⚠️';
+        
+        // Build compact message
+        const parts: string[] = [];
+        
+        // Emoji and [LEVEL SIDE INTERVAL]
+        const bracketParts: string[] = [];
+        if (jsonPayload.level) bracketParts.push(jsonPayload.level.toUpperCase());
+        if (jsonPayload.side) bracketParts.push(jsonPayload.side.toUpperCase());
+        if (jsonPayload.interval) bracketParts.push(jsonPayload.interval);
+        
+        if (bracketParts.length > 0) {
+          parts.push(`${sideEmoji} [${bracketParts.join(' ')}]`);
+        }
+        
+        // Symbol @Price
+        const symbolParts: string[] = [];
+        if (jsonPayload.symbol) symbolParts.push(jsonPayload.symbol);
+        if (jsonPayload.price) symbolParts.push(`@${jsonPayload.price}`);
+        
+        if (symbolParts.length > 0) {
+          parts.push(symbolParts.join(' '));
+        }
+        
+        // HARSI values
+        const harsiParts: string[] = [];
+        if (jsonPayload.daily) harsiParts.push(`D${formatHarsiEmoji(jsonPayload.daily)}`);
+        if (jsonPayload.H8) harsiParts.push(`8H${formatHarsiEmoji(jsonPayload.H8)}`);
+        if (jsonPayload.H4) harsiParts.push(`4H${formatHarsiEmoji(jsonPayload.H4)}`);
+        if (jsonPayload.H2) harsiParts.push(`2H${formatHarsiEmoji(jsonPayload.H2)}`);
+        
+        if (harsiParts.length > 0) {
+          parts.push('|');
+          parts.push(harsiParts.join(' '));
+        }
+        
+        logMessage = parts.join(' ');
+        alertMessage = trimmedBody; // Use raw JSON for Pushover
+      } else {
+        // JSON but not the expected structure, treat as plain text
+        logMessage = `📊 TradingView Alert\n\n${trimmedBody}`;
+        alertMessage = trimmedBody;
+      }
+    } catch {
+      // Not JSON, treat as plain text (original behavior)
+      logMessage = `📊 TradingView Alert\n\n${trimmedBody}`;
+      alertMessage = trimmedBody;
+    }
     
     // Send notification to Telegram
     try {
@@ -825,7 +905,7 @@ async function handleTradingViewWebhook(req: Request, env: Env): Promise<Respons
     try {
       await sendPushoverAlert(
         'TradingView Alert',
-        message,
+        alertMessage,
         env
       );
     } catch (error) {
@@ -838,7 +918,7 @@ async function handleTradingViewWebhook(req: Request, env: Env): Promise<Respons
       success: true,
       message: 'TradingView alert received and processed',
       alert: {
-        message,
+        message: alertMessage,
         time: new Date().toISOString(),
       },
     }, 200);
