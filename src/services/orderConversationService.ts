@@ -379,10 +379,16 @@ function createNotesKeyboard(currentNotes?: string): TelegramInlineKeyboardMarku
   return {
     inline_keyboard: [
       [
-        { text: '2 Nen 15M Tang lien tuc', callback_data: `${CallbackDataPrefix.NOTE_ADD}2 Nen 15M Tang lien tuc` },
+        { text: 'Strong Buy 5M', callback_data: `${CallbackDataPrefix.NOTE_ADD}Strong Buy 5M` },
+        { text: 'Strong Buy 15M', callback_data: `${CallbackDataPrefix.NOTE_ADD}Strong Buy 15M` },
       ],
       [
-        { text: 'HARSI 8h Xanh', callback_data: `${CallbackDataPrefix.NOTE_ADD}HARSI 8h Xanh` },
+        { text: 'Medium Buy 5M', callback_data: `${CallbackDataPrefix.NOTE_ADD}Medium Buy 5M` },
+        { text: 'Medium Buy 15M', callback_data: `${CallbackDataPrefix.NOTE_ADD}Medium Buy 15M` },
+      ],
+      [
+        { text: 'Very Strong Buy 5M', callback_data: `${CallbackDataPrefix.NOTE_ADD}Very Strong Buy 5M` },
+        { text: 'Very Strong Buy 15M', callback_data: `${CallbackDataPrefix.NOTE_ADD}Very Strong Buy 15M` },
       ],
       [
         ...(notes.length > 0 ? [{ text: '🗑️ Clear', callback_data: CallbackDataPrefix.NOTE_CLEAR }] : []),
