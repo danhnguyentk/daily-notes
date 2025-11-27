@@ -60,7 +60,8 @@ export async function getXAUPrice(env: Env): Promise<number> {
     throw new Error(`Gold API error: ${data.status !== 'success' ? `API returned status: ${data.status}` : 'Invalid response format'}`);
   }
 
-  return data.data.metal_prices.XAU.price;
+  const price = data.data.metal_prices.XAU.price;
+  return Number(price.toFixed(1));
 }
 
 /**

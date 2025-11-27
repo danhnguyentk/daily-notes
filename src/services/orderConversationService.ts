@@ -126,7 +126,7 @@ async function getEntryPrompt(symbol: TradingSymbol | undefined, env: Env): Prom
       if (!Number.isFinite(price)) {
         return ENTRY_PROMPT_BASE;
       }
-      const normalizedPrice = price >= 1000 ? Math.round(price) : parseFloat(price.toFixed(2));
+      const normalizedPrice = Math.round(price);
       return `${ENTRY_PROMPT_BASE} (Current price /${normalizedPrice})`;
     } catch (error) {
       console.error('Failed to fetch XAU price for entry prompt', {
@@ -148,7 +148,7 @@ async function getEntryPrompt(symbol: TradingSymbol | undefined, env: Env): Prom
     if (!Number.isFinite(price)) {
       return ENTRY_PROMPT_BASE;
     }
-    const normalizedPrice = price >= 1000 ? Math.round(price) : parseFloat(price.toFixed(2));
+    const normalizedPrice = price >= 1000 ? Math.round(price) : parseFloat(price.toFixed(1));
     return `${ENTRY_PROMPT_BASE} (Current price /${normalizedPrice})`;
   } catch (error) {
     console.error('Failed to fetch current price for entry prompt', {
@@ -192,14 +192,31 @@ function createQuantityKeyboard(): TelegramReplyKeyboardMarkup {
  * Shows suggested Stop Loss prices based on Entry and Direction
  * Values are rounded to nearest hundred
  */
-function createStopLossKeyboard(entry: number, direction: string): TelegramInlineKeyboardMarkup {
+function getStopLossOffsets(symbol?: TradingSymbol): number[] {
+  if (symbol === TradingSymbol.XAUUSD) {
+    return [3, 4, 5, 6];
+  }
+  return [200, 300, 400, 500];
+}
+
+function roundStopLossBySymbol(value: number, symbol?: TradingSymbol): number {
+  if (symbol === TradingSymbol.BTCUSDT) {
+    return Math.floor(value / 100) * 100;
+  }
+  return Math.round(value);
+}
+
+function createStopLossKeyboard(
+  entry: number,
+  direction: string,
+  symbol?: TradingSymbol
+): TelegramInlineKeyboardMarkup {
   const isLong = direction?.toUpperCase() === 'LONG' || direction?.toUpperCase() === 'L';
-  const offsets = [200, 300, 400, 500];
+  const offsets = getStopLossOffsets(symbol);
   
   const stopLossButtons = offsets.map(offset => {
     const stopLossRaw = isLong ? entry - offset : entry + offset;
-    // Round down to nearest hundred (e.g., 49450 → 49400, 49300 → 49300)
-    const stopLossRounded = Math.floor(stopLossRaw / 100) * 100;
+    const stopLossRounded = roundStopLossBySymbol(stopLossRaw, symbol);
     return {
       text: `SL ${offset} Giá (${stopLossRounded})`,
       callback_data: `${CallbackDataPrefix.STOP_LOSS}${stopLossRounded}`,
@@ -619,7 +636,7 @@ export async function processOrderInput(
       updatedState.step = OrderConversationStep.WAITING_STOP_LOSS;
       message = `✅ Entry: ${entry}\n\nVui lòng nhập Stop Loss:`;
       // Add reply keyboard with Stop Loss suggestions
-      replyMarkup = createStopLossKeyboard(entry, updatedState.data.direction || '');
+      replyMarkup = createStopLossKeyboard(entry, updatedState.data.direction || '', updatedState.data.symbol);
       break;
 
     case OrderConversationStep.WAITING_STOP_LOSS:

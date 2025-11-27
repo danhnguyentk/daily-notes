@@ -248,7 +248,7 @@ export async function getCurrentPrice(symbol: KuCoinSymbol, _env: Env): Promise<
     throw new Error(`KuCoin API error: ${data.code || 'Unknown error'}`);
   }
 
-  return parseFloat(data.data.price);
+  return Number(parseFloat(data.data.price).toFixed(1));
 }
 
 /**
