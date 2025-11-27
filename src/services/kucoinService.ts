@@ -66,6 +66,11 @@ export type KuCoinCandlesRequest = {
   limit: number;
 }
 
+export type LowestPriceInCandlesResult = {
+  price: number;
+  candle: KuCoinKline;
+}
+
 /**
  * KuCoin kline data format: [time, open, close, high, low, volume, turnover]
  * Time is in seconds (not milliseconds)
@@ -214,6 +219,29 @@ export async function checkNumberClosedCandlesBearish(
 }
 
 /**
+ * Get the lowest (đáy) price within the specified number of closed candles
+ */
+export async function getLowestPriceInClosedCandles(
+  request: KuCoinCandlesRequest,
+  env: Env
+): Promise<LowestPriceInCandlesResult | null> {
+  const closedCandles = await getNumberClosedLatestKuCoinCandles(request, env);
+
+  if (closedCandles.length === 0) {
+    return null;
+  }
+
+  const lowestCandle = closedCandles.reduce((currentLowest, candle) => {
+    return candle.low < currentLowest.low ? candle : currentLowest;
+  }, closedCandles[0]);
+
+  return {
+    price: Number(lowestCandle.low.toFixed(2)),
+    candle: lowestCandle,
+  };
+}
+
+/**
  * KuCoin API response format for ticker price
  */
 interface KuCoinTickerResponse {
@@ -263,4 +291,3 @@ export async function getCurrentPriceAndNotify(symbol: KuCoinSymbol, chatId: str
   }, env);
   return price;
 }
-

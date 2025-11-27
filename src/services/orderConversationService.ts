@@ -7,7 +7,7 @@ import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramReplyKeybo
 import { OrderConversationState, OrderConversationStep, OrderData, MarketState, OrderDirection, TradingSymbol, CallbackDataPrefix } from '../types/orderTypes';
 import { updateOrderWithClosePrice } from '../handlers/orderStatisticsHandler';
 import { formatHarsiValue, formatRiskUnit, safeToFixed } from '../utils/formatUtils';
-import { getCurrentPrice, KuCoinSymbol } from '../services/kucoinService';
+import { getCurrentPrice, getLowestPriceInClosedCandles, KuCoinSymbol, KuCoinInterval } from '../services/kucoinService';
 import { getXAUPrice } from '../services/goldService';
 import { getTrends, TrendRecord } from '../services/supabaseService';
 import { formatVietnamTime } from '../utils/timeUtils';
@@ -206,10 +206,37 @@ function roundStopLossBySymbol(value: number, symbol?: TradingSymbol): number {
   return Math.round(value);
 }
 
+async function getRecentLowestPriceForSymbol(symbol: TradingSymbol | undefined, env: Env): Promise<number | undefined> {
+  if (!symbol) {
+    return undefined;
+  }
+
+  const kuCoinSymbol = TRADING_SYMBOL_TO_KUCOIN[symbol];
+  if (!kuCoinSymbol) {
+    return undefined;
+  }
+
+  try {
+    const lowestResult = await getLowestPriceInClosedCandles({
+      symbol: kuCoinSymbol,
+      interval: KuCoinInterval.FIFTEEN_MINUTES,
+      limit: 3,
+    }, env);
+    return lowestResult?.price;
+  } catch (error) {
+    console.error('Failed to fetch lowest price for stop loss suggestion', {
+      symbol,
+      error,
+    });
+    return undefined;
+  }
+}
+
 function createStopLossKeyboard(
   entry: number,
   direction: string,
-  symbol?: TradingSymbol
+  symbol?: TradingSymbol,
+  extraStopLoss?: number
 ): TelegramInlineKeyboardMarkup {
   const isLong = direction?.toUpperCase() === 'LONG' || direction?.toUpperCase() === 'L';
   const offsets = getStopLossOffsets(symbol);
@@ -223,11 +250,23 @@ function createStopLossKeyboard(
     };
   });
   
+  const inlineRows = [
+    stopLossButtons.slice(0, 2),
+    stopLossButtons.slice(2, 4),
+  ];
+
+  if (extraStopLoss && extraStopLoss > 0) {
+    const roundedExtra = roundStopLossBySymbol(extraStopLoss, symbol);
+    inlineRows.push([
+      {
+        text: `Đáy gần nhất (${roundedExtra})`,
+        callback_data: `${CallbackDataPrefix.STOP_LOSS}${roundedExtra}`,
+      },
+    ]);
+  }
+
   return {
-    inline_keyboard: [
-      stopLossButtons.slice(0, 2), // First row: 200, 300
-      stopLossButtons.slice(2, 4), // Second row: 400, 500
-    ],
+    inline_keyboard: inlineRows,
   };
 }
 
@@ -642,7 +681,13 @@ export async function processOrderInput(
       updatedState.step = OrderConversationStep.WAITING_STOP_LOSS;
       message = `✅ Entry: ${entry}\n\nVui lòng nhập Stop Loss:`;
       // Add reply keyboard with Stop Loss suggestions
-      replyMarkup = createStopLossKeyboard(entry, updatedState.data.direction || '', updatedState.data.symbol);
+      const lowestPriceSuggestion = await getRecentLowestPriceForSymbol(updatedState.data.symbol, env);
+      replyMarkup = createStopLossKeyboard(
+        entry,
+        updatedState.data.direction || '',
+        updatedState.data.symbol,
+        lowestPriceSuggestion,
+      );
       break;
 
     case OrderConversationStep.WAITING_STOP_LOSS:
