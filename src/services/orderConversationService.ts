@@ -188,6 +188,75 @@ function createQuantityKeyboard(): TelegramReplyKeyboardMarkup {
 }
 
 /**
+ * Create inline keyboard for Stop Loss selection
+ * Shows suggested Stop Loss prices based on Entry and Direction
+ * Values are rounded to nearest hundred
+ */
+function createStopLossKeyboard(entry: number, direction: string): TelegramInlineKeyboardMarkup {
+  const isLong = direction?.toUpperCase() === 'LONG' || direction?.toUpperCase() === 'L';
+  const offsets = [200, 300, 400, 500];
+  
+  const stopLossButtons = offsets.map(offset => {
+    const stopLossRaw = isLong ? entry - offset : entry + offset;
+    // Round down to nearest hundred (e.g., 49450 → 49400, 49300 → 49300)
+    const stopLossRounded = Math.floor(stopLossRaw / 100) * 100;
+    return {
+      text: `${offset} Giá (${stopLossRounded})`,
+      callback_data: `${CallbackDataPrefix.STOP_LOSS}${stopLossRounded}`,
+    };
+  });
+  
+  return {
+    inline_keyboard: [
+      stopLossButtons.slice(0, 2), // First row: 200, 300
+      stopLossButtons.slice(2, 4), // Second row: 400, 500
+    ],
+  };
+}
+
+export async function handleStopLossSelectionFromInline(
+  userId: number,
+  chatId: string,
+  stopLossInput: string,
+  env: Env
+): Promise<void> {
+  const state = await getConversationState(userId, env);
+  if (!state) {
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: '❌ Không tìm thấy phiên nhập lệnh. Gửi /neworder để bắt đầu lại.',
+    }, env);
+    return;
+  }
+
+  if (state.step !== OrderConversationStep.WAITING_STOP_LOSS) {
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: '⚠️ Bạn chưa ở bước nhập Stop Loss hoặc đã hoàn thành bước này.',
+    }, env);
+    return;
+  }
+
+  const stopLoss = parseFloat(stopLossInput.trim());
+  if (isNaN(stopLoss) || stopLoss <= 0) {
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: '❌ Stop Loss không hợp lệ. Vui lòng chọn lại.',
+    }, env);
+    return;
+  }
+
+  state.data.stopLoss = stopLoss;
+  state.step = OrderConversationStep.WAITING_TAKE_PROFIT;
+  await saveConversationState(state, env);
+
+  await sendMessageToTelegram({
+    chat_id: chatId,
+    text: `✅ Stop Loss: ${stopLoss}\n\nVui lòng nhập Take Profit (hoặc gửi /skip để bỏ qua):`,
+  }, env);
+}
+
+/**
  * Create inline keyboard for notes selection with current selected notes
  */
 function createNotesKeyboard(currentNotes?: string): TelegramInlineKeyboardMarkup {
@@ -315,6 +384,8 @@ export async function processOrderInput(
     | TelegramReplyKeyboardMarkup
     | TelegramReplyKeyboardRemove
     | undefined;
+  
+  // For inline keyboard, we'll set it separately when needed
 
   switch (state.step) {
     case OrderConversationStep.WAITING_SYMBOL:
@@ -455,6 +526,8 @@ export async function processOrderInput(
       updatedState.data.entry = entry;
       updatedState.step = OrderConversationStep.WAITING_STOP_LOSS;
       message = `✅ Entry: ${entry}\n\nVui lòng nhập Stop Loss:`;
+      // Add reply keyboard with Stop Loss suggestions
+      replyMarkup = createStopLossKeyboard(entry, updatedState.data.direction || '');
       break;
 
     case OrderConversationStep.WAITING_STOP_LOSS:

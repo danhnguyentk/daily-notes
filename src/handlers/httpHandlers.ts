@@ -24,6 +24,7 @@ import {
   finishNotesSelection,
   clearConversationState,
   saveConversationState,
+  handleStopLossSelectionFromInline,
 } from '../services/orderConversationService';
 import { processOrderData } from './orderHandlers';
 import { OrderConversationStep, MarketState, CallbackDataPrefix, TradingSymbol } from '../types/orderTypes';
@@ -639,6 +640,15 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
             return textResponse('HARSI check selection handled');
           }
         }
+      }
+
+      // Handle Stop Loss selection from inline keyboard (independent of notes)
+      if (callbackData.startsWith(CallbackDataPrefix.STOP_LOSS)) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đã chọn Stop Loss');
+        callbackAnswered = true;
+        const stopLossValue = callbackData.substring(CallbackDataPrefix.STOP_LOSS.length);
+        await handleStopLossSelectionFromInline(userId, chatId, stopLossValue, env);
+        return textResponse('Stop Loss selected');
       }
 
       // Handle note selection from inline keyboard
