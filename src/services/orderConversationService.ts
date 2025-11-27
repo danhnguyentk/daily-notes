@@ -201,7 +201,7 @@ function createStopLossKeyboard(entry: number, direction: string): TelegramInlin
     // Round down to nearest hundred (e.g., 49450 → 49400, 49300 → 49300)
     const stopLossRounded = Math.floor(stopLossRaw / 100) * 100;
     return {
-      text: `${offset} Giá (${stopLossRounded})`,
+      text: `SL ${offset} Giá (${stopLossRounded})`,
       callback_data: `${CallbackDataPrefix.STOP_LOSS}${stopLossRounded}`,
     };
   });
