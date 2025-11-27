@@ -327,11 +327,7 @@ export async function startOrderConversation(
 ): Promise<void> {
   const existingState = await getConversationState(userId, env);
   if (existingState && existingState.step !== OrderConversationStep.COMPLETED) {
-    await sendMessageToTelegram({
-      chat_id: chatId,
-      text: '⚠️ Bạn đang có một lệnh đang nhập. Gửi /cancelorder để hủy và bắt đầu lại.',
-    }, env);
-    return;
+    await clearConversationState(userId, env);
   }
 
   const newState: OrderConversationState = {

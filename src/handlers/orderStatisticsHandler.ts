@@ -433,16 +433,6 @@ export async function showOrderMenu(
         callback_data: CallbackDataPrefix.ORDER_VIEW,
       },
     ],
-    [
-      {
-        text: '👀 Xem preview',
-        callback_data: CallbackDataPrefix.ORDER_PREVIEW,
-      },
-      {
-        text: '❌ Hủy lệnh',
-        callback_data: CallbackDataPrefix.ORDER_CANCEL,
-      },
-    ],
   ];
 
   // Get orders list

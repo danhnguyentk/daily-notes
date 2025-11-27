@@ -34,8 +34,6 @@ export enum CallbackDataPrefix {
   CLOSE_ORDER = 'close_order_',
   UPDATE_CLOSE_PRICE = 'update_close_price_',
   ORDER_NEW = 'order_new',
-  ORDER_CANCEL = 'order_cancel',
-  ORDER_PREVIEW = 'order_preview',
   ORDER_UPDATE = 'order_update',
   ORDER_VIEW = 'order_view',
   NOTE_ADD = 'note_add_',

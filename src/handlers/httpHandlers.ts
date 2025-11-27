@@ -15,8 +15,6 @@ import { notifyNumberClosedCandlesBullish } from './candleHandlers';
 import { takeTelegramAction } from './telegramHandlers';
 import {
   startOrderConversation,
-  cancelOrderConversation,
-  showOrderPreview,
   processOrderInput,
   getConversationState,
   addNoteToOrder,
@@ -29,8 +27,6 @@ import {
 import { processOrderData } from './orderHandlers';
 import { OrderConversationStep, MarketState, CallbackDataPrefix, TradingSymbol } from '../types/orderTypes';
 import {
-  showRiskUnitStatistics,
-  showMonthlyStatistics,
   showOrderSelectionForUpdate,
   getOrderById,
   showOrderListForView,
@@ -236,21 +232,6 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         callbackAnswered = true;
         await startOrderConversation(userId, chatId, env);
         return textResponse('Order conversation started');
-      }
-
-      if (callbackData === CallbackDataPrefix.ORDER_CANCEL) {
-        await answerCallbackQuery(callbackQuery.id, env, 'Đã hủy lệnh');
-        callbackAnswered = true;
-        await cancelOrderConversation(userId, chatId, env);
-        return textResponse('Order conversation cancelled');
-      }
-
-
-      if (callbackData === CallbackDataPrefix.ORDER_PREVIEW) {
-        await answerCallbackQuery(callbackQuery.id, env, 'Đang hiển thị preview...');
-        callbackAnswered = true;
-        await showOrderPreview(userId, chatId, env);
-        return textResponse('Order preview shown');
       }
 
       if (callbackData === CallbackDataPrefix.ORDER_UPDATE) {
