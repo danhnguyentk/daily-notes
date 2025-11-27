@@ -214,6 +214,63 @@ function createStopLossKeyboard(entry: number, direction: string): TelegramInlin
   };
 }
 
+/**
+ * Create inline keyboard for Take Profit suggestions (1R, 2R)
+ */
+function createTakeProfitKeyboard(
+  entry: number | undefined,
+  stopLoss: number | undefined,
+  direction: string | undefined
+): TelegramInlineKeyboardMarkup | undefined {
+  if (!entry || !stopLoss || !direction) {
+    return undefined;
+  }
+
+  const normalizedDirection = direction.toUpperCase();
+  const isLong = normalizedDirection === 'LONG' || normalizedDirection === 'L';
+  const riskPerUnit = isLong ? entry - stopLoss : stopLoss - entry;
+
+  if (!Number.isFinite(riskPerUnit) || riskPerUnit <= 0) {
+    return undefined;
+  }
+
+  const multipliers = [1, 1.5, 2, 3];
+  const buttons = multipliers.map((multiplier) => {
+    const target = isLong ? entry + riskPerUnit * multiplier : entry - riskPerUnit * multiplier;
+    const roundedTarget = Math.round(target);
+    return {
+      text: `TP ${multiplier}R (${roundedTarget})`,
+      callback_data: `${CallbackDataPrefix.TAKE_PROFIT}${roundedTarget}`,
+    };
+  });
+
+  const inlineRows: { text: string; callback_data: string }[][] = [];
+  for (let i = 0; i < buttons.length; i += 2) {
+    inlineRows.push(buttons.slice(i, i + 2));
+  }
+
+  return {
+    inline_keyboard: inlineRows,
+  };
+}
+
+async function advanceToQuantityStep(
+  state: OrderConversationState,
+  chatId: string,
+  env: Env
+): Promise<void> {
+  state.step = OrderConversationStep.WAITING_QUANTITY;
+  const message = `✅ Take Profit: ${state.data.takeProfit ?? 'N/A'}\n\nVui lòng chọn Quantity (hoặc /skip để bỏ qua):`;
+  const quantityKeyboard = createQuantityKeyboard();
+
+  await saveConversationState(state, env);
+  await sendMessageToTelegram({
+    chat_id: chatId,
+    text: message,
+    reply_markup: quantityKeyboard,
+  }, env);
+}
+
 export async function handleStopLossSelectionFromInline(
   userId: number,
   chatId: string,
@@ -250,10 +307,49 @@ export async function handleStopLossSelectionFromInline(
   state.step = OrderConversationStep.WAITING_TAKE_PROFIT;
   await saveConversationState(state, env);
 
+  const takeProfitKeyboard = createTakeProfitKeyboard(state.data.entry, stopLoss, state.data.direction);
+
   await sendMessageToTelegram({
     chat_id: chatId,
     text: `✅ Stop Loss: ${stopLoss}\n\nVui lòng nhập Take Profit (hoặc gửi /skip để bỏ qua):`,
+    reply_markup: takeProfitKeyboard,
   }, env);
+}
+
+export async function handleTakeProfitSelectionFromInline(
+  userId: number,
+  chatId: string,
+  takeProfitInput: string,
+  env: Env
+): Promise<void> {
+  const state = await getConversationState(userId, env);
+  if (!state) {
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: '❌ Không tìm thấy phiên nhập lệnh. Gửi /neworder để bắt đầu lại.',
+    }, env);
+    return;
+  }
+
+  if (state.step !== OrderConversationStep.WAITING_TAKE_PROFIT) {
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: '⚠️ Bạn chưa ở bước nhập Take Profit hoặc đã hoàn thành bước này.',
+    }, env);
+    return;
+  }
+
+  const takeProfit = parseFloat(takeProfitInput.trim());
+  if (isNaN(takeProfit) || takeProfit <= 0) {
+    await sendMessageToTelegram({
+      chat_id: chatId,
+      text: '❌ Take Profit không hợp lệ. Vui lòng chọn lại.',
+    }, env);
+    return;
+  }
+
+  state.data.takeProfit = takeProfit;
+  await advanceToQuantityStep(state, chatId, env);
 }
 
 /**
@@ -538,6 +634,7 @@ export async function processOrderInput(
       updatedState.data.stopLoss = stopLoss;
       updatedState.step = OrderConversationStep.WAITING_TAKE_PROFIT;
       message = `✅ Stop Loss: ${stopLoss}\n\nVui lòng nhập Take Profit (hoặc gửi /skip để bỏ qua):`;
+      replyMarkup = createTakeProfitKeyboard(updatedState.data.entry, stopLoss, updatedState.data.direction);
       break;
 
     case OrderConversationStep.WAITING_TAKE_PROFIT:
@@ -554,19 +651,7 @@ export async function processOrderInput(
         }
         updatedState.data.takeProfit = takeProfit;
       }
-      updatedState.step = OrderConversationStep.WAITING_QUANTITY;
-      message = `✅ Take Profit: ${updatedState.data.takeProfit || 'N/A'}\n\nVui lòng chọn Quantity (hoặc /skip để bỏ qua):`;
-      
-      // Create reply keyboard with quantity options
-      // This will show buttons at the bottom that send text like /0.01
-      const quantityKeyboard = createQuantityKeyboard();
-      
-      await saveConversationState(updatedState, env);
-      await sendMessageToTelegram({ 
-        chat_id: chatId, 
-        text: message,
-        reply_markup: quantityKeyboard,
-      }, env);
+      await advanceToQuantityStep(updatedState, chatId, env);
       return { completed: false };
 
     case OrderConversationStep.WAITING_QUANTITY:

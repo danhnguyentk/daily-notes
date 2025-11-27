@@ -23,6 +23,7 @@ import {
   clearConversationState,
   saveConversationState,
   handleStopLossSelectionFromInline,
+  handleTakeProfitSelectionFromInline,
 } from '../services/orderConversationService';
 import { processOrderData } from './orderHandlers';
 import { OrderConversationStep, MarketState, CallbackDataPrefix, TradingSymbol } from '../types/orderTypes';
@@ -122,7 +123,12 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       const callbackQuery = body.callback_query;
       const userId = callbackQuery.from.id;
       const chatId = callbackQuery.message?.chat.id.toString() || '';
-      const callbackData = callbackQuery.data;
+      const rawCallbackData = callbackQuery.data;
+      if (typeof rawCallbackData !== 'string') {
+        await answerCallbackQuery(callbackQuery.id, env, 'Dữ liệu không hợp lệ');
+        return textResponse('Invalid callback data');
+      }
+      const callbackData = rawCallbackData;
       
       console.log(`Received callback query from user ${userId}. Chat ID: ${chatId}. Callback Data: ${callbackData}`);
       
@@ -624,12 +630,22 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       }
 
       // Handle Stop Loss selection from inline keyboard (independent of notes)
-      if (callbackData.startsWith(CallbackDataPrefix.STOP_LOSS)) {
+      const stopLossPrefix = `${CallbackDataPrefix.STOP_LOSS}`;
+      if (callbackData.startsWith(stopLossPrefix)) {
         await answerCallbackQuery(callbackQuery.id, env, 'Đã chọn Stop Loss');
         callbackAnswered = true;
-        const stopLossValue = callbackData.substring(CallbackDataPrefix.STOP_LOSS.length);
+        const stopLossValue = callbackData.substring(stopLossPrefix.length);
         await handleStopLossSelectionFromInline(userId, chatId, stopLossValue, env);
         return textResponse('Stop Loss selected');
+      }
+
+      const takeProfitPrefix = `${CallbackDataPrefix.TAKE_PROFIT}`;
+      if (callbackData.startsWith(takeProfitPrefix)) {
+        await answerCallbackQuery(callbackQuery.id, env, 'Đã chọn Take Profit');
+        callbackAnswered = true;
+        const takeProfitValue = callbackData.substring(takeProfitPrefix.length);
+        await handleTakeProfitSelectionFromInline(userId, chatId, takeProfitValue, env);
+        return textResponse('Take Profit selected');
       }
 
       // Handle note selection from inline keyboard
