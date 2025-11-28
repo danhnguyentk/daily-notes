@@ -599,12 +599,21 @@ export async function showOrderListForView(
   const lossCount = closedOrders.filter(order => order.orderResult === OrderResult.LOSS).length;
   const breakevenCount = closedOrders.filter(order => order.orderResult === OrderResult.BREAKEVEN).length;
   
-  const message = `📋 Danh sách lệnh\n` +
-    `📊 Total: ${sortedOrders.length}/${allOrders.length} orders\n` +
-    `⏳ In Progress: ${openCount}\n` +
-    `🟢 Wins: ${winCount} • 🔴 Losses: ${lossCount} • ⚪ Breakeven: ${breakevenCount}\n` +
-    `👉 Chọn lệnh bên dưới để xem chi tiết:`;
+  const summaryBlock = [
+    `📊 Total: ${sortedOrders.length}/${allOrders.length} orders`,
+    `⏳ In Progress: ${openCount}`,
+    `🟢 Wins: ${winCount}`,
+    `🔴 Losses: ${lossCount}`,
+    `⚪ Breakeven: ${breakevenCount}`,
+  ].join('\n');
 
+  const message = [
+    '📋 Danh sách lệnh',
+    '```',
+    summaryBlock,
+    '```',
+    '👉 Chọn lệnh bên dưới để xem chi tiết:',
+  ].join('\n');
   await sendMessageToTelegram(
     {
       chat_id: chatId,
