@@ -6,11 +6,12 @@ import { Env } from '../types/env';
 import { OrderData, CallbackDataPrefix, OrderResult } from '../types/orderTypes';
 import { sendMessageToTelegram, TelegramInlineKeyboardMarkup, TelegramParseMode } from '../services/telegramService';
 import { formatVietnamTime, formatVietnamTimeShort } from '../utils/timeUtils';
-import { formatHarsiValue, OrderResultIcon } from '../utils/formatUtils';
+import { OrderResultIcon } from '../utils/formatUtils';
 import {
   calculateRiskUnitStatistics,
   formatRiskUnit,
 } from '../utils/orderCalcUtils';
+import { buildOrderSummarySections } from '../utils/orderSummaryFormatter';
 import {
   saveOrderToSupabase,
   getUserOrdersFromSupabase,
@@ -625,99 +626,35 @@ export async function showOrderDetails(
   }
 
   const orderWithMeta = order as OrderData & { orderId: string; timestamp: number; updatedAt?: number };
-  const date = orderWithMeta.timestamp
-    ? new Date(orderWithMeta.timestamp).toLocaleDateString('vi-VN') + ' ' + new Date(orderWithMeta.timestamp).toLocaleTimeString('vi-VN')
-    : 'N/A';
-  const updatedDate = orderWithMeta.updatedAt
-    ? new Date(orderWithMeta.updatedAt).toLocaleDateString('vi-VN') + ' ' + new Date(orderWithMeta.updatedAt).toLocaleTimeString('vi-VN')
-    : null;
-
-  const formatRiskUnit = (ratio: number | undefined | null): string => {
-    if (ratio === undefined || ratio === null) return 'N/A';
-    if (ratio > 0) {
-      return `+${ratio.toFixed(2)}R`;
-    } else if (ratio < 0) {
-      return `${ratio.toFixed(2)}R`;
-    }
-    return '0R';
+  const formatTimestamp = (value?: number): string | undefined => {
+    if (!value) return undefined;
+    return formatVietnamTime(new Date(value));
   };
+  const summarySections = buildOrderSummarySections(order, {
+    fallbackText: 'N/A',
+    resultDisplay: 'detailed',
+    createdAtText: formatTimestamp(orderWithMeta.timestamp),
+    updatedAtText: formatTimestamp(orderWithMeta.updatedAt),
+  });
 
-  // Helper function to safely format numbers with toFixed
-  const safeToFixed = (value: number | undefined | null, decimals: number, fallback: string = 'N/A'): string => {
-    if (value === undefined || value === null || isNaN(value)) return fallback;
-    return value.toFixed(decimals);
-  };
+  let details = summarySections.headline;
+  if (summarySections.timeLine) {
+    details += `\n${summarySections.timeLine}`;
+  }
+  details += `\n${summarySections.entryLine}\n${summarySections.harsiBlock}`;
 
-  let details = `
-📋 Chi tiết lệnh
-
-📊 Thông tin cơ bản:
-   • Symbol: ${order.symbol || 'N/A'}
-   • Direction: ${order.direction || 'N/A'}
-   • HARSI 1W: ${formatHarsiValue(order.harsi1w)}
-   • HARSI 3D: ${formatHarsiValue(order.harsi3d)}
-   • HARSI 2D: ${formatHarsiValue(order.harsi2d)}
-   • HARSI 1D: ${formatHarsiValue(order.harsi1d)}
-   • HARSI 8H: ${formatHarsiValue(order.harsi8h)}
-   • HARSI 4H: ${formatHarsiValue(order.harsi4h)}
-   • HARSI 2H: ${formatHarsiValue(order.hasri2h)}
-   • Entry: ${order.entry || 'N/A'}
-   • Stop Loss: ${order.stopLoss || 'N/A'}
-   • Take Profit: ${order.takeProfit || 'N/A'}
-   • Quantity: ${order.quantity || 'N/A'}
-   ${!order?.actualClosePrice ? '' : `   • Close Price: ${safeToFixed(order.actualClosePrice as number, 2, 'N/A')}`}
-   • Tạo lúc: ${date}
-   ${updatedDate ? `   • Cập nhật lúc: ${updatedDate}` : ''}
-  `.trim();
-
-  // Thông tin rủi ro tiềm năng
-  if (order.potentialStopLoss !== undefined && order.potentialStopLoss !== null) {
-    details += `\n\n📉 Rủi ro tiềm năng:`;
-    details += `\n   • Potential Stop Loss: ${safeToFixed(order.potentialStopLoss, 0)} (${safeToFixed(order.potentialStopLossPercent, 2)}%)`;
-    details += `\n   • Potential Stop Loss USD: $${safeToFixed(order.potentialStopLossUsd, 2)}`;
+  if (summarySections.riskBlock) {
+    details += `\n${summarySections.riskBlock}`;
   }
 
-  if (order.potentialProfit !== undefined && order.potentialProfit !== null) {
-    details += `\n\n📈 Lợi nhuận tiềm năng:`;
-    details += `\n   • Potential Profit: ${safeToFixed(order.potentialProfit, 0)} (${safeToFixed(order.potentialProfitPercent, 2)}%)`;
-    details += `\n   • Potential Profit USD: $${safeToFixed(order.potentialProfitUsd, 2)}`;
-  }
-
-  if (order.potentialRiskRewardRatio !== undefined && order.potentialRiskRewardRatio !== null) {
-    details += `\n   • Potential Risk/Reward: 1:${safeToFixed(order.potentialRiskRewardRatio, 2)}`;
-  }
-
-  // Thông tin kết quả thực tế (nếu đã đóng)
-  if (order.actualRiskRewardRatio !== undefined && order.actualRiskRewardRatio !== null) {
-    details += `\n\n📊 Kết quả thực tế:`;
-    if (order.orderResult) {
-      const statusKey = order.orderResult;
-      const statusEmojis = OrderResultIcon[statusKey];
-      const resultEmoji = statusEmojis.join('');
-      const resultText = statusKey === OrderResult.WIN ? 'WIN' : statusKey === OrderResult.LOSS ? 'LOSS' : statusKey === OrderResult.BREAKEVEN ? 'BREAKEVEN' : 'IN_PROGRESS';
-      details += `\n   • Kết quả: ${resultEmoji} ${resultText}`;
-    }
-    details += `\n   • R: ${formatRiskUnit(order.actualRiskRewardRatio)}`;
-    const ratioPercent = order.actualRiskRewardRatio * 100;
-    details += `\n   ${order.actualRiskRewardRatio > 0
-      ? `(Lợi nhuận ${safeToFixed(ratioPercent, 1)}% rủi ro)`
-      : `(Thua lỗ ${safeToFixed(Math.abs(ratioPercent), 1)}% rủi ro)`}`;
-    
-    if (order.actualRealizedPnL !== undefined && order.actualRealizedPnL !== null) {
-      const pnlSign = order.actualRealizedPnL > 0 ? '+' : '';
-      const pnlUsdSign = order.actualRealizedPnLUsd && order.actualRealizedPnLUsd > 0 ? '+' : '';
-      const pnlPercentSign = order.actualRealizedPnLPercent && order.actualRealizedPnLPercent > 0 ? '+' : '';
-      details += `\n   • Actual PnL: ${pnlSign}${safeToFixed(order.actualRealizedPnL, 4)}`;
-      details += `\n   • Actual PnL USD: ${pnlUsdSign}$${safeToFixed(order.actualRealizedPnLUsd, 2)}`;
-      details += `\n   • Actual PnL %: ${pnlPercentSign}${safeToFixed(order.actualRealizedPnLPercent, 2)}%`;
-    }
+  if (summarySections.resultBlock) {
+    details += `\n${summarySections.resultBlock}`;
   } else {
-    details += `\n\n⏳ Lệnh chưa đóng`;
+    details += `\n⏳ Lệnh chưa đóng`;
   }
 
-  // Notes
   if (order.notes) {
-    details += `\n\n📝 Notes:\n${order.notes}`;
+    details += `\n📝 Notes:\n${order.notes}`;
   }
 
   // Add update and delete buttons
