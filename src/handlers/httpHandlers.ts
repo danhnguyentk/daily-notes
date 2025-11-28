@@ -194,9 +194,10 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
           selectedOrderId: orderId,
         }, env);
 
+        const hintsText = `(SL: /${order.stopLoss ?? 'N/A'}, TP: /${order.takeProfit ?? 'N/A'})`;
         await sendMessageToTelegram({
           chat_id: chatId,
-          text: `✅ Đã chọn lệnh:\n\nSymbol: ${order.symbol}\nDirection: ${order.direction}\nEntry: ${order.entry}\nStop Loss: ${order.stopLoss}\n\nVui lòng nhập Close Price:\n(Stop Loss: /${order.stopLoss})`,
+          text: `✅ Đã chọn lệnh:\n\nSymbol: ${order.symbol}\nDirection: ${order.direction}\nEntry: ${order.entry}\nStop Loss: ${order.stopLoss}\n\nVui lòng nhập Close Price:\n${hintsText}`,
         }, env);
         return textResponse('Order selected for update');
       }
@@ -225,9 +226,10 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         }, env);
 
         const currentClosePrice = order.actualClosePrice ? `\nClose Price hiện tại: ${order.actualClosePrice}` : '';
+        const hintsText = `(SL: /${order.stopLoss ?? 'N/A'}, TP: /${order.takeProfit ?? 'N/A'})`;
         await sendMessageToTelegram({
           chat_id: chatId,
-          text: `✅ Đã chọn lệnh để cập nhật Close Price:\n\nSymbol: ${order.symbol}\nDirection: ${order.direction}\nEntry: ${order.entry}\nStop Loss: ${order.stopLoss}${currentClosePrice}\n\nVui lòng nhập Close Price mới:\n(Stop Loss: /${order.stopLoss})`,
+          text: `✅ Đã chọn lệnh để cập nhật Close Price:\n\nSymbol: ${order.symbol}\nDirection: ${order.direction}\nEntry: ${order.entry}\nStop Loss: ${order.stopLoss}${currentClosePrice}\n\nVui lòng nhập Close Price mới:\n${hintsText}`,
         }, env);
         return textResponse('Order selected for close price update');
       }
