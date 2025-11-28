@@ -662,29 +662,25 @@ export async function showOrderDetails(
   const isOrderClosed = order.orderResult && order.orderResult !== OrderResult.IN_PROGRESS;
   const keyboardButtons: Array<Array<{ text: string; callback_data: string }>> = [];
   
+  const actionRow: Array<{ text: string; callback_data: string }> = [];
   if (!isOrderClosed) {
-    keyboardButtons.push([
-      {
-        text: '🔒 Đóng lệnh',
-        callback_data: `${CallbackDataPrefix.CLOSE_ORDER}${orderWithMeta.orderId}`,
-      },
-    ]);
+    actionRow.push({
+      text: '🔒 Đóng lệnh',
+      callback_data: `${CallbackDataPrefix.CLOSE_ORDER}${orderWithMeta.orderId}`,
+    });
   } else {
-    // Show "Cập nhật Close Price" button if order is already closed
-    keyboardButtons.push([
-      {
-        text: '✏️ Cập nhật Close Price',
-        callback_data: `${CallbackDataPrefix.UPDATE_CLOSE_PRICE}${orderWithMeta.orderId}`,
-      },
-    ]);
+    actionRow.push({
+      text: '✏️ Cập nhật Close',
+      callback_data: `${CallbackDataPrefix.UPDATE_CLOSE_PRICE}${orderWithMeta.orderId}`,
+    });
   }
-  
-  keyboardButtons.push([
-    {
-      text: '🗑️ Xóa lệnh',
-      callback_data: `${CallbackDataPrefix.DELETE_ORDER}${orderWithMeta.orderId}`,
-    },
-  ]);
+
+  actionRow.push({
+    text: '🗑️ Xóa lệnh',
+    callback_data: `${CallbackDataPrefix.DELETE_ORDER}${orderWithMeta.orderId}`,
+  });
+
+  keyboardButtons.push(actionRow);
   
   const keyboard: TelegramInlineKeyboardMarkup = {
     inline_keyboard: keyboardButtons,
