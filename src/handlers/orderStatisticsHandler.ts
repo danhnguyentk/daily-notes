@@ -589,13 +589,20 @@ export async function showOrderListForView(
   };
 
   // Simplified message without full list
-  const closedCount = sortedOrders.filter(order => order.orderResult && order.orderResult !== OrderResult.IN_PROGRESS).length;
+  const isClosedOrder = (order: OrderData): boolean =>
+    Boolean(order.orderResult && order.orderResult !== OrderResult.IN_PROGRESS);
+
+  const closedOrders = sortedOrders.filter(isClosedOrder);
+  const closedCount = closedOrders.length;
   const openCount = sortedOrders.length - closedCount;
+  const winCount = closedOrders.filter(order => order.orderResult === OrderResult.WIN).length;
+  const lossCount = closedOrders.filter(order => order.orderResult === OrderResult.LOSS).length;
+  const breakevenCount = closedOrders.filter(order => order.orderResult === OrderResult.BREAKEVEN).length;
   
-  const message = `📋 Danh sách lệnh\n\n` +
-    `📊 Tổng số: ${sortedOrders.length}/${allOrders.length} lệnh\n` +
-    `✅ Đã đóng: ${closedCount}\n` +
-    `⏳ Chưa đóng: ${openCount}\n\n` +
+  const message = `📋 Danh sách lệnh\n` +
+    `📊 Total: ${sortedOrders.length}/${allOrders.length} orders\n` +
+    `⏳ In Progress: ${openCount}\n` +
+    `🟢 Wins: ${winCount} • 🔴 Losses: ${lossCount} • ⚪ Breakeven: ${breakevenCount}\n` +
     `👉 Chọn lệnh bên dưới để xem chi tiết:`;
 
   await sendMessageToTelegram(
