@@ -673,13 +673,13 @@ export async function showOrderDetails(
   // Thông tin rủi ro tiềm năng
   if (order.potentialStopLoss !== undefined && order.potentialStopLoss !== null) {
     details += `\n\n📉 Rủi ro tiềm năng:`;
-    details += `\n   • Potential Stop Loss: ${safeToFixed(order.potentialStopLoss, 4)} (${safeToFixed(order.potentialStopLossPercent, 2)}%)`;
+    details += `\n   • Potential Stop Loss: ${safeToFixed(order.potentialStopLoss, 0)} (${safeToFixed(order.potentialStopLossPercent, 2)}%)`;
     details += `\n   • Potential Stop Loss USD: $${safeToFixed(order.potentialStopLossUsd, 2)}`;
   }
 
   if (order.potentialProfit !== undefined && order.potentialProfit !== null) {
     details += `\n\n📈 Lợi nhuận tiềm năng:`;
-    details += `\n   • Potential Profit: ${safeToFixed(order.potentialProfit, 4)} (${safeToFixed(order.potentialProfitPercent, 2)}%)`;
+    details += `\n   • Potential Profit: ${safeToFixed(order.potentialProfit, 0)} (${safeToFixed(order.potentialProfitPercent, 2)}%)`;
     details += `\n   • Potential Profit USD: $${safeToFixed(order.potentialProfitUsd, 2)}`;
   }
 
