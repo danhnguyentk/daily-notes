@@ -44,7 +44,6 @@ export function buildOrderSummarySections(
       ? ` | Close: ${formatNumberWithCommas(order.actualClosePrice, 2, fallback)}`
       : '';
 
-  const headline = `📌 ${order.symbol || fallback} | ${directionLabel}`;
   const timeParts: string[] = [];
   if (options.createdAtText) {
     timeParts.push(`🕒 Tạo: ${options.createdAtText}`);
@@ -53,7 +52,9 @@ export function buildOrderSummarySections(
     timeParts.push(`🔄 Cập nhật: ${options.updatedAtText}`);
   }
   const timeLine = timeParts.length ? timeParts.join(' | ') : undefined;
-  const entryLine = `🔥 E: ${entryText} | TP: ${takeProfitText} | SL: ${stopLossText} | Q: ${quantityText}${closePriceFragment}`;
+  const quantityWithClose = `Q: ${quantityText}${closePriceFragment}`;
+  const headline = `📌 ${order.symbol || fallback} | ${directionLabel} | ${quantityWithClose}`;
+  const entryLine = `🔥 E: ${entryText} | TP: ${takeProfitText} | SL: ${stopLossText}`;
   const harsiBlock = `📊 HARSI\n${buildHarsiLine(order)}`;
   const riskBlock = buildRiskBlock(order, fallback);
   const resultBlock = buildResultBlock(order, fallback, resultDisplay);
