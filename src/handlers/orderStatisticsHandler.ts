@@ -558,7 +558,11 @@ export async function showOrderListForView(
   const keyboard: TelegramInlineKeyboardMarkup = {
     inline_keyboard: sortedOrders.map((order) => {
       const orderWithMeta = order as OrderData & { orderId: string; timestamp: number };
-      const status = order.orderResult !== undefined ? '✅' : '⏳';
+      let status = '⏳';
+      if (order.orderResult && order.orderResult !== OrderResult.IN_PROGRESS) {
+        const icons = OrderResultIcon[order.orderResult];
+        status = icons?.[0] ?? '✅';
+      }
       
       // Format date and time using Vietnam time utility (short format)
       const dateTimeStr = orderWithMeta.timestamp 
